@@ -304,7 +304,10 @@ class SessionManager @Inject constructor(
     private fun isUsable(session: AuthSession): Boolean {
         val now = clock.now()
         return session.tokens.refreshTokenExpiresAt > now &&
-            session.tokens.offlineAccessUntil > now
+            (
+                session.tokens.accessTokenExpiresAt > now ||
+                    session.tokens.offlineAccessUntil > now
+                )
     }
 
     private suspend fun expireLocalSession() {
