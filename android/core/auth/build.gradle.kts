@@ -29,12 +29,16 @@ android {
 }
 
 dependencies {
+    implementation(project(":domain:common"))
     implementation("androidx.core:core-ktx")
     implementation("androidx.appcompat:appcompat")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.google.android.material:material")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
