@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
@@ -142,7 +143,7 @@ private fun runtimeShapes(borderRadiusDp: Int): Shapes {
     )
 }
 
-private fun Int.dpValue() = androidx.compose.ui.unit.dp * this.toFloat()
+private fun Int.dpValue() = this.dp
 
 private fun runtimeTypography(
     fontFamilyName: String?,
