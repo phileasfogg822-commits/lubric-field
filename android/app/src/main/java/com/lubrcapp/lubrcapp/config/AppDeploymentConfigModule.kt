@@ -90,6 +90,8 @@ object AppDeploymentConfigModule {
                 termsUrl = ConfigurationCodecs.optional(BuildConfig.DEPLOYMENT_TERMS_URL),
                 privacyUrl = ConfigurationCodecs.optional(BuildConfig.DEPLOYMENT_PRIVACY_URL),
                 website = ConfigurationCodecs.optional(BuildConfig.DEPLOYMENT_WEBSITE),
+                defaultTextScale = BuildConfig.DEFAULT_TEXT_SCALE.toFloat(),
+                defaultLargeTouchTargets = BuildConfig.DEFAULT_LARGE_TOUCH_TARGETS,
             )
         }
 
