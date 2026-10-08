@@ -57,8 +57,35 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce white-label boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number -E '"LubrcApp"|api\.lubrcapp\.com' whitelist/config/src core/network/src 2>/dev/null; then
+            echo "Brand identity or endpoint must come from deployment configuration, not Kotlin source."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'android\.content\.Context|DataStore|CacheService' whitelist/config/src/main 2>/dev/null; then
+            echo "White-label configuration engine must not depend on Context/cache/DataStore."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 
       - name: Compile Room migration instrumentation tests
         run: ./gradlew :core:store:assembleDebugAndroidTest --no-daemon
+
+      - name: Build alternate white-label deployment
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon \
+            -Pwl.appName="ABC Pharmacy" \
+            -Pwl.applicationId=com.example.abcpharmacy \
+            -Pwl.apiEndpoint=https://pharmacy.example.invalid/ \
+            -Pwl.includedModules=inventory,barcodes,batch_tracking \
+            -Pwl.term.item=Medicine \
+            -Pwl.term.customer=Patient \
+            -Pwl.brand.primaryColor=FF00695C \
+            -Pwl.paymentMethods=cash:Cash,insurance:Insurance
