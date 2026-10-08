@@ -1,156 +1,71 @@
 package com.lubrcapp.lubrcapp.whitelist.config
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.lubrcapp.lubrcapp.core.cache.CacheService
-import com.lubrcapp.lubrcapp.whitelist.branding.BrandingConfig
-import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagKeys
-import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagService
-import com.lubrcapp.lubrcapp.whitelist.tenant.TenantService
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
+import com.lubrcapp.lubrcapp.core.repository.ConfigurationRepository
+import com.lubrcapp.lubrcapp.core.repository.SettingsRepository
+import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.TenantId
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 
-class WhiteLabelConfigServiceImpl(
-    private val context: Context,
-    private val cacheService: CacheService,
-    private val dataStore: DataStore<Preferences>,
-    private val tenantService: TenantService,
-    private val featureFlagService: FeatureFlagService
+@Singleton
+class WhiteLabelConfigServiceImpl @Inject constructor(
+    private val deploymentSource: DeploymentConfigSource,
+    private val businessRepository: BusinessRepository,
+    private val settingsRepository: SettingsRepository,
+    private val configurationRepository: ConfigurationRepository,
+    private val parser: BusinessConfigurationParser,
+    private val resolver: WhiteLabelConfigResolver,
 ) : WhiteLabelConfigService {
 
-    private val deploymentConfigKey = "deployment_config"
+    override fun getDeploymentConfig(): DeploymentConfig = deploymentSource.get()
 
-    override suspend fun getDeploymentConfig(context: Context): Deferred<DeploymentConfig> {
-        return coroutineScope {
-            async(Dispatchers.IO) {
-                val cached = cacheService.get<String>(deploymentConfigKey)
-                if (cached != null) {
-                    return@async parseDeploymentConfig(cached)
-                }
-
-                // Load from server via NetworkService
-                val serverConfig = loadFromServer()
-                cacheService.set(deploymentConfigKey, serverConfig)
-                parseDeploymentConfig(serverConfig)
-            }
-        }
-    }
-
-    override suspend fun getMergedConfig(context: Context): Deferred<MergedConfig> {
-        return coroutineScope {
-            async(Dispatchers.IO) {
-                val deployment = getDeploymentConfig(context).await()
-                val userBranding = loadUserBranding()
-                val themeMode = getThemeMode()
-                val language = getLanguage()
-                val features = featureFlagService.getEnabledFeatures().first()
-
-                MergedConfig(
-                    deployment = deployment,
-                    userBranding = userBranding,
-                    themeMode = themeMode,
-                    language = language,
-                    features = features
+    override fun observeResolvedConfig(
+        tenantId: TenantId,
+        businessId: BusinessId,
+    ): Flow<ResolvedWhiteLabelConfig> =
+        combine(
+            businessRepository.observeBusinesses(tenantId),
+            settingsRepository.observeSettings(tenantId, businessId),
+            configurationRepository.observeFeatureFlags(tenantId, businessId),
+        ) { businesses, settings, flags ->
+            val business = businesses.firstOrNull { it.id == businessId }
+                ?: error(
+                    "Business ${businessId.value} is not available for tenant ${tenantId.value}"
                 )
-            }
+            resolver.resolve(
+                deployment = deploymentSource.get(),
+                business = parser.parse(business, settings, flags),
+            )
+        }.distinctUntilChanged()
+
+    override suspend fun getResolvedConfig(
+        tenantId: TenantId,
+        businessId: BusinessId,
+    ): ResolvedWhiteLabelConfig {
+        val business = requireNotNull(
+            businessRepository.getBusiness(tenantId, businessId)
+        ) {
+            "Business ${businessId.value} is not available for tenant ${tenantId.value}"
         }
-    }
-
-    override suspend fun refreshConfig(context: Context) {
-        cacheService.remove(deploymentConfigKey)
-        // Trigger server fetch
-    }
-
-    override fun isFeatureEnabled(feature: String): Boolean {
-        return featureFlagService.isEnabled(feature)
-    }
-
-    override fun getAppName(): String {
-        val config = cacheService.get<String>(deploymentConfigKey)
-        return if (config != null) {
-            parseDeploymentConfig(config).appName
-        } else {
-            "LubrcApp"
-        }
-    }
-
-    override fun getPrimaryColor(): Int {
-        val config = cacheService.get<String>(deploymentConfigKey)
-        return if (config != null) {
-            val deployment = parseDeploymentConfig(config)
-            deployment.defaultBranding.primaryColor
-        } else {
-            0xFF6200EE.toInt()
-        }
-    }
-
-    override fun useLightMode(): Boolean {
-        return when (getThemeMode()) {
-            ThemeMode.SYSTEM -> {
-                // Use system default (dark theme follows system setting).
-                // In production, read from UI mode night flags.
-                // Default to light for now.
-                false
-            }
-            ThemeMode.LIGHT -> true
-            ThemeMode.DARK -> false
-        }
-    }
-
-    override suspend fun getIncludedModules(): Set<String> {
-        return featureFlagService.getEnabledFeatures().first()
-    }
-
-    private fun loadUserBranding(): BrandingConfig {
-        // Load from DataStore
-        return BrandingConfig()
-    }
-
-    private fun getThemeMode(): ThemeMode {
-        // Load from DataStore
-        return ThemeMode.SYSTEM
-    }
-
-    private fun getLanguage(): String {
-        // Load from DataStore
-        return "en"
-    }
-
-    private fun parseDeploymentConfig(json: String): DeploymentConfig {
-        // Parse JSON - in production use Gson
-        return DeploymentConfig(
-            appName = "LubrcApp",
-            packageName = "com.lubrcapp.lubrcapp",
-            versionName = "1.0.0",
-            versionCode = 1,
-            apiEndpoint = "https://api.lubrcapp.com/",
-            firebaseProjectId = "lubrcapp-dev",
-            defaultBranding = BrandingConfig(),
-            includedModules = setOf(
-                FeatureFlagKeys.MODULE_INVENTORY,
-                FeatureFlagKeys.MODULE_ORDERS,
-                FeatureFlagKeys.MODULE_PURCHASES,
-                FeatureFlagKeys.MODULE_PAYS,
-                FeatureFlagKeys.MODULE_ACCOUNTING
-            ),
-            paymentGateways = emptyList(),
-            supportEmail = null,
-            supportPhone = null,
-            termsUrl = null,
-            privacyUrl = null,
-            website = null,
-            maintenanceMessage = null,
-            minSupportedVersion = null
+        val settings = settingsRepository.observeSettings(tenantId, businessId).first()
+        val flags = configurationRepository.observeFeatureFlags(tenantId, businessId).first()
+        return resolver.resolve(
+            deployment = deploymentSource.get(),
+            business = parser.parse(business, settings, flags),
         )
     }
 
-    private suspend fun loadFromServer(): String {
-        // In production, fetch from API
-        return "{}"
-    }
+    override suspend fun refreshBusinessConfig(
+        tenantId: TenantId,
+        businessId: BusinessId,
+    ): ConfigurationRefreshResult = ConfigurationRefreshResult(
+        businesses = businessRepository.refreshBusinesses(tenantId),
+        settings = settingsRepository.refreshSettings(tenantId, businessId),
+        featureFlags = configurationRepository.refreshFeatureFlags(tenantId, businessId),
+    )
 }
-
