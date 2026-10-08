@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.config.toDesignSystemConfig
 import com.lubrcapp.lubrcapp.core.designsystem.AppSurface
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+            val authViewModel: AuthViewModel = hiltViewModel()
             val deploymentTheme = remember {
                 deploymentConfigSource.get().toDesignSystemConfig()
             }
@@ -44,9 +46,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 AppSurface(modifier = Modifier.fillMaxSize()) {
                     MainNavigation(
-                        onNavigateToAuth = { onboardingMode ->
-                            AuthViewModel().showOnboarding(this@MainActivity, onboardingMode)
-                        }
+                        onNavigateToAuth = authViewModel::showOnboarding
                     )
                 }
             }

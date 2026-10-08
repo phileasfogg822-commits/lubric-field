@@ -87,6 +87,26 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce authentication boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number --fixed-strings 'HttpLoggingInterceptor.Level.BODY' core/network/src 2>/dev/null; then
+            echo "HTTP body logging is forbidden because authentication payloads may contain credentials."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'android\.content\.Context|SharedPreferences|DataStore' feature/auth/src/main 2>/dev/null; then
+            echo "Auth feature code must use core:auth contracts, not direct Android storage/context."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'accessToken|refreshToken' feature/auth/src/main 2>/dev/null; then
+            echo "Auth feature/UI code must not handle token material directly."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 
