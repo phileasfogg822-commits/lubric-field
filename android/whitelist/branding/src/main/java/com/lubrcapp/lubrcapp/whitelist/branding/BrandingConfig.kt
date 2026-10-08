@@ -3,84 +3,59 @@ package com.lubrcapp.lubrcapp.whitelist.branding
 import androidx.annotation.ColorInt
 
 /**
- * Branding configuration for white-label deployments.
+ * Fully resolved customer-facing brand values.
  *
- * Controls both deployment-level (developer-owned) and customer-level
- * (business owner) branding.
+ * Deployment defaults are supplied by the white-label deployment config.
+ * Business-specific values are layered on top by the configuration engine.
  */
 data class BrandingConfig(
-    // App identity
-    val appName: String = "LubrcApp",
-    val productName: String = "LubrcApp",
-    val companyName: String = "",
-    val shortName: String = "LubrcApp",
-    val launcherName: String = "LubrcApp",
-
-    // Colors
-    @ColorInt val primaryColor: Int = 0xFF6200EE.toInt(),
-    @ColorInt val secondaryColor: Int = 0xFF03DAC6.toInt(),
-    @ColorInt val accentColor: Int = 0xFF03DAC6.toInt(),
-    @ColorInt val successColor: Int = 0xFF4CAF50.toInt(),
-    @ColorInt val warningColor: Int = 0xFFFFC107.toInt(),
-    @ColorInt val errorColor: Int = 0xFFB00020.toInt(),
-
-    // Brand assets
-    val appLogo: String? = null,
-    val launcherIcon: String? = null,
-    val adaptiveIcon: String? = null,
-    val splashScreenLogo: String? = null,
-    val splashScreenBackground: Int? = null,
-
-    // UI settings
+    val companyName: String? = null,
+    val logoUri: String? = null,
+    @ColorInt val primaryColor: Int,
+    @ColorInt val secondaryColor: Int,
+    @ColorInt val accentColor: Int,
+    @ColorInt val successColor: Int,
+    @ColorInt val warningColor: Int,
+    @ColorInt val errorColor: Int,
     val fontFamily: String? = null,
-    val cardStyle: String = "default",
-    val buttonStyle: String = "elevated",
-    val borderRadius: Int = 16,
-    val navigationBarAppearance: String = "dark",
-    val lightDarkMode: Boolean = false,
-    val systemDefaultTheme: Boolean = true,
+    val cardStyle: String,
+    val buttonStyle: String,
+    val borderRadius: Int,
+) {
+    init {
+        require(borderRadius >= 0) { "borderRadius cannot be negative" }
+    }
+}
 
-    // Document branding
-    val invoiceTitle: String = "Invoice",
-    val termsUrl: String? = null,
-    val privacyUrl: String? = null,
-    val website: String? = null,
-    val supportContact: String? = null,
-
-    // Custom terms message
-    val termsText: String? = null,
-    val privacyText: String? = null,
-
-    // Support details
-    val supportEmail: String? = null,
-    val supportPhone: String? = null,
-
-    // Contact details
-    val address: String? = null,
-    val phone: String? = null,
-    val email: String? = null,
-    val taxNumber: String? = null,
-    val websiteUrl: String? = null,
+data class BrandingOverrides(
+    val companyName: String? = null,
+    val logoUri: String? = null,
+    @ColorInt val primaryColor: Int? = null,
+    @ColorInt val secondaryColor: Int? = null,
+    @ColorInt val accentColor: Int? = null,
+    @ColorInt val successColor: Int? = null,
+    @ColorInt val warningColor: Int? = null,
+    @ColorInt val errorColor: Int? = null,
+    val fontFamily: String? = null,
+    val cardStyle: String? = null,
+    val buttonStyle: String? = null,
+    val borderRadius: Int? = null,
 )
 
-enum class DocumentTerminology(
-    val sale: String,
-    val taxInvoice: String,
-    val cashMemo: String,
-    val quotation: String,
-    val estimate: String,
-    val customer: String,
-    val supplier: String,
-    val party: String,
-    val item: String,
-    val category: String,
-    val brand: String,
-    val unit: String,
-    val warehouse: String,
-    val paymentMode: String,
-    val expenseCategory: String,
-    val otherIncome: String,
+fun BrandingConfig.applyOverrides(
+    overrides: BrandingOverrides,
+    businessNameFallback: String? = null,
+): BrandingConfig = copy(
+    companyName = overrides.companyName ?: businessNameFallback ?: companyName,
+    logoUri = overrides.logoUri ?: logoUri,
+    primaryColor = overrides.primaryColor ?: primaryColor,
+    secondaryColor = overrides.secondaryColor ?: secondaryColor,
+    accentColor = overrides.accentColor ?: accentColor,
+    successColor = overrides.successColor ?: successColor,
+    warningColor = overrides.warningColor ?: warningColor,
+    errorColor = overrides.errorColor ?: errorColor,
+    fontFamily = overrides.fontFamily ?: fontFamily,
+    cardStyle = overrides.cardStyle ?: cardStyle,
+    buttonStyle = overrides.buttonStyle ?: buttonStyle,
+    borderRadius = overrides.borderRadius ?: borderRadius,
 )
-
-enum class LanguageCode { EN, UR, AR, HI }
-
