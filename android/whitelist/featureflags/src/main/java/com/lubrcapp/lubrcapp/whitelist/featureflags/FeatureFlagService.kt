@@ -1,94 +1,62 @@
 package com.lubrcapp.lubrcapp.whitelist.featureflags
 
-import android.content.Context
+import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.TenantId
+import com.lubrcapp.lubrcapp.whitelist.config.WhiteLabelConfigService
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-/**
- * Feature flag / feature toggle service.
- *
- * Admin-controlled toggles for hiding unused modules.
- * Configured from server-side remote config and cached locally.
- */
 interface FeatureFlagService {
-    /**
-     * Check if a feature is enabled.
-     */
-    fun isEnabled(feature: String): Boolean
+    fun observeEnabledFeatures(
+        tenantId: TenantId,
+        businessId: BusinessId,
+    ): Flow<Set<String>>
 
-    /**
-     * Get all enabled features.
-     */
-    fun getEnabledFeatures(): Flow<Set<String>>
+    suspend fun isEnabled(
+        tenantId: TenantId,
+        businessId: BusinessId,
+        feature: String,
+    ): Boolean
 
-    /**
-     * Check if a module is enabled.
-     */
-    fun isModuleEnabled(module: String): Boolean
+    fun getAllFeatureKeys(): Set<String>
+}
 
-    /**
-     * Check if dashboard widgets are configurable.
-     */
-    fun isDashboardWidgetsConfigurable(): Boolean
+@Singleton
+class ResolvedFeatureFlagService @Inject constructor(
+    private val whiteLabelConfigService: WhiteLabelConfigService,
+) : FeatureFlagService {
+    override fun observeEnabledFeatures(
+        tenantId: TenantId,
+        businessId: BusinessId,
+    ): Flow<Set<String>> =
+        whiteLabelConfigService.observeResolvedConfig(tenantId, businessId)
+            .map { it.enabledModules }
 
-    /**
-     * Check if the online store feature is enabled.
-     */
-    fun isOnlineStoreEnabled(): Boolean
+    override suspend fun isEnabled(
+        tenantId: TenantId,
+        businessId: BusinessId,
+        feature: String,
+    ): Boolean =
+        whiteLabelConfigService.getResolvedConfig(tenantId, businessId)
+            .isModuleEnabled(feature)
 
-    /**
-     * Check if barcode scanning is enabled.
-     */
-    fun isBarcodeScanningEnabled(): Boolean
+    override fun getAllFeatureKeys(): Set<String> = FeatureFlagKeys.ALL
+}
 
-    /**
-     * Check if thermal printing is enabled.
-     */
-    fun isThermalPrintingEnabled(): Boolean
-
-    /**
-     * Check if multi-branch is enabled.
-     */
-    fun isMultiBranchEnabled(): Boolean
-
-    /**
-     * Check if accounting is enabled.
-     */
-    fun isAccountingEnabled(): Boolean
-
-    /**
-     * Check if reports are enabled.
-     */
-    fun isReportingEnabled(): Boolean
-
-    /**
-     * Check if user management is enabled.
-     */
-    fun isUserManagementEnabled(): Boolean
-
-    /**
-     * Check if backup/restore is enabled.
-     */
-    fun isBackupEnabled(): Boolean
-
-    /**
-     * Check if synchronization is enabled.
-     */
-    fun isSyncEnabled(): Boolean
-
-    /**
-     * Check if notifications are enabled.
-     */
-    fun isNotificationsEnabled(): Boolean
-
-    /**
-     * Check if field sales mode is enabled.
-     */
-    fun isFieldSalesEnabled(): Boolean
-
-    /**
-     * Get all available feature flag keys.
-     */
-    fun getAllFeatureKeys(): List<String>
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class FeatureFlagModule {
+    @Binds
+    @Singleton
+    abstract fun bindFeatureFlagService(
+        implementation: ResolvedFeatureFlagService,
+    ): FeatureFlagService
 }
 
 object FeatureFlagKeys {
@@ -118,5 +86,33 @@ object FeatureFlagKeys {
     const val MODULE_CASH_BANK = "cash_bank"
     const val MODULE_TAX = "tax"
     const val MODULE_TRANSLATION = "translation"
-}
 
+    val ALL: Set<String> = setOf(
+        MODULE_INVENTORY,
+        MODULE_ORDERS,
+        MODULE_PURCHASES,
+        MODULE_PAYS,
+        MODULE_ACCOUNTING,
+        MODULE_REPORTS,
+        MODULE_USERS,
+        MODULE_SYNC,
+        MODULE_BACKUP,
+        MODULE_NOTIFICATIONS,
+        MODULE_PRINTING,
+        MODULE_FIELD_SALES,
+        MODULE_ONLINE_STORE,
+        MODULE_BATCH_TRACKING,
+        MODULE_SERIAL_TRACKING,
+        MODULE_MULTI_BRANCH,
+        MODULE_ROUTES,
+        MODULE_DELIVERY,
+        MODULE_PAYMENT_REMINDERS,
+        MODULE_BARCODES,
+        MODULE_RETURNS,
+        MODULE_EXPENSES,
+        MODULE_OTHER_INCOME,
+        MODULE_CASH_BANK,
+        MODULE_TAX,
+        MODULE_TRANSLATION,
+    )
+}

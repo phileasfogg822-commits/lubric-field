@@ -19,28 +19,26 @@ android {
             isMinifyEnabled = false
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx")
-    implementation("androidx.datastore:datastore-preferences")
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(project(":core:repository"))
+    implementation(project(":domain:common"))
+    implementation(project(":domain:business"))
+    implementation(project(":whitelist:branding"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android")
 
-    implementation(project(":core:cache"))
-    implementation(project(":whitelist:branding"))
-    implementation(project(":whitelist:featureflags"))
-    implementation(project(":whitelist:tenant"))
-
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
-

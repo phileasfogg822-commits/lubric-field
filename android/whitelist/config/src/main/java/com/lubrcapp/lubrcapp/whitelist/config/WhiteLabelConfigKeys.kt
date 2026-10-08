@@ -1,0 +1,43 @@
+package com.lubrcapp.lubrcapp.whitelist.config
+
+object WhiteLabelConfigKeys {
+    const val BRAND_COMPANY_NAME = "branding.company_name"
+    const val BRAND_LOGO_URI = "branding.logo_uri"
+    const val BRAND_PRIMARY_COLOR = "branding.primary_color"
+    const val BRAND_SECONDARY_COLOR = "branding.secondary_color"
+    const val BRAND_ACCENT_COLOR = "branding.accent_color"
+    const val BRAND_SUCCESS_COLOR = "branding.success_color"
+    const val BRAND_WARNING_COLOR = "branding.warning_color"
+    const val BRAND_ERROR_COLOR = "branding.error_color"
+    const val BRAND_FONT_FAMILY = "branding.font_family"
+    const val BRAND_CARD_STYLE = "branding.card_style"
+    const val BRAND_BUTTON_STYLE = "branding.button_style"
+    const val BRAND_BORDER_RADIUS = "branding.border_radius"
+
+    const val TERM_SALE = "terminology.sale"
+    const val TERM_INVOICE = "terminology.invoice"
+    const val TERM_TAX_INVOICE = "terminology.tax_invoice"
+    const val TERM_CASH_MEMO = "terminology.cash_memo"
+    const val TERM_QUOTATION = "terminology.quotation"
+    const val TERM_ESTIMATE = "terminology.estimate"
+    const val TERM_CUSTOMER = "terminology.customer"
+    const val TERM_SUPPLIER = "terminology.supplier"
+    const val TERM_PARTY = "terminology.party"
+    const val TERM_ITEM = "terminology.item"
+    const val TERM_CATEGORY = "terminology.category"
+    const val TERM_BRAND = "terminology.brand"
+    const val TERM_UNIT = "terminology.unit"
+    const val TERM_WAREHOUSE = "terminology.warehouse"
+    const val TERM_PAYMENT_MODE = "terminology.payment_mode"
+    const val TERM_EXPENSE_CATEGORY = "terminology.expense_category"
+    const val TERM_OTHER_INCOME = "terminology.other_income"
+
+    const val TAX_ENABLED = "tax.enabled"
+    const val TAX_LABEL = "tax.label"
+    const val TAX_NUMBER_LABEL = "tax.number_label"
+    const val TAX_DEFAULT_RATE = "tax.default_rate"
+
+    const val PAYMENT_METHODS = "payment.methods"
+    const val LANGUAGE = "locale.language"
+    const val THEME_MODE = "theme.mode"
+}
