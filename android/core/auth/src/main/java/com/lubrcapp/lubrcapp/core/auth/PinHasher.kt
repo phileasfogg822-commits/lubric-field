@@ -1,6 +1,6 @@
 package com.lubrcapp.lubrcapp.core.auth
 
-import android.util.Base64
+import java.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
@@ -19,16 +19,16 @@ class PinHasher @Inject constructor() {
         val salt = ByteArray(SALT_BYTES).also(SecureRandom()::nextBytes)
         val hash = derive(pin, salt, ITERATIONS)
         return PinVerifier(
-            saltBase64 = Base64.encodeToString(salt, Base64.NO_WRAP),
-            hashBase64 = Base64.encodeToString(hash, Base64.NO_WRAP),
+            saltBase64 = Base64.getEncoder().withoutPadding().encodeToString(salt),
+            hashBase64 = Base64.getEncoder().withoutPadding().encodeToString(hash),
             iterations = ITERATIONS,
         )
     }
 
     fun verify(pin: CharArray, verifier: PinVerifier): Boolean {
         validate(pin)
-        val salt = Base64.decode(verifier.saltBase64, Base64.NO_WRAP)
-        val expected = Base64.decode(verifier.hashBase64, Base64.NO_WRAP)
+        val salt = Base64.getDecoder().decode(verifier.saltBase64)
+        val expected = Base64.getDecoder().decode(verifier.hashBase64)
         val actual = derive(pin, salt, verifier.iterations)
         return MessageDigest.isEqual(expected, actual)
     }
