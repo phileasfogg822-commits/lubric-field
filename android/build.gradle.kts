@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application") version "8.2.0" apply false
     id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+    id("org.jetbrains.kotlin.jvm") version "1.9.22" apply false
     id("com.google.dagger.hilt.android") version "2.48.1" apply false
     id("com.google.devtools.ksp") version "1.9.22-1.0.17" apply false
     id("com.android.library") version "8.2.0" apply false
@@ -37,9 +38,7 @@ val moduleVersions: Map<String, String> = mapOf(
 
 subprojects {
     afterEvaluate {
-        // The Hilt plugin requires its runtime dependencies in every module
-        // where the plugin is applied. Adding them here keeps module scripts
-        // free of boilerplate and runs before the plugin's own verification.
+        // Hilt runtime dependencies only belong to Android modules that apply Hilt.
         if (plugins.hasPlugin("com.google.dagger.hilt.android")) {
             dependencies {
                 add("implementation", "com.google.dagger:hilt-android")
@@ -63,4 +62,3 @@ subprojects {
 task("clean", Delete::class) {
     delete(rootProject.buildDir)
 }
-
