@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("androidx.room")
 }
 
 android {
@@ -34,8 +35,11 @@ android {
     }
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.incremental", "true")
     arg("room.generateKotlin", "true")
 }
