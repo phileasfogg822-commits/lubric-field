@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.core.network.repository
 
+import com.lubrcapp.lubrcapp.core.auth.AuthRemoteDataSource
 import com.lubrcapp.lubrcapp.core.repository.datasource.BusinessRemoteDataSource
 import com.lubrcapp.lubrcapp.core.repository.datasource.ConfigurationRemoteDataSource
 import com.lubrcapp.lubrcapp.core.repository.datasource.SettingsRemoteDataSource
@@ -13,6 +14,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RemoteDataSourceModule {
+    @Binds @Singleton
+    abstract fun bindAuthRemote(impl: DeferredAuthRemoteDataSource): AuthRemoteDataSource
+
     @Binds @Singleton
     abstract fun bindBusinessRemote(impl: DeferredRemoteDataSource): BusinessRemoteDataSource
 
