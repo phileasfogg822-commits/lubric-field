@@ -158,6 +158,36 @@ interface AccessDao {
         businessId: String,
         userId: String,
     ): List<String>
+
+    @Query(
+        """
+        SELECT ubr.roleId
+        FROM user_business_roles ubr
+        WHERE ubr.tenantId = :tenantId
+          AND ubr.businessId = :businessId
+          AND ubr.userBusinessId = :userBusinessId
+        ORDER BY ubr.roleId
+        """
+    )
+    suspend fun getRoleIds(
+        tenantId: String,
+        businessId: String,
+        userBusinessId: String,
+    ): List<String>
+
+    @Query(
+        """
+        DELETE FROM user_business_roles
+        WHERE tenantId = :tenantId
+          AND businessId = :businessId
+          AND userBusinessId = :userBusinessId
+        """
+    )
+    suspend fun clearUserBusinessRoles(
+        tenantId: String,
+        businessId: String,
+        userBusinessId: String,
+    ): Int
 }
 
 @Dao

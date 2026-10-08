@@ -46,7 +46,7 @@ dependencies {
 
     implementation(project(":core:designsystem"))
     implementation(project(":core:auth"))
-    implementation(project(":core:store"))
+    implementation(project(":core:repository"))
     implementation(project(":whitelist:tenant"))
 
     testImplementation("junit:junit:4.13.2")

@@ -44,9 +44,8 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose")
 
     implementation(project(":core:designsystem"))
-    implementation(project(":core:store"))
+    implementation(project(":core:repository"))
     implementation(project(":core:ui"))
-    implementation(project(":core:sync"))
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

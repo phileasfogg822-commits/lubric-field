@@ -44,7 +44,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose")
 
     implementation(project(":core:designsystem"))
-    implementation(project(":core:store"))
+    implementation(project(":core:repository"))
     implementation(project(":core:ui"))
     implementation(project(":domain:item"))
     implementation(project(":domain:sales"))

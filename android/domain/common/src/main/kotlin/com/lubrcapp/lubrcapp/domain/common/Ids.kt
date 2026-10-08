@@ -35,6 +35,8 @@ private fun validateId(value: String) {
 @JvmInline value class JournalEntryId(override val value: String) : DomainId { init { validateId(value) } }
 @JvmInline value class JournalLineId(override val value: String) : DomainId { init { validateId(value) } }
 @JvmInline value class DeviceId(override val value: String) : DomainId { init { validateId(value) } }
+@JvmInline value class SettingId(override val value: String) : DomainId { init { validateId(value) } }
+@JvmInline value class FeatureFlagId(override val value: String) : DomainId { init { validateId(value) } }
 @JvmInline value class SyncOperationId(override val value: String) : DomainId { init { validateId(value) } }
 
 fun interface IdGenerator {
@@ -70,4 +72,6 @@ fun IdGenerator.accountId() = AccountId(generate())
 fun IdGenerator.journalEntryId() = JournalEntryId(generate())
 fun IdGenerator.journalLineId() = JournalLineId(generate())
 fun IdGenerator.deviceId() = DeviceId(generate())
+fun IdGenerator.settingId() = SettingId(generate())
+fun IdGenerator.featureFlagId() = FeatureFlagId(generate())
 fun IdGenerator.syncOperationId() = SyncOperationId(generate())
