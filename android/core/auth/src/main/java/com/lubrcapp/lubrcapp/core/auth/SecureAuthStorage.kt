@@ -67,25 +67,27 @@ class AndroidKeystoreSecureAuthStorage @Inject constructor(
         return Base64.encodeToString(payload, Base64.NO_WRAP)
     }
 
-    private fun decrypt(encoded: String): String? =
-        try {
+    private fun decrypt(encoded: String): String? {
+        return try {
             val payload = Base64.decode(encoded, Base64.NO_WRAP)
             val buffer = ByteBuffer.wrap(payload)
             val ivLength = buffer.int
-            if (ivLength !in 12..32 || buffer.remaining() <= ivLength) return null
+            if (ivLength !in 12..32 || buffer.remaining() <= ivLength) {
+                null
+            } else {
+                val iv = ByteArray(ivLength)
+                buffer.get(iv)
+                val cipherText = ByteArray(buffer.remaining())
+                buffer.get(cipherText)
 
-            val iv = ByteArray(ivLength)
-            buffer.get(iv)
-            val cipherText = ByteArray(buffer.remaining())
-            buffer.get(cipherText)
-
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                getOrCreateKey(),
-                GCMParameterSpec(GCM_TAG_BITS, iv),
-            )
-            String(cipher.doFinal(cipherText), Charsets.UTF_8)
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                cipher.init(
+                    Cipher.DECRYPT_MODE,
+                    getOrCreateKey(),
+                    GCMParameterSpec(GCM_TAG_BITS, iv),
+                )
+                String(cipher.doFinal(cipherText), Charsets.UTF_8)
+            }
         } catch (_: GeneralSecurityException) {
             null
         } catch (_: IllegalArgumentException) {
@@ -93,6 +95,7 @@ class AndroidKeystoreSecureAuthStorage @Inject constructor(
         } catch (_: BufferUnderflowException) {
             null
         }
+    }
 
     private fun getOrCreateKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
