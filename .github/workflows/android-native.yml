@@ -34,3 +34,6 @@ jobs:
 
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
+
+      - name: Compile Room migration instrumentation tests
+        run: ./gradlew :core:store:assembleDebugAndroidTest --no-daemon
