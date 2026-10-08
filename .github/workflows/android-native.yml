@@ -32,6 +32,31 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      - name: Enforce repository boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number --fixed-strings 'project(":core:store")' feature/*/build.gradle.kts; then
+            echo "Feature modules must depend on :core:repository, not :core:store."
+            exit 1
+          fi
+
+          if grep -R --line-number --fixed-strings 'project(":core:network")' feature/*/build.gradle.kts; then
+            echo "Feature modules must not depend directly on :core:network."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'import androidx\.room\.|import retrofit2\.' feature/*/src 2>/dev/null; then
+            echo "Feature source must not import Room or Retrofit directly."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'import android\.|import androidx\.|import dagger\.|import retrofit2\.' core/repository/src/main 2>/dev/null; then
+            echo ":core:repository must remain pure JVM."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 
