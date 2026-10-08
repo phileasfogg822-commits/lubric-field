@@ -113,6 +113,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:permissions"))
     implementation(project(":core:store"))
+    implementation(project(":core:repository"))
     implementation(project(":core:sync"))
     implementation(project(":core:ui"))
 

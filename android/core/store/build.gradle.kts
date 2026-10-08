@@ -46,6 +46,9 @@ ksp {
 
 dependencies {
     implementation(project(":domain:common"))
+    implementation(project(":domain:business"))
+    implementation(project(":domain:user"))
+    implementation(project(":core:repository"))
 
     implementation("androidx.core:core-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
