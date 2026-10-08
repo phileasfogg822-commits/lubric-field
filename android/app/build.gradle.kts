@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,16 +7,17 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
-val deploymentProperties = java.util.Properties().apply {
+val deploymentProperties = Properties().apply {
     val file = rootProject.file("white-label/deployment.properties")
     require(file.isFile) { "Missing white-label deployment config: " + file.path }
-    file.inputStream().use(::load)
+    file.inputStream().use { input -> load(input) }
 }
 
-fun deploymentValue(key: String): String =
-    providers.gradleProperty("wl." + key).orNull
-        ?: deploymentProperties.getProperty(key)
+fun deploymentValue(key: String): String {
+    providers.gradleProperty("wl." + key).orNull?.let { return it }
+    return deploymentProperties.getProperty(key)
         ?: error("Missing white-label deployment key: " + key)
+}
 
 fun quotedBuildConfig(value: String): String =
     "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
