@@ -5,16 +5,81 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+val deploymentProperties = java.util.Properties().apply {
+    val file = rootProject.file("white-label/deployment.properties")
+    require(file.isFile) { "Missing white-label deployment config: " + file.path }
+    file.inputStream().use(::load)
+}
+
+fun deploymentValue(key: String): String =
+    providers.gradleProperty("wl." + key).orNull
+        ?: deploymentProperties.getProperty(key)
+        ?: error("Missing white-label deployment key: " + key)
+
+fun quotedBuildConfig(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 android {
     namespace = "com.lubrcapp.lubrcapp"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.lubrcapp.lubrcapp"
+        applicationId = deploymentValue("applicationId")
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = deploymentValue("versionCode").toInt()
+        versionName = deploymentValue("versionName")
+
+        resValue("string", "app_name", deploymentValue("appName"))
+        manifestPlaceholders["appIcon"] = deploymentValue("launcherIcon")
+        manifestPlaceholders["roundAppIcon"] = deploymentValue("roundLauncherIcon")
+
+        buildConfigField("String", "DEPLOYMENT_APP_NAME", quotedBuildConfig(deploymentValue("appName")))
+        buildConfigField("String", "DEPLOYMENT_API_ENDPOINT", quotedBuildConfig(deploymentValue("apiEndpoint")))
+        buildConfigField("String", "DEPLOYMENT_ENVIRONMENT", quotedBuildConfig(deploymentValue("environment")))
+        buildConfigField("String", "DEPLOYMENT_FIREBASE_PROJECT_ID", quotedBuildConfig(deploymentValue("firebaseProjectId")))
+        buildConfigField("String", "DEPLOYMENT_LICENSE_ID", quotedBuildConfig(deploymentValue("licenseId")))
+        buildConfigField("String", "DEPLOYMENT_INCLUDED_MODULES", quotedBuildConfig(deploymentValue("includedModules")))
+        buildConfigField("String", "DEPLOYMENT_SUPPORT_EMAIL", quotedBuildConfig(deploymentValue("supportEmail")))
+        buildConfigField("String", "DEPLOYMENT_SUPPORT_PHONE", quotedBuildConfig(deploymentValue("supportPhone")))
+        buildConfigField("String", "DEPLOYMENT_TERMS_URL", quotedBuildConfig(deploymentValue("termsUrl")))
+        buildConfigField("String", "DEPLOYMENT_PRIVACY_URL", quotedBuildConfig(deploymentValue("privacyUrl")))
+        buildConfigField("String", "DEPLOYMENT_WEBSITE", quotedBuildConfig(deploymentValue("website")))
+        buildConfigField("String", "DEPLOYMENT_LOGO_URI", quotedBuildConfig(deploymentValue("brand.logoUri")))
+        buildConfigField("String", "DEPLOYMENT_PRIMARY_COLOR", quotedBuildConfig(deploymentValue("brand.primaryColor")))
+        buildConfigField("String", "DEPLOYMENT_SECONDARY_COLOR", quotedBuildConfig(deploymentValue("brand.secondaryColor")))
+        buildConfigField("String", "DEPLOYMENT_ACCENT_COLOR", quotedBuildConfig(deploymentValue("brand.accentColor")))
+        buildConfigField("String", "DEPLOYMENT_SUCCESS_COLOR", quotedBuildConfig(deploymentValue("brand.successColor")))
+        buildConfigField("String", "DEPLOYMENT_WARNING_COLOR", quotedBuildConfig(deploymentValue("brand.warningColor")))
+        buildConfigField("String", "DEPLOYMENT_ERROR_COLOR", quotedBuildConfig(deploymentValue("brand.errorColor")))
+        buildConfigField("String", "DEPLOYMENT_FONT_FAMILY", quotedBuildConfig(deploymentValue("brand.fontFamily")))
+        buildConfigField("String", "DEPLOYMENT_CARD_STYLE", quotedBuildConfig(deploymentValue("brand.cardStyle")))
+        buildConfigField("String", "DEPLOYMENT_BUTTON_STYLE", quotedBuildConfig(deploymentValue("brand.buttonStyle")))
+        buildConfigField("int", "DEPLOYMENT_BORDER_RADIUS", deploymentValue("brand.borderRadius"))
+        buildConfigField("String", "DEFAULT_LANGUAGE", quotedBuildConfig(deploymentValue("defaultLanguage")))
+        buildConfigField("String", "DEFAULT_THEME_MODE", quotedBuildConfig(deploymentValue("defaultThemeMode")))
+        buildConfigField("String", "TERM_SALE", quotedBuildConfig(deploymentValue("term.sale")))
+        buildConfigField("String", "TERM_INVOICE", quotedBuildConfig(deploymentValue("term.invoice")))
+        buildConfigField("String", "TERM_TAX_INVOICE", quotedBuildConfig(deploymentValue("term.taxInvoice")))
+        buildConfigField("String", "TERM_CASH_MEMO", quotedBuildConfig(deploymentValue("term.cashMemo")))
+        buildConfigField("String", "TERM_QUOTATION", quotedBuildConfig(deploymentValue("term.quotation")))
+        buildConfigField("String", "TERM_ESTIMATE", quotedBuildConfig(deploymentValue("term.estimate")))
+        buildConfigField("String", "TERM_CUSTOMER", quotedBuildConfig(deploymentValue("term.customer")))
+        buildConfigField("String", "TERM_SUPPLIER", quotedBuildConfig(deploymentValue("term.supplier")))
+        buildConfigField("String", "TERM_PARTY", quotedBuildConfig(deploymentValue("term.party")))
+        buildConfigField("String", "TERM_ITEM", quotedBuildConfig(deploymentValue("term.item")))
+        buildConfigField("String", "TERM_CATEGORY", quotedBuildConfig(deploymentValue("term.category")))
+        buildConfigField("String", "TERM_BRAND", quotedBuildConfig(deploymentValue("term.brand")))
+        buildConfigField("String", "TERM_UNIT", quotedBuildConfig(deploymentValue("term.unit")))
+        buildConfigField("String", "TERM_WAREHOUSE", quotedBuildConfig(deploymentValue("term.warehouse")))
+        buildConfigField("String", "TERM_PAYMENT_MODE", quotedBuildConfig(deploymentValue("term.paymentMode")))
+        buildConfigField("String", "TERM_EXPENSE_CATEGORY", quotedBuildConfig(deploymentValue("term.expenseCategory")))
+        buildConfigField("String", "TERM_OTHER_INCOME", quotedBuildConfig(deploymentValue("term.otherIncome")))
+        buildConfigField("boolean", "DEFAULT_TAX_ENABLED", deploymentValue("tax.enabled"))
+        buildConfigField("String", "DEFAULT_TAX_LABEL", quotedBuildConfig(deploymentValue("tax.label")))
+        buildConfigField("String", "DEFAULT_TAX_NUMBER_LABEL", quotedBuildConfig(deploymentValue("tax.numberLabel")))
+        buildConfigField("String", "DEFAULT_TAX_RATE", quotedBuildConfig(deploymentValue("tax.defaultRate")))
+        buildConfigField("String", "DEFAULT_PAYMENT_METHODS", quotedBuildConfig(deploymentValue("paymentMethods")))
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -41,6 +106,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
