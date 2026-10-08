@@ -72,6 +72,21 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce design-system boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number -E '6200EE|03DAC6|B00020' core/designsystem/src/main 2>/dev/null; then
+            echo "Design-system source must consume runtime brand colors, not legacy brand constants."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'absoluteOffset|padding\([^)]*(left|right)[[:space:]]*=' core/designsystem/src/main core/ui/src/main 2>/dev/null; then
+            echo "Shared UI must use RTL-safe start/end layout semantics."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 
@@ -88,4 +103,9 @@ jobs:
             -Pwl.term.item=Medicine \
             -Pwl.term.customer=Patient \
             -Pwl.brand.primaryColor=FF00695C \
+            -Pwl.brand.cardStyle=outlined \
+            -Pwl.brand.buttonStyle=flat \
+            -Pwl.brand.borderRadius=24 \
+            -Pwl.design.defaultTextScale=1.20 \
+            -Pwl.design.defaultLargeTouchTargets=true \
             -Pwl.paymentMethods=cash:Cash,insurance:Insurance
