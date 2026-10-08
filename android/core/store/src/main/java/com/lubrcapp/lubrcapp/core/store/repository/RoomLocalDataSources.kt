@@ -10,6 +10,7 @@ import com.lubrcapp.lubrcapp.core.repository.datasource.ConfigurationLocalDataSo
 import com.lubrcapp.lubrcapp.core.repository.datasource.SettingsLocalDataSource
 import com.lubrcapp.lubrcapp.core.repository.datasource.SyncQueueLocalDataSource
 import com.lubrcapp.lubrcapp.core.repository.datasource.UserLocalDataSource
+import com.lubrcapp.lubrcapp.core.store.db.DatabaseTransactionRunner
 import com.lubrcapp.lubrcapp.core.store.db.dao.AccessDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.BusinessDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.FeatureFlagDao
@@ -300,7 +301,7 @@ private fun SyncQueueEntity.toDomain() = SyncQueueItem(
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
     userId = userId?.let(::UserId),
-    deviceId = deviceId,
+    deviceId = DeviceId(deviceId),
 )
 
 private fun SyncQueueItem.toEntity() = SyncQueueEntity(
@@ -319,7 +320,7 @@ private fun SyncQueueItem.toEntity() = SyncQueueEntity(
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     userId = userId?.value,
-    deviceId = deviceId,
+    deviceId = deviceId.value,
 )
 
 @Singleton
@@ -350,6 +351,7 @@ class RoomBusinessLocalDataSource @Inject constructor(
 class RoomUserLocalDataSource @Inject constructor(
     private val userDao: UserDao,
     private val accessDao: AccessDao,
+    private val transactionRunner: DatabaseTransactionRunner,
 ) : UserLocalDataSource {
     override suspend fun getUser(userId: UserId): User? =
         userDao.getById(userId.value)?.toDomain()
@@ -357,21 +359,23 @@ class RoomUserLocalDataSource @Inject constructor(
     override suspend fun saveUser(user: User) = userDao.upsert(user.toEntity())
 
     override suspend fun saveMembership(membership: UserBusiness) {
-        accessDao.upsertUserBusiness(membership.toEntity())
-        accessDao.clearUserBusinessRoles(
-            membership.tenantId.value,
-            membership.businessId.value,
-            membership.id.value,
-        )
-        membership.roleIds.forEach { roleId ->
-            accessDao.addUserBusinessRole(
-                UserBusinessRoleEntity(
-                    tenantId = membership.tenantId.value,
-                    businessId = membership.businessId.value,
-                    userBusinessId = membership.id.value,
-                    roleId = roleId.value,
-                )
+        transactionRunner.run {
+            accessDao.upsertUserBusiness(membership.toEntity())
+            accessDao.clearUserBusinessRoles(
+                membership.tenantId.value,
+                membership.businessId.value,
+                membership.id.value,
             )
+            membership.roleIds.forEach { roleId ->
+                accessDao.addUserBusinessRole(
+                    UserBusinessRoleEntity(
+                        tenantId = membership.tenantId.value,
+                        businessId = membership.businessId.value,
+                        userBusinessId = membership.id.value,
+                        roleId = roleId.value,
+                    )
+                )
+            }
         }
     }
 

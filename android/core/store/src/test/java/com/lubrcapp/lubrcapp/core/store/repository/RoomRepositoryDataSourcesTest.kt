@@ -101,7 +101,7 @@ class RoomRepositoryDataSourcesTest {
             status = SyncStatus.PENDING,
             createdAt = now,
             updatedAt = now,
-            deviceId = "device-1",
+            deviceId = DeviceId("device-1"),
         )
 
         source.enqueue(item)

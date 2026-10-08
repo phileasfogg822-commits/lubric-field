@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.core.repository
 
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.DeviceId
 import com.lubrcapp.lubrcapp.domain.common.EntityMetadata
 import com.lubrcapp.lubrcapp.domain.common.FeatureFlagId
 import com.lubrcapp.lubrcapp.domain.common.SettingId
@@ -70,7 +71,7 @@ data class SyncQueueItem(
     val createdAt: Instant,
     val updatedAt: Instant,
     val userId: UserId? = null,
-    val deviceId: String,
+    val deviceId: DeviceId,
 )
 
 data class SyncQueueSummary(
