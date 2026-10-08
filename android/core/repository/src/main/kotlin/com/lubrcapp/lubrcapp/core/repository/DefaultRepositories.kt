@@ -45,7 +45,9 @@ class DefaultBusinessRepository(
     override suspend fun refreshBusinesses(tenantId: TenantId): RefreshResult =
         when (val result = remote.fetchBusinesses(tenantId)) {
             is RemoteResult.Success -> {
-                result.value.forEach(local::saveBusiness)
+                for (business in result.value) {
+                    local.saveBusiness(business)
+                }
                 RefreshResult.Updated(result.value.size)
             }
             is RemoteResult.Unavailable -> RefreshResult.Skipped(result.reason)
@@ -119,7 +121,9 @@ class DefaultSettingsRepository(
         businessId: BusinessId,
     ): RefreshResult = when (val result = remote.fetchSettings(tenantId, businessId)) {
         is RemoteResult.Success -> {
-            result.value.forEach(local::saveSetting)
+            for (setting in result.value) {
+                local.saveSetting(setting)
+            }
             RefreshResult.Updated(result.value.size)
         }
         is RemoteResult.Unavailable -> RefreshResult.Skipped(result.reason)
@@ -149,7 +153,9 @@ class DefaultConfigurationRepository(
         businessId: BusinessId,
     ): RefreshResult = when (val result = remote.fetchFeatureFlags(tenantId, businessId)) {
         is RemoteResult.Success -> {
-            result.value.forEach(local::saveFeatureFlag)
+            for (flag in result.value) {
+                local.saveFeatureFlag(flag)
+            }
             RefreshResult.Updated(result.value.size)
         }
         is RemoteResult.Unavailable -> RefreshResult.Skipped(result.reason)
