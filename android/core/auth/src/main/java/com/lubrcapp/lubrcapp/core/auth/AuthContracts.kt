@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface AuthRemoteDataSource {
     suspend fun signInWithEmail(
         email: String,
-        password: String,
+        password: CharArray,
     ): AuthRemoteResult<AuthSession>
 
     suspend fun requestOtp(
@@ -15,7 +15,7 @@ interface AuthRemoteDataSource {
 
     suspend fun verifyOtp(
         challengeId: String,
-        otp: String,
+        otp: CharArray,
     ): AuthRemoteResult<AuthSession>
 
     suspend fun refresh(
