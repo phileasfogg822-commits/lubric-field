@@ -85,11 +85,11 @@ sealed interface AuthState {
     ) : AuthState
 
     data class Refreshing(
-        val session: AuthSession,
+        val userId: UserId,
     ) : AuthState
 
     data class Authenticated(
-        val session: AuthSession,
+        val userId: UserId,
         val freshness: SessionFreshness,
     ) : AuthState
 
