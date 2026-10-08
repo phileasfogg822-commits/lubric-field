@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.nio.BufferUnderflowException
 import java.nio.ByteBuffer
 import java.security.GeneralSecurityException
 import java.security.KeyStore
@@ -88,6 +89,8 @@ class AndroidKeystoreSecureAuthStorage @Inject constructor(
         } catch (_: GeneralSecurityException) {
             null
         } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: BufferUnderflowException) {
             null
         }
 
