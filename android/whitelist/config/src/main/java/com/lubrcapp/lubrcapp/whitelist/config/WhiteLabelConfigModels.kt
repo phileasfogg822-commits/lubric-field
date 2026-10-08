@@ -133,6 +133,8 @@ data class DeploymentConfig(
     val termsUrl: String?,
     val privacyUrl: String?,
     val website: String?,
+    val defaultTextScale: Float = 1f,
+    val defaultLargeTouchTargets: Boolean = false,
 ) {
     init {
         require(appName.isNotBlank()) { "Deployment appName cannot be blank" }
@@ -148,6 +150,9 @@ data class DeploymentConfig(
         }
         require(includedModules.none { it.isBlank() }) { "Included module keys cannot be blank" }
         require(defaultLanguage.isNotBlank()) { "defaultLanguage cannot be blank" }
+        require(defaultTextScale in 0.85f..1.50f) {
+            "defaultTextScale must be between 0.85 and 1.50"
+        }
     }
 }
 

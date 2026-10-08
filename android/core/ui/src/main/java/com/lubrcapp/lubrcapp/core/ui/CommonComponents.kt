@@ -1,23 +1,20 @@
 package com.lubrcapp.lubrcapp.core.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.lubrcapp.lubrcapp.core.designsystem.AppButton
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
 
-/**
- * Loading overlay for all screens.
- */
 @Composable
 fun LoadingOverlay(
     isLoading: Boolean,
@@ -28,20 +25,21 @@ fun LoadingOverlay(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(16.dp),
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+            ) {
+                CircularProgressIndicator()
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
 
-/**
- * Error state for all screens.
- */
 @Composable
 fun ErrorState(
     error: String,
@@ -51,23 +49,24 @@ fun ErrorState(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+        ) {
             Text(
                 text = "Error: $error",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.error
             )
-            OutlinedButton(onClick = onRetry) {
+            AppButton(onClick = onRetry) {
                 Text("Retry")
             }
         }
     }
 }
 
-/**
- * Empty state for lists.
- */
 @Composable
 fun EmptyState(
     message: String,
@@ -78,7 +77,11 @@ fun EmptyState(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+        ) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -86,11 +89,10 @@ fun EmptyState(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (actionLabel != null && onAction != null) {
-                Button(onClick = onAction) {
+                AppButton(onClick = onAction) {
                     Text(actionLabel)
                 }
             }
         }
     }
 }
-

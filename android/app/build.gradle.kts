@@ -59,6 +59,8 @@ android {
         buildConfigField("String", "DEPLOYMENT_CARD_STYLE", quotedBuildConfig(deploymentValue("brand.cardStyle")))
         buildConfigField("String", "DEPLOYMENT_BUTTON_STYLE", quotedBuildConfig(deploymentValue("brand.buttonStyle")))
         buildConfigField("int", "DEPLOYMENT_BORDER_RADIUS", deploymentValue("brand.borderRadius"))
+        buildConfigField("String", "DEFAULT_TEXT_SCALE", quotedBuildConfig(deploymentValue("design.defaultTextScale")))
+        buildConfigField("boolean", "DEFAULT_LARGE_TOUCH_TARGETS", deploymentValue("design.defaultLargeTouchTargets"))
         buildConfigField("String", "DEFAULT_LANGUAGE", quotedBuildConfig(deploymentValue("defaultLanguage")))
         buildConfigField("String", "DEFAULT_THEME_MODE", quotedBuildConfig(deploymentValue("defaultThemeMode")))
         buildConfigField("String", "TERM_SALE", quotedBuildConfig(deploymentValue("term.sale")))
