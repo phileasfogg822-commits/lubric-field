@@ -187,6 +187,28 @@ interface AccessDao {
           ON ub.tenantId = b.tenantId
          AND ub.businessId = b.id
         WHERE ub.userId = :userId
+          AND ub.tenantId = :tenantId
+          AND ub.businessId = :businessId
+          AND ub.deletedAt IS NULL
+          AND ub.isActive = 1
+          AND b.deletedAt IS NULL
+          AND b.isActive = 1
+        LIMIT 1
+        """
+    )
+    fun observeAccessibleBusiness(
+        userId: String,
+        tenantId: String,
+        businessId: String,
+    ): Flow<BusinessEntity?>
+
+    @Query(
+        """
+        SELECT b.* FROM businesses b
+        INNER JOIN user_businesses ub
+          ON ub.tenantId = b.tenantId
+         AND ub.businessId = b.id
+        WHERE ub.userId = :userId
           AND ub.deletedAt IS NULL
           AND ub.isActive = 1
           AND b.deletedAt IS NULL
