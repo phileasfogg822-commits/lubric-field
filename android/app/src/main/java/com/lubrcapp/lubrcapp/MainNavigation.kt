@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
 import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
@@ -112,7 +113,7 @@ fun MainNavigation(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.business_bootstrap_error),
+                    text = stringResource(CoreUiR.string.common_business_bootstrap_error),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
