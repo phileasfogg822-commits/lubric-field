@@ -70,4 +70,4 @@
     <string name="nav_items_title">Items</string>
     <string name="nav_parties_title">Parties</string>
     <string name="nav_more_title">More</string>
-<string name="business_bootstrap_error">Unable to load the local business state.</string></resources>
+</resources>
