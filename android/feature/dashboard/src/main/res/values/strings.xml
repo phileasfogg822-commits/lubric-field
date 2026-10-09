@@ -1,0 +1,7 @@
+<resources>
+    <string name="dashboard_current_business">Current business</string>
+    <string name="dashboard_tenant_short">Tenant %1$s…</string>
+    <string name="dashboard_no_business">No accessible business is available for this user.</string>
+    <string name="dashboard_switching">Switching…</string>
+    <string name="dashboard_switch_business">Switch business</string>
+</resources>
