@@ -15,6 +15,7 @@ import com.lubrcapp.lubrcapp.core.repository.usecase.EnsureOwnerAccessUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessMembersUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessRolesUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.SetMembershipActiveUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.SetRoleActiveUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.SetRoleCapabilitiesUseCase
 import com.lubrcapp.lubrcapp.domain.common.RoleId
 import com.lubrcapp.lubrcapp.domain.common.UserBusinessId
@@ -46,6 +47,7 @@ class AccessControlViewModel @Inject constructor(
     private val createUserUseCase: CreateBusinessUserUseCase,
     private val setMembershipActiveUseCase: SetMembershipActiveUseCase,
     private val createRoleUseCase: CreateBusinessRoleUseCase,
+    private val setRoleActiveUseCase: SetRoleActiveUseCase,
     private val setRoleCapabilitiesUseCase: SetRoleCapabilitiesUseCase,
     private val assignRolesUseCase: AssignBusinessRolesUseCase,
     private val authorization: AuthorizationService,
@@ -112,6 +114,13 @@ class AccessControlViewModel @Inject constructor(
             actor,
             CreateBusinessRoleRequest(name, capabilities),
         )
+    }
+
+    fun setRoleActive(
+        roleId: RoleId,
+        active: Boolean,
+    ) = withContextAction { actor ->
+        setRoleActiveUseCase(actor, roleId, active)
     }
 
     fun setRoleCapabilities(
