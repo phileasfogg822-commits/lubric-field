@@ -375,6 +375,28 @@ class RoomAccessControlRepository @Inject constructor(
         )
     }
 
+    override suspend fun setRoleActive(
+        actor: TenantContext,
+        roleId: RoleId,
+        active: Boolean,
+    ) {
+        requireCapability(actor, Capabilities.ROLES_MANAGE)
+        val role = requireRole(actor, roleId)
+        require(!role.isSystemTemplate) {
+            "System roles cannot be deactivated"
+        }
+
+        val changed = accessDao.setRoleActive(
+            tenantId = actor.tenantId.value,
+            businessId = actor.businessId.value,
+            roleId = roleId.value,
+            active = active,
+            updatedAt = Instant.now().toEpochMilli(),
+            updatedBy = actor.userId.value,
+        )
+        check(changed == 1) { "Role update failed" }
+    }
+
     override suspend fun setRoleCapabilities(
         actor: TenantContext,
         roleId: RoleId,
