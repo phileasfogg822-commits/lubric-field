@@ -110,6 +110,20 @@ class CreateBusinessRoleUseCase @Inject constructor(
     }
 }
 
+class SetRoleActiveUseCase @Inject constructor(
+    private val repository: AccessControlRepository,
+    private val authorization: AuthorizationService,
+) {
+    suspend operator fun invoke(
+        actor: TenantContext,
+        roleId: RoleId,
+        active: Boolean,
+    ) {
+        authorization.require(actor, Capabilities.ROLES_MANAGE)
+        repository.setRoleActive(actor, roleId, active)
+    }
+}
+
 class SetRoleCapabilitiesUseCase @Inject constructor(
     private val repository: AccessControlRepository,
     private val authorization: AuthorizationService,
