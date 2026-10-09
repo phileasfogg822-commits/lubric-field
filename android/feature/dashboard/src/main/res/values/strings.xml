@@ -4,4 +4,8 @@
     <string name="dashboard_no_business">No accessible business is available for this user.</string>
     <string name="dashboard_switching">Switching…</string>
     <string name="dashboard_switch_business">Switch business</string>
+    <string name="dashboard_error_restore">Unable to restore the current business.</string>
+    <string name="dashboard_error_no_current">No valid current business is selected.</string>
+    <string name="dashboard_error_access_denied">You do not have access to that business.</string>
+    <string name="dashboard_error_unavailable">That business is no longer available.</string>
 </resources>
