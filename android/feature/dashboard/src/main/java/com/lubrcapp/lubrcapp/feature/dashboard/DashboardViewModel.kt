@@ -76,6 +76,22 @@ class DashboardViewModel @Inject constructor(
             ) { current, available ->
                 current to available
             }.collect { (current, available) ->
+                if (current == null && available.isNotEmpty()) {
+                    val recovered = runCatching {
+                        ensureCurrentBusiness(userId)
+                    }.getOrNull()
+                    if (recovered != null) {
+                        mutableState.value = mutableState.value.copy(
+                            currentBusiness = recovered,
+                            availableBusinesses = available,
+                            isLoading = false,
+                            isSwitching = false,
+                            errorMessage = null,
+                        )
+                        return@collect
+                    }
+                }
+
                 mutableState.value = mutableState.value.copy(
                     currentBusiness = current,
                     availableBusinesses = available,
