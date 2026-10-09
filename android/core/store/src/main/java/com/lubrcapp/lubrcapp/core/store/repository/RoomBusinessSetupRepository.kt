@@ -171,7 +171,9 @@ class RoomBusinessSetupRepository @Inject constructor(
                     syncStatus = syncStatus,
                 ),
             )
-            settings.forEach { settingsDao.upsert(it) }
+            for (setting in settings) {
+                settingsDao.upsert(setting)
+            }
         }
 
         return BusinessBootstrap(
