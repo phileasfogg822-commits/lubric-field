@@ -31,10 +31,8 @@ import javax.inject.Inject
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -56,22 +54,25 @@ class PersistentBusinessContextService @Inject constructor(
     override fun observeCurrent(
         userId: UserId,
     ): Flow<BusinessChoice?> =
-        dataStore.data
-            .mapLatest { preferences -> readContext(preferences, userId) }
-            .distinctUntilChanged()
-            .flatMapLatest { context ->
-                if (context == null) {
-                    flowOf(null)
-                } else {
-                    accessDao.observeAccessibleBusiness(
-                        userId = context.userId.value,
-                        tenantId = context.tenantId.value,
-                        businessId = context.businessId.value,
-                    ).mapLatest { business ->
-                        business?.let { buildChoice(it, context.userId) }
-                    }
+        combine(
+            dataStore.data,
+            accessDao.observeBusinessesForUser(userId.value),
+        ) { preferences, accessibleBusinesses ->
+            val context = readContext(preferences, userId)
+            val business = context?.let { selected ->
+                accessibleBusinesses.firstOrNull { candidate ->
+                    candidate.tenantId == selected.tenantId.value &&
+                        candidate.id == selected.businessId.value
                 }
             }
+            context to business
+        }.mapLatest { (context, business) ->
+            if (context == null || business == null) {
+                null
+            } else {
+                buildChoice(business, context.userId)
+            }
+        }
 
     override suspend fun current(
         userId: UserId,
