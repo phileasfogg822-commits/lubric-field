@@ -26,10 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import com.lubrcapp.lubrcapp.core.designsystem.AppButton
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
+import com.lubrcapp.lubrcapp.feature.auth.R
 
 object OnboardingScreen {
 
@@ -136,14 +138,14 @@ object OnboardingScreen {
                         enabled = !state.isSaving,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Back")
+                        Text(stringResource(R.string.onboarding_back))
                     }
                     AppButton(
                         onClick = onCreateBusiness,
                         enabled = !state.isSaving,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(if (state.isSaving) "Creating…" else "Create Business")
+                        Text(if (state.isSaving) stringResource(R.string.onboarding_creating) else stringResource(R.string.onboarding_create_business))
                     }
                 }
             }
@@ -176,7 +178,7 @@ object OnboardingScreen {
     ) {
         when (state.step) {
             BusinessSetupStep.LANGUAGE -> {
-                StepTitle("Choose your language", "You can change this later.")
+                StepTitle(stringResource(R.string.onboarding_choose_language), stringResource(R.string.onboarding_change_language_later))
                 languages.forEach { language ->
                     OutlinedButton(
                         onClick = { onSelectLanguage(language.code) },
@@ -190,57 +192,57 @@ object OnboardingScreen {
 
             BusinessSetupStep.WELCOME -> {
                 StepTitle(
-                    title = "Welcome to $appName",
-                    subtitle = "Set up your business once. Core business data is stored locally and works offline.",
+                    title = stringResource(R.string.onboarding_welcome, appName),
+                    subtitle = stringResource(R.string.onboarding_offline_setup),
                 )
                 AppButton(
                     onClick = onNext,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Get Started")
+                    Text(stringResource(R.string.onboarding_get_started))
                 }
             }
 
             BusinessSetupStep.ENTRY -> {
                 StepTitle(
-                    title = "How do you want to start?",
-                    subtitle = "Create a new offline-first business now.",
+                    title = stringResource(R.string.onboarding_start_question),
+                    subtitle = stringResource(R.string.onboarding_create_offline),
                 )
                 AppButton(
                     onClick = onNext,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Create New Business")
+                    Text(stringResource(R.string.onboarding_create_new_business))
                 }
                 OutlinedButton(
                     onClick = {},
                     enabled = false,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Join Existing Business — requires connected membership service")
+                    Text(stringResource(R.string.onboarding_join_unavailable))
                 }
                 OutlinedButton(
                     onClick = {},
                     enabled = false,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Restore Backup — available with backup/import workflow")
+                    Text(stringResource(R.string.onboarding_restore_unavailable))
                 }
             }
 
             BusinessSetupStep.BUSINESS_DETAILS -> {
-                StepTitle("Business details", "Start with the essential identity details.")
+                StepTitle(stringResource(R.string.onboarding_business_details), stringResource(R.string.onboarding_business_details_hint))
                 OutlinedTextField(
                     value = state.draft.businessName,
                     onValueChange = onBusinessNameChange,
-                    label = { Text("Business name") },
+                    label = { Text(stringResource(R.string.business_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = state.draft.phone,
                     onValueChange = onPhoneChange,
-                    label = { Text("Business phone") },
+                    label = { Text(stringResource(R.string.business_phone)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
@@ -248,7 +250,7 @@ object OnboardingScreen {
                 OutlinedTextField(
                     value = state.draft.email,
                     onValueChange = onEmailChange,
-                    label = { Text("Business email") },
+                    label = { Text(stringResource(R.string.business_email)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
@@ -256,20 +258,20 @@ object OnboardingScreen {
                 OutlinedTextField(
                     value = state.draft.address,
                     onValueChange = onAddressChange,
-                    label = { Text("Address") },
+                    label = { Text(stringResource(R.string.address)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = state.draft.postalCode,
                     onValueChange = onPostalCodeChange,
-                    label = { Text("Postal code") },
+                    label = { Text(stringResource(R.string.postal_code)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = state.draft.website,
                     onValueChange = onWebsiteChange,
-                    label = { Text("Website") },
+                    label = { Text(stringResource(R.string.website)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     singleLine = true,
@@ -277,9 +279,9 @@ object OnboardingScreen {
             }
 
             BusinessSetupStep.COUNTRY -> {
-                StepTitle("Country", "Country is stored as an ISO country code.")
+                StepTitle(stringResource(R.string.country), stringResource(R.string.country_hint))
                 SelectionMenu(
-                    label = "Country",
+                    label = stringResource(R.string.country),
                     selectedCode = state.draft.countryCode,
                     options = countries.map { it.code to it.label },
                     onSelected = onCountryChange,
@@ -287,9 +289,9 @@ object OnboardingScreen {
             }
 
             BusinessSetupStep.CURRENCY -> {
-                StepTitle("Currency", "Choose the accounting currency for this business.")
+                StepTitle(stringResource(R.string.currency), stringResource(R.string.currency_hint))
                 SelectionMenu(
-                    label = "Currency",
+                    label = stringResource(R.string.currency),
                     selectedCode = state.draft.currencyCode,
                     options = currencies.map { it.code to it.label },
                     onSelected = onCurrencyChange,
@@ -297,7 +299,7 @@ object OnboardingScreen {
             }
 
             BusinessSetupStep.TAX -> {
-                StepTitle("Tax", "Enable tax only if this business uses it.")
+                StepTitle(stringResource(R.string.tax), stringResource(R.string.tax_hint))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -305,13 +307,13 @@ object OnboardingScreen {
                         checked = state.draft.taxEnabled,
                         onCheckedChange = onTaxEnabledChange,
                     )
-                    Text("Tax enabled")
+                    Text(stringResource(R.string.tax_enabled))
                 }
                 if (state.draft.taxEnabled) {
                     OutlinedTextField(
                         value = state.draft.taxNumber,
                         onValueChange = onTaxNumberChange,
-                        label = { Text("Tax registration / number") },
+                        label = { Text(stringResource(R.string.tax_registration)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
@@ -320,32 +322,32 @@ object OnboardingScreen {
 
             BusinessSetupStep.BUSINESS_TYPE -> {
                 StepTitle(
-                    "Business type",
-                    "Use the terminology that fits this deployment; this is not tied to one industry.",
+                    stringResource(R.string.business_type),
+                    stringResource(R.string.business_type_hint),
                 )
                 OutlinedTextField(
                     value = state.draft.businessType,
                     onValueChange = onBusinessTypeChange,
-                    label = { Text("Business type") },
-                    placeholder = { Text("e.g. wholesale, retail, services") },
+                    label = { Text(stringResource(R.string.business_type)) },
+                    placeholder = { Text(stringResource(R.string.business_type_example)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
             }
 
             BusinessSetupStep.OWNER -> {
-                StepTitle("Owner details", "Create the local owner identity for this business.")
+                StepTitle(stringResource(R.string.owner_details), stringResource(R.string.owner_details_hint))
                 OutlinedTextField(
                     value = state.draft.ownerName,
                     onValueChange = onOwnerNameChange,
-                    label = { Text("Owner name") },
+                    label = { Text(stringResource(R.string.owner_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = state.draft.ownerPhone,
                     onValueChange = onOwnerPhoneChange,
-                    label = { Text("Owner phone") },
+                    label = { Text(stringResource(R.string.owner_phone)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
@@ -353,7 +355,7 @@ object OnboardingScreen {
                 OutlinedTextField(
                     value = state.draft.ownerEmail,
                     onValueChange = onOwnerEmailChange,
-                    label = { Text("Owner email") },
+                    label = { Text(stringResource(R.string.owner_email)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
@@ -362,16 +364,16 @@ object OnboardingScreen {
 
             BusinessSetupStep.REVIEW -> {
                 StepTitle(
-                    "Review and create",
-                    "Everything below will be committed locally in one transaction.",
+                    stringResource(R.string.review_create),
+                    stringResource(R.string.review_create_hint),
                 )
-                ReviewCard("Business", state.draft.businessName)
-                ReviewCard("Country", state.draft.countryCode)
-                ReviewCard("Currency", state.draft.currencyCode)
-                ReviewCard("Business type", state.draft.businessType)
-                ReviewCard("Owner", state.draft.ownerName)
-                ReviewCard("Language", state.draft.languageCode)
-                ReviewCard("Tax", if (state.draft.taxEnabled) "Enabled" else "Disabled")
+                ReviewCard(stringResource(R.string.review_business), state.draft.businessName)
+                ReviewCard(stringResource(R.string.country), state.draft.countryCode)
+                ReviewCard(stringResource(R.string.currency), state.draft.currencyCode)
+                ReviewCard(stringResource(R.string.business_type), state.draft.businessType)
+                ReviewCard(stringResource(R.string.owner_details), state.draft.ownerName)
+                ReviewCard(stringResource(R.string.language), state.draft.languageCode)
+                ReviewCard(stringResource(R.string.tax), if (state.draft.taxEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled))
             }
         }
     }
@@ -410,9 +412,9 @@ object OnboardingScreen {
             ) {
                 Text(
                     text = if (selectedCode.isBlank()) {
-                        "Select $label"
+                        stringResource(R.string.select_value, label)
                     } else {
-                        "$selectedCode — ${selectedLabel.orEmpty()}"
+                        stringResource(R.string.selection_value, selectedCode, selectedLabel.orEmpty())
                     }
                 )
             }
@@ -423,7 +425,7 @@ object OnboardingScreen {
             ) {
                 options.forEach { (code, optionLabel) ->
                     DropdownMenuItem(
-                        text = { Text("$code — ${optionLabel}") },
+                        text = { Text(stringResource(R.string.selection_value, code, optionLabel)) },
                         onClick = {
                             onSelected(code)
                             expanded = false
@@ -469,14 +471,14 @@ object OnboardingScreen {
                     onClick = onBack,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Back")
+                    Text(stringResource(R.string.onboarding_back))
                 }
             }
             AppButton(
                 onClick = onNext,
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Continue")
+                Text(stringResource(R.string.continue_label))
             }
         }
     }
