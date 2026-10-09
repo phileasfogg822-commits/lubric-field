@@ -54,7 +54,7 @@ class BusinessSetupViewModelTest {
 
         viewModel.next()
         assertEquals(BusinessSetupStep.BUSINESS_DETAILS, viewModel.state.value.step)
-        assertEquals("Business name is required", viewModel.state.value.errorMessage)
+        assertEquals(BusinessSetupError.BUSINESS_NAME_REQUIRED, viewModel.state.value.error)
     }
 
     @Test
