@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.IdGenerator
 import com.lubrcapp.lubrcapp.domain.common.UuidIdGenerator
 import com.lubrcapp.lubrcapp.domain.common.deviceId
 import dagger.Module
@@ -52,6 +53,10 @@ class PersistentDeviceIdentityProvider @Inject constructor(
 @InstallIn(SingletonComponent::class)
 object DeviceIdentityModule {
     private const val FILE_NAME = "device_identity"
+
+    @Provides
+    @Singleton
+    fun provideIdGenerator(): IdGenerator = UuidIdGenerator
 
     @Provides
     @Singleton
