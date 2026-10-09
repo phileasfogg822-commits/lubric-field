@@ -30,6 +30,7 @@ import com.lubrcapp.lubrcapp.feature.dashboard.R
 fun DashboardScreen(
     state: DashboardUiState,
     onSwitchBusiness: (TenantId, BusinessId) -> Unit,
+    onOpenAccessControl: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spacing = LubrcTheme.tokens.contentPadding
@@ -55,6 +56,13 @@ fun DashboardScreen(
                 text = current.name,
                 style = MaterialTheme.typography.headlineMedium,
             )
+
+            OutlinedButton(
+                onClick = onOpenAccessControl,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.dashboard_team_access))
+            }
 
             if (state.availableBusinesses.size > 1) {
                 BusinessSwitcherMenu(
