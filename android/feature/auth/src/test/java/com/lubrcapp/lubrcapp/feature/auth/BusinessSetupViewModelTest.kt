@@ -46,6 +46,11 @@ class BusinessSetupViewModelTest {
         assertEquals(BusinessSetupStep.LANGUAGE, viewModel.state.value.step)
 
         viewModel.next()
+        assertEquals(BusinessSetupStep.LANGUAGE, viewModel.state.value.step)
+        assertEquals(BusinessSetupError.LANGUAGE_REQUIRED, viewModel.state.value.error)
+
+        viewModel.selectLanguage("en")
+        viewModel.next()
         assertEquals(BusinessSetupStep.WELCOME, viewModel.state.value.step)
         viewModel.next()
         assertEquals(BusinessSetupStep.ENTRY, viewModel.state.value.step)
