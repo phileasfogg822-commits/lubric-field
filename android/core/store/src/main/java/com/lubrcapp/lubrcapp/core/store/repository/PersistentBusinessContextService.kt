@@ -33,6 +33,8 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -57,7 +59,19 @@ class PersistentBusinessContextService @Inject constructor(
         dataStore.data
             .mapLatest { preferences -> readContext(preferences, userId) }
             .distinctUntilChanged()
-            .mapLatest { context -> context?.let { validateChoice(it) } }
+            .flatMapLatest { context ->
+                if (context == null) {
+                    flowOf(null)
+                } else {
+                    accessDao.observeAccessibleBusiness(
+                        userId = context.userId.value,
+                        tenantId = context.tenantId.value,
+                        businessId = context.businessId.value,
+                    ).mapLatest { business ->
+                        business?.let { buildChoice(it, context.userId) }
+                    }
+                }
+            }
 
     override suspend fun current(
         userId: UserId,
