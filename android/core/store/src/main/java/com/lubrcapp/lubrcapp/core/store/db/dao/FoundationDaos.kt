@@ -67,6 +67,26 @@ interface BusinessDao {
 
     @Query(
         """
+        SELECT * FROM businesses
+        WHERE deletedAt IS NULL AND isActive = 1
+        ORDER BY createdAt ASC
+        LIMIT 1
+        """
+    )
+    fun observeFirstActive(): Flow<BusinessEntity?>
+
+    @Query(
+        """
+        SELECT * FROM businesses
+        WHERE deletedAt IS NULL AND isActive = 1
+        ORDER BY createdAt ASC
+        LIMIT 1
+        """
+    )
+    suspend fun getFirstActive(): BusinessEntity?
+
+    @Query(
+        """
         UPDATE businesses
         SET deletedAt = :deletedAt, deletedBy = :deletedBy, updatedAt = :deletedAt,
             updatedBy = :deletedBy, revision = revision + 1, syncStatus = 'PENDING'
