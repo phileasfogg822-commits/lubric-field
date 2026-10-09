@@ -1,0 +1,147 @@
+package com.lubrcapp.lubrcapp.feature.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lubrcapp.lubrcapp.core.repository.BusinessMember
+import com.lubrcapp.lubrcapp.core.repository.BusinessRole
+import com.lubrcapp.lubrcapp.core.repository.CreateBusinessRoleRequest
+import com.lubrcapp.lubrcapp.core.repository.CreateBusinessUserRequest
+import com.lubrcapp.lubrcapp.core.repository.TenantContext
+import com.lubrcapp.lubrcapp.core.repository.usecase.AssignBusinessRolesUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.AuthorizationService
+import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessRoleUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessUserUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.EnsureOwnerAccessUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessMembersUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessRolesUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.SetMembershipActiveUseCase
+import com.lubrcapp.lubrcapp.core.repository.usecase.SetRoleCapabilitiesUseCase
+import com.lubrcapp.lubrcapp.domain.common.RoleId
+import com.lubrcapp.lubrcapp.domain.common.UserBusinessId
+import com.lubrcapp.lubrcapp.domain.user.Capabilities
+import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+data class AccessControlUiState(
+    val members: List<BusinessMember> = emptyList(),
+    val roles: List<BusinessRole> = emptyList(),
+    val canManageUsers: Boolean = false,
+    val canManageRoles: Boolean = false,
+    val isLoading: Boolean = true,
+    val errorMessage: String? = null,
+)
+
+@HiltViewModel
+class AccessControlViewModel @Inject constructor(
+    private val ensureOwnerAccess: EnsureOwnerAccessUseCase,
+    private val observeMembers: ObserveBusinessMembersUseCase,
+    private val observeRoles: ObserveBusinessRolesUseCase,
+    private val createUser: CreateBusinessUserUseCase,
+    private val setMembershipActive: SetMembershipActiveUseCase,
+    private val createRole: CreateBusinessRoleUseCase,
+    private val setRoleCapabilities: SetRoleCapabilitiesUseCase,
+    private val assignRoles: AssignBusinessRolesUseCase,
+    private val authorization: AuthorizationService,
+) : ViewModel() {
+
+    private val mutableState = MutableStateFlow(AccessControlUiState())
+    val state: StateFlow<AccessControlUiState> = mutableState.asStateFlow()
+
+    private var context: TenantContext? = null
+    private var observationJob: Job? = null
+
+    fun start(context: TenantContext) {
+        if (this.context == context && observationJob?.isActive == true) return
+        this.context = context
+        observationJob?.cancel()
+
+        observationJob = viewModelScope.launch {
+            runCatching {
+                ensureOwnerAccess(context.tenantId, context.businessId)
+                val snapshot = authorization.snapshot(context)
+                mutableState.value = mutableState.value.copy(
+                    canManageUsers = snapshot.allows(Capabilities.USERS_MANAGE),
+                    canManageRoles = snapshot.allows(Capabilities.ROLES_MANAGE),
+                )
+            }.onFailure(::showError)
+
+            combine(
+                observeMembers(context.tenantId, context.businessId),
+                observeRoles(context.tenantId, context.businessId),
+            ) { members, roles -> members to roles }
+                .collect { (members, roles) ->
+                    mutableState.value = mutableState.value.copy(
+                        members = members,
+                        roles = roles,
+                        isLoading = false,
+                    )
+                }
+        }
+    }
+
+    fun createUser(
+        name: String,
+        phone: String = "",
+        email: String? = null,
+    ) = withContextAction { actor ->
+        createUser(
+            actor,
+            CreateBusinessUserRequest(name, phone, email),
+        )
+    }
+
+    fun setMemberActive(
+        membershipId: UserBusinessId,
+        active: Boolean,
+    ) = withContextAction { actor ->
+        setMembershipActive(actor, membershipId, active)
+    }
+
+    fun createRole(
+        name: String,
+        capabilities: Set<CapabilityKey>,
+    ) = withContextAction { actor ->
+        createRole(
+            actor,
+            CreateBusinessRoleRequest(name, capabilities),
+        )
+    }
+
+    fun setRoleCapabilities(
+        roleId: RoleId,
+        capabilities: Set<CapabilityKey>,
+    ) = withContextAction { actor ->
+        setRoleCapabilities(actor, roleId, capabilities)
+    }
+
+    fun assignRoles(
+        membershipId: UserBusinessId,
+        roleIds: Set<RoleId>,
+    ) = withContextAction { actor ->
+        assignRoles(actor, membershipId, roleIds)
+    }
+
+    private fun withContextAction(
+        action: suspend (TenantContext) -> Unit,
+    ) {
+        val actor = context ?: return
+        viewModelScope.launch {
+            runCatching { action(actor) }
+                .onFailure(::showError)
+        }
+    }
+
+    private fun showError(error: Throwable) {
+        mutableState.value = mutableState.value.copy(
+            isLoading = false,
+            errorMessage = error.message ?: "Access-control operation failed",
+        )
+    }
+}
