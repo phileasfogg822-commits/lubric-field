@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.lubrcapp.lubrcapp.core.network"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
