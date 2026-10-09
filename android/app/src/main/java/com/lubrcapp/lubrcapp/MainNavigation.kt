@@ -18,28 +18,36 @@ import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
+import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
 
 /**
- * Phase-8 app entry routing.
+ * App entry routing.
  *
- * Multi-business switching/current-business context is intentionally deferred
- * to Phase 9. Until then the first active local business is the bootstrap
- * business.
+ * Phase 9 restores and validates the current tenant/business context from
+ * persisted local state. Business switching is membership-scoped and does not
+ * rely on role names or unscoped business queries.
  */
 @Composable
 fun MainNavigation(
     appName: String,
     businessSetupViewModel: BusinessSetupViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val state by businessSetupViewModel.state.collectAsState()
+    val setupState by businessSetupViewModel.state.collectAsState()
+    val dashboardState by dashboardViewModel.state.collectAsState()
 
-    val languageCode = when (val bootstrap = state.bootstrapState) {
-        is BusinessBootstrapState.Ready -> bootstrap.bootstrap.languageCode
-        else -> state.draft.languageCode
+    val languageCode = when (val bootstrap = setupState.bootstrapState) {
+        is BusinessBootstrapState.Ready -> {
+            dashboardState.currentBusiness
+                ?.languageCode
+                ?.takeIf { it.isNotBlank() }
+                ?: bootstrap.bootstrap.languageCode
+        }
+        else -> setupState.draft.languageCode
     }
     ApplyApplicationLocale(languageCode)
 
-    when (val bootstrap = state.bootstrapState) {
+    when (val bootstrap = setupState.bootstrapState) {
         BusinessBootstrapState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -52,7 +60,7 @@ fun MainNavigation(
         BusinessBootstrapState.NeedsSetup -> {
             OnboardingScreen.Content(
                 appName = appName,
-                state = state,
+                state = setupState,
                 languages = businessSetupViewModel.languages,
                 countries = businessSetupViewModel.countries,
                 currencies = businessSetupViewModel.currencies,
@@ -78,8 +86,22 @@ fun MainNavigation(
         }
 
         is BusinessBootstrapState.Ready -> {
+            val initial = bootstrap.bootstrap
+            LaunchedEffect(
+                initial.ownerUserId,
+                initial.tenantId,
+                initial.businessId,
+            ) {
+                dashboardViewModel.start(
+                    userId = initial.ownerUserId,
+                    fallbackTenantId = initial.tenantId,
+                    fallbackBusinessId = initial.businessId,
+                )
+            }
+
             DashboardScreen(
-                businessName = bootstrap.bootstrap.businessName,
+                state = dashboardState,
+                onSwitchBusiness = dashboardViewModel::switchTo,
             )
         }
 

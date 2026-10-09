@@ -213,7 +213,6 @@ dependencies {
     implementation(project(":whitelist:config"))
     implementation(project(":whitelist:branding"))
     implementation(project(":whitelist:featureflags"))
-    implementation(project(":whitelist:tenant"))
 
     // Testing
     testImplementation("junit:junit:4.13.2")
