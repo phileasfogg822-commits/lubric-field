@@ -3,4 +3,7 @@
     <exclude
         domain="sharedpref"
         path="secure_auth_state.xml" />
+    <exclude
+        domain="file"
+        path="datastore/device_identity.preferences_pb" />
 </full-backup-content>
