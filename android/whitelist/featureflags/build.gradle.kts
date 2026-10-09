@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.lubrcapp.lubrcapp.whitelist.featureflags"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
