@@ -48,7 +48,7 @@ data class CurrencyOption(
 )
 
 data class BusinessSetupDraft(
-    val languageCode: String = "en",
+    val languageCode: String = "",
     val businessName: String = "",
     val phone: String = "",
     val email: String = "",
@@ -106,30 +106,38 @@ class BusinessSetupViewModel @Inject constructor(
         LanguageOption("hi", "हिन्दी"),
     )
 
-    val countries: List<CountryOption> = Locale.getAvailableLocales()
-        .asSequence()
-        .filter { it.country.isNotBlank() }
-        .map { locale ->
-            CountryOption(
-                code = locale.country.uppercase(Locale.ROOT),
-                label = locale.getDisplayCountry(Locale.ENGLISH),
-            )
+    val countries: List<CountryOption>
+        get() {
+            val displayLocale = selectedDisplayLocale()
+            return Locale.getAvailableLocales()
+                .asSequence()
+                .filter { it.country.isNotBlank() }
+                .map { locale ->
+                    CountryOption(
+                        code = locale.country.uppercase(Locale.ROOT),
+                        label = locale.getDisplayCountry(displayLocale),
+                    )
+                }
+                .filter { it.label.isNotBlank() }
+                .distinctBy { it.code }
+                .sortedBy { it.label }
+                .toList()
         }
-        .filter { it.label.isNotBlank() }
-        .distinctBy { it.code }
-        .sortedBy { it.label }
-        .toList()
 
-    val currencies: List<CurrencyOption> = Currency.getAvailableCurrencies()
-        .asSequence()
-        .map { currency ->
-            CurrencyOption(
-                code = currency.currencyCode,
-                label = "${currency.currencyCode} — ${currency.displayName}",
-            )
+    val currencies: List<CurrencyOption>
+        get() {
+            val displayLocale = selectedDisplayLocale()
+            return Currency.getAvailableCurrencies()
+                .asSequence()
+                .map { currency ->
+                    CurrencyOption(
+                        code = currency.currencyCode,
+                        label = "${currency.currencyCode} — ${currency.getDisplayName(displayLocale)}",
+                    )
+                }
+                .sortedBy { it.code }
+                .toList()
         }
-        .sortedBy { it.code }
-        .toList()
 
     init {
         viewModelScope.launch {
@@ -301,6 +309,11 @@ class BusinessSetupViewModel @Inject constructor(
             draft.ownerName.isBlank() -> BusinessSetupError.OWNER_NAME_REQUIRED
             else -> null
         }
+
+    private fun selectedDisplayLocale(): Locale {
+        val language = mutableState.value.draft.languageCode
+        return if (language.isBlank()) Locale.getDefault() else Locale.forLanguageTag(language)
+    }
 
     private fun currencyForCountry(countryCode: String): String? {
         val locale = Locale.getAvailableLocales()
