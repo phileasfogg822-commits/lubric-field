@@ -45,4 +45,11 @@
     <string name="select_value">Select %1$s</string>
     <string name="selection_value">%1$s — %2$s</string>
     <string name="continue_label">Continue</string>
+    <string name="setup_error_language">Select a language.</string>
+    <string name="setup_error_business_name">Business name is required.</string>
+    <string name="setup_error_country">Country is required.</string>
+    <string name="setup_error_currency">Currency is required.</string>
+    <string name="setup_error_business_type">Business type is required.</string>
+    <string name="setup_error_owner_name">Owner name is required.</string>
+    <string name="setup_error_create">Unable to create the business. Please try again.</string>
 </resources>
