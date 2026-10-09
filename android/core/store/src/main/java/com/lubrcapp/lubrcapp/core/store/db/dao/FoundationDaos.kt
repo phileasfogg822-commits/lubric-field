@@ -224,6 +224,164 @@ interface AccessDao {
         userId: String,
     ): List<String>
 
+
+    @Query(
+        """
+        SELECT * FROM user_businesses
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND deletedAt IS NULL
+        ORDER BY createdAt, id
+        """
+    )
+    fun observeMemberships(
+        tenantId: String,
+        businessId: String,
+    ): Flow<List<UserBusinessEntity>>
+
+    @Query(
+        """
+        SELECT * FROM user_businesses
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :membershipId AND deletedAt IS NULL
+        LIMIT 1
+        """
+    )
+    suspend fun getMembershipById(
+        tenantId: String,
+        businessId: String,
+        membershipId: String,
+    ): UserBusinessEntity?
+
+    @Query(
+        """
+        UPDATE user_businesses
+        SET isActive = :active,
+            updatedAt = :updatedAt,
+            updatedBy = :updatedBy,
+            revision = revision + 1,
+            syncStatus = 'PENDING'
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :membershipId AND deletedAt IS NULL
+        """
+    )
+    suspend fun setMembershipActive(
+        tenantId: String,
+        businessId: String,
+        membershipId: String,
+        active: Boolean,
+        updatedAt: Long,
+        updatedBy: String?,
+    ): Int
+
+    @Query(
+        """
+        SELECT * FROM roles
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND deletedAt IS NULL
+        ORDER BY name, id
+        """
+    )
+    fun observeRoles(
+        tenantId: String,
+        businessId: String,
+    ): Flow<List<RoleEntity>>
+
+    @Query(
+        """
+        SELECT * FROM roles
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :roleId AND deletedAt IS NULL
+        LIMIT 1
+        """
+    )
+    suspend fun getRole(
+        tenantId: String,
+        businessId: String,
+        roleId: String,
+    ): RoleEntity?
+
+    @Query("SELECT * FROM permissions WHERE permissionKey = :key LIMIT 1")
+    suspend fun getPermissionByKey(key: String): PermissionEntity?
+
+    @Query(
+        """
+        SELECT p.permissionKey
+        FROM permissions p
+        INNER JOIN role_permissions rp ON rp.permissionId = p.id
+        WHERE rp.tenantId = :tenantId
+          AND rp.businessId = :businessId
+          AND rp.roleId = :roleId
+        ORDER BY p.permissionKey
+        """
+    )
+    suspend fun getRolePermissionKeys(
+        tenantId: String,
+        businessId: String,
+        roleId: String,
+    ): List<String>
+
+    @Query(
+        """
+        DELETE FROM role_permissions
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND roleId = :roleId
+        """
+    )
+    suspend fun clearRolePermissions(
+        tenantId: String,
+        businessId: String,
+        roleId: String,
+    ): Int
+
+    @Query(
+        """
+        SELECT DISTINCT p.permissionKey
+        FROM permissions p
+        INNER JOIN role_permissions rp ON rp.permissionId = p.id
+        INNER JOIN roles r ON r.id = rp.roleId
+        INNER JOIN user_business_roles ubr ON ubr.roleId = r.id
+        INNER JOIN user_businesses ub ON ub.id = ubr.userBusinessId
+        WHERE ub.tenantId = :tenantId
+          AND ub.businessId = :businessId
+          AND ub.userId = :userId
+          AND ub.deletedAt IS NULL
+          AND ub.isActive = 1
+          AND r.deletedAt IS NULL
+          AND r.isActive = 1
+          AND rp.tenantId = :tenantId
+          AND rp.businessId = :businessId
+          AND ubr.tenantId = :tenantId
+          AND ubr.businessId = :businessId
+        ORDER BY p.permissionKey
+        """
+    )
+    fun observePermissionKeys(
+        tenantId: String,
+        businessId: String,
+        userId: String,
+    ): Flow<List<String>>
+
+    @Query(
+        """
+        SELECT ubr.roleId
+        FROM user_business_roles ubr
+        INNER JOIN user_businesses ub ON ub.id = ubr.userBusinessId
+        WHERE ub.tenantId = :tenantId
+          AND ub.businessId = :businessId
+          AND ub.userId = :userId
+          AND ub.deletedAt IS NULL
+          AND ub.isActive = 1
+          AND ubr.tenantId = :tenantId
+          AND ubr.businessId = :businessId
+        ORDER BY ubr.roleId
+        """
+    )
+    fun observeRoleIdsForUser(
+        tenantId: String,
+        businessId: String,
+        userId: String,
+    ): Flow<List<String>>
+
     @Query(
         """
         SELECT ubr.roleId
