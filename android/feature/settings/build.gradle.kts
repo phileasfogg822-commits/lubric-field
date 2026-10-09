@@ -43,6 +43,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.hilt:hilt-navigation-compose")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose")
 
     implementation(project(":core:designsystem"))
     implementation(project(":core:repository"))
