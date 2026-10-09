@@ -59,6 +59,19 @@ interface BusinessDao {
     @Query(
         """
         SELECT * FROM businesses
+        WHERE tenantId = :tenantId AND id = :businessId
+          AND deletedAt IS NULL AND isActive = 1
+        LIMIT 1
+        """
+    )
+    suspend fun getActiveById(
+        tenantId: String,
+        businessId: String,
+    ): BusinessEntity?
+
+    @Query(
+        """
+        SELECT * FROM businesses
         WHERE tenantId = :tenantId AND deletedAt IS NULL
         ORDER BY name
         """
@@ -150,6 +163,38 @@ interface AccessDao {
         businessId: String,
         userId: String,
     ): UserBusinessEntity?
+
+    @Query(
+        """
+        SELECT b.* FROM businesses b
+        INNER JOIN user_businesses ub
+          ON ub.tenantId = b.tenantId
+         AND ub.businessId = b.id
+        WHERE ub.userId = :userId
+          AND ub.deletedAt IS NULL
+          AND ub.isActive = 1
+          AND b.deletedAt IS NULL
+          AND b.isActive = 1
+        ORDER BY b.name, b.id
+        """
+    )
+    fun observeBusinessesForUser(userId: String): Flow<List<BusinessEntity>>
+
+    @Query(
+        """
+        SELECT b.* FROM businesses b
+        INNER JOIN user_businesses ub
+          ON ub.tenantId = b.tenantId
+         AND ub.businessId = b.id
+        WHERE ub.userId = :userId
+          AND ub.deletedAt IS NULL
+          AND ub.isActive = 1
+          AND b.deletedAt IS NULL
+          AND b.isActive = 1
+        ORDER BY b.name, b.id
+        """
+    )
+    suspend fun getBusinessesForUser(userId: String): List<BusinessEntity>
 
     @Query(
         """
