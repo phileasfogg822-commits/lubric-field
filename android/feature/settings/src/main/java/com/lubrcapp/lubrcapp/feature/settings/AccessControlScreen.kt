@@ -228,7 +228,7 @@ private fun MemberCard(
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
-            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding / 2),
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -280,7 +280,7 @@ private fun RoleCard(
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
-            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding / 2),
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -335,7 +335,7 @@ private fun CreateUserDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.access_add_user)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding / 2)) {
+            Column(verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
