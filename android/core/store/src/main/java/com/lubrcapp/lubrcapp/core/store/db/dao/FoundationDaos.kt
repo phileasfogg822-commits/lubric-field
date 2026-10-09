@@ -300,6 +300,28 @@ interface AccessDao {
         roleId: String,
     ): RoleEntity?
 
+
+    @Query(
+        """
+        UPDATE roles
+        SET isActive = :active,
+            updatedAt = :updatedAt,
+            updatedBy = :updatedBy,
+            revision = revision + 1,
+            syncStatus = 'PENDING'
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :roleId AND deletedAt IS NULL
+        """
+    )
+    suspend fun setRoleActive(
+        tenantId: String,
+        businessId: String,
+        roleId: String,
+        active: Boolean,
+        updatedAt: Long,
+        updatedBy: String?,
+    ): Int
+
     @Query("SELECT * FROM permissions WHERE permissionKey = :key LIMIT 1")
     suspend fun getPermissionByKey(key: String): PermissionEntity?
 
