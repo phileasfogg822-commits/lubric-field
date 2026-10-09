@@ -1,6 +1,8 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -18,6 +20,7 @@ import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.domain.common.UserId
 import java.io.File
 import java.nio.file.Files
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -54,7 +57,12 @@ class PersistentBusinessContextServiceTest {
     @Test
     fun availableBusinessesAreMembershipScopedAcrossTenants() = runTest {
         seedBusinesses()
-        val service = service(File(Files.createTempDirectory("context-list").toFile(), "context.preferences_pb"))
+        val service = service(
+            createDataStore(
+                File(Files.createTempDirectory("context-list").toFile(), "context.preferences_pb"),
+                backgroundScope,
+            )
+        )
 
         val available = service.observeAvailableBusinesses(userId).first()
 
@@ -67,7 +75,8 @@ class PersistentBusinessContextServiceTest {
     fun switchPersistsAcrossServiceRecreationAndTenantBoundariesStayIntact() = runTest {
         seedBusinesses()
         val file = File(Files.createTempDirectory("context-switch").toFile(), "context.preferences_pb")
-        val first = service(file)
+        val dataStore = createDataStore(file, backgroundScope)
+        val first = service(dataStore)
 
         val initial = first.ensureCurrent(
             userId = userId,
@@ -87,7 +96,7 @@ class PersistentBusinessContextServiceTest {
         assertTrue(switched is BusinessSwitchResult.Switched)
         assertEquals("ar", (switched as BusinessSwitchResult.Switched).business.languageCode)
 
-        val recreated = service(file)
+        val recreated = service(dataStore)
         val restored = recreated.current(userId)
 
         assertEquals("tenant-b", restored?.context?.tenantId?.value)
@@ -109,7 +118,12 @@ class PersistentBusinessContextServiceTest {
     @Test
     fun unauthorizedBusinessCannotBecomeCurrent() = runTest {
         seedBusinesses()
-        val service = service(File(Files.createTempDirectory("context-denied").toFile(), "context.preferences_pb"))
+        val service = service(
+            createDataStore(
+                File(Files.createTempDirectory("context-denied").toFile(), "context.preferences_pb"),
+                backgroundScope,
+            )
+        )
 
         service.ensureCurrent(
             userId,
@@ -134,7 +148,8 @@ class PersistentBusinessContextServiceTest {
     fun revokedPersistedMembershipIsRejectedAndFallsBackToAccessibleBusiness() = runTest {
         seedBusinesses()
         val file = File(Files.createTempDirectory("context-revoke").toFile(), "context.preferences_pb")
-        val service = service(file)
+        val dataStore = createDataStore(file, backgroundScope)
+        val service = service(dataStore)
 
         service.ensureCurrent(
             userId,
@@ -159,7 +174,7 @@ class PersistentBusinessContextServiceTest {
             )
         )
 
-        val recreated = service(file)
+        val recreated = service(dataStore)
         assertNull(recreated.current(userId))
 
         val recovered = recreated.ensureCurrent(userId)
@@ -171,7 +186,7 @@ class PersistentBusinessContextServiceTest {
     fun anotherUserCannotReusePersistedContextWithoutMembership() = runTest {
         seedBusinesses()
         val file = File(Files.createTempDirectory("context-user").toFile(), "context.preferences_pb")
-        val service = service(file)
+        val service = service(createDataStore(file, backgroundScope))
 
         service.ensureCurrent(
             userId,
@@ -234,20 +249,24 @@ class PersistentBusinessContextServiceTest {
         insertLanguage("setting-private", "tenant-private", "business-private", "ur")
     }
 
-    private fun service(file: File): PersistentBusinessContextService {
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = kotlinx.coroutines.CoroutineScope(
-                kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
-            ),
-            produceFile = { file },
-        )
-        return PersistentBusinessContextService(
+    private fun service(
+        dataStore: DataStore<Preferences>,
+    ): PersistentBusinessContextService =
+        PersistentBusinessContextService(
             businessDao = database.businessDao(),
             accessDao = database.accessDao(),
             settingsDao = database.settingsDao(),
             dataStore = dataStore,
         )
-    }
+
+    private fun createDataStore(
+        file: File,
+        scope: CoroutineScope,
+    ): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { file },
+        )
 
     private suspend fun insertTenant(id: String, name: String) {
         database.tenantDao().upsert(
