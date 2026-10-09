@@ -217,6 +217,63 @@ class RoomAccessControlRepositoryTest {
         )
     }
 
+
+    @Test
+    fun deactivatedCustomRoleStopsGrantingCapabilities() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "Stock User"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Stock",
+                capabilities = setOf(Capabilities.INVENTORY_ADJUST),
+            ),
+        )
+        repository.assignRoles(
+            ownerContext,
+            member.membershipId,
+            setOf(role.roleId),
+        )
+
+        val memberContext = ownerContext.copy(userId = member.userId)
+        assertTrue(
+            repository.authorization(memberContext)
+                .allows(Capabilities.INVENTORY_ADJUST)
+        )
+
+        repository.setRoleActive(ownerContext, role.roleId, false)
+
+        assertFalse(
+            repository.authorization(memberContext)
+                .allows(Capabilities.INVENTORY_ADJUST)
+        )
+    }
+
+    @Test
+    fun directRepositoryMutationStillDeniesUnprivilegedActor() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "Unprivileged Direct"),
+        )
+        val unprivileged = ownerContext.copy(userId = member.userId)
+
+        val failure = runCatching {
+            repository.createRole(
+                unprivileged,
+                CreateBusinessRoleRequest(
+                    name = "Should Fail",
+                    capabilities = setOf(Capabilities.REPORTS_VIEW),
+                ),
+            )
+        }
+
+        assertTrue(failure.exceptionOrNull() is AuthorizationDeniedException)
+    }
+
     @Test
     fun managementUseCaseRejectsActorWithoutCapability() = runBlocking {
         repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
