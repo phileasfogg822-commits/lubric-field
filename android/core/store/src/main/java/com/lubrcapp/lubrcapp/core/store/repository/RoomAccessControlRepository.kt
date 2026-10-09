@@ -138,47 +138,69 @@ class RoomAccessControlRepository @Inject constructor(
         transactionRunner.run {
             seedCapabilityCatalog()
 
-            accessDao.upsertRole(
-                RoleEntity(
-                    id = ownerRoleId.value,
-                    tenantId = tenantId.value,
-                    businessId = businessId.value,
-                    name = OWNER_ROLE_DISPLAY_NAME,
-                    isSystemTemplate = true,
-                    isActive = true,
-                    createdAt = now,
-                    createdBy = ownerId,
-                    updatedAt = now,
-                    updatedBy = ownerId,
-                    deviceId = deviceId.value,
-                    syncStatus = SyncStatus.LOCAL_ONLY.name,
-                )
-            )
-
-            accessDao.clearRolePermissions(
+            val existingRole = accessDao.getRole(
                 tenantId.value,
                 businessId.value,
                 ownerRoleId.value,
             )
-            for (capability in Capabilities.ALL) {
-                accessDao.addRolePermission(
-                    RolePermissionEntity(
+            if (existingRole == null) {
+                accessDao.upsertRole(
+                    RoleEntity(
+                        id = ownerRoleId.value,
                         tenantId = tenantId.value,
                         businessId = businessId.value,
-                        roleId = ownerRoleId.value,
-                        permissionId = stablePermissionId(capability),
+                        name = OWNER_ROLE_DISPLAY_NAME,
+                        isSystemTemplate = true,
+                        isActive = true,
+                        createdAt = now,
+                        createdBy = ownerId,
+                        updatedAt = now,
+                        updatedBy = ownerId,
+                        deviceId = deviceId.value,
+                        syncStatus = SyncStatus.LOCAL_ONLY.name,
                     )
                 )
             }
 
-            accessDao.addUserBusinessRole(
-                UserBusinessRoleEntity(
-                    tenantId = tenantId.value,
-                    businessId = businessId.value,
-                    userBusinessId = membership.id,
-                    roleId = ownerRoleId.value,
+            val effectiveKeys = accessDao.getRolePermissionKeys(
+                tenantId.value,
+                businessId.value,
+                ownerRoleId.value,
+            ).toSet()
+            val expectedKeys = Capabilities.ALL.mapTo(linkedSetOf()) { it.value }
+            if (effectiveKeys != expectedKeys) {
+                accessDao.clearRolePermissions(
+                    tenantId.value,
+                    businessId.value,
+                    ownerRoleId.value,
                 )
+                for (capability in Capabilities.ALL) {
+                    accessDao.addRolePermission(
+                        RolePermissionEntity(
+                            tenantId = tenantId.value,
+                            businessId = businessId.value,
+                            roleId = ownerRoleId.value,
+                            permissionId = stablePermissionId(capability),
+                        )
+                    )
+                }
+            }
+
+            val assignedRoleIds = accessDao.getRoleIds(
+                tenantId.value,
+                businessId.value,
+                membership.id,
             )
+            if (ownerRoleId.value !in assignedRoleIds) {
+                accessDao.addUserBusinessRole(
+                    UserBusinessRoleEntity(
+                        tenantId = tenantId.value,
+                        businessId = businessId.value,
+                        userBusinessId = membership.id,
+                        roleId = ownerRoleId.value,
+                    )
+                )
+            }
         }
     }
 
@@ -367,7 +389,15 @@ class RoomAccessControlRepository @Inject constructor(
         membershipId: UserBusinessId,
         roleIds: Set<RoleId>,
     ) {
-        requireMembership(actor, membershipId)
+        val membership = requireMembership(actor, membershipId)
+        val ownerUserId = settingsDao.get(
+            actor.tenantId.value,
+            actor.businessId.value,
+            BusinessSetupSettingKeys.OWNER_USER_ID,
+        )?.value
+        require(membership.userId != ownerUserId) {
+            "The initial business owner's system role cannot be replaced"
+        }
 
         val roles = roleIds.map { roleId -> requireRole(actor, roleId) }
         require(roles.none { it.isSystemTemplate }) {
