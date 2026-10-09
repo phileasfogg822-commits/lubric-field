@@ -30,7 +30,9 @@ data class CreateInitialBusinessRequest(
         require(languageCode.isNotBlank()) { "languageCode cannot be blank" }
         require(businessName.isNotBlank()) { "businessName cannot be blank" }
         require(businessType.isNotBlank()) { "businessType cannot be blank" }
-        require(countryCode.isNotBlank()) { "countryCode cannot be blank" }
+        require(countryCode.trim().matches(Regex("[A-Za-z]{2}"))) {
+            "countryCode must be an ISO two-letter country code"
+        }
         require(ownerName.isNotBlank()) { "ownerName cannot be blank" }
     }
 }
