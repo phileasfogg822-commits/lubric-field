@@ -31,13 +31,14 @@ annotation class DeviceIdentityDataStore
 @Singleton
 class PersistentDeviceIdentityProvider @Inject constructor(
     @DeviceIdentityDataStore private val dataStore: DataStore<Preferences>,
+    private val idGenerator: IdGenerator,
 ) : DeviceIdentityProvider {
     private val mutex = Mutex()
 
     override suspend fun getOrCreate(): DeviceId =
         mutex.withLock {
             dataStore.data.first()[KEY_DEVICE_ID]?.let(::DeviceId)
-                ?: UuidIdGenerator.deviceId().also { generated ->
+                ?: idGenerator.deviceId().also { generated ->
                     dataStore.edit { values ->
                         values[KEY_DEVICE_ID] = generated.value
                     }
