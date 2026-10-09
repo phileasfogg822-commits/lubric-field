@@ -212,6 +212,9 @@ interface AccessDao {
 
 @Dao
 interface SettingsDao {
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insert(entity: SettingEntity)
+
     @Upsert
     suspend fun upsert(entity: SettingEntity)
 
