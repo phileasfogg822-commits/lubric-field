@@ -32,9 +32,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val authViewModel: AuthViewModel = hiltViewModel()
-            val deploymentTheme = remember {
-                deploymentConfigSource.get().toDesignSystemConfig()
+            // Constructed at app entry so persisted auth/session state is
+            // initialized even while the first local business is being created.
+            hiltViewModel<AuthViewModel>()
+
+            val deployment = remember { deploymentConfigSource.get() }
+            val deploymentTheme = remember(deployment) {
+                deployment.toDesignSystemConfig()
             }
             val preferences by themePreferenceStore.preferences.collectAsState(
                 initial = ThemePreferences()
@@ -45,9 +49,7 @@ class MainActivity : ComponentActivity() {
                 preferences = preferences,
             ) {
                 AppSurface(modifier = Modifier.fillMaxSize()) {
-                    MainNavigation(
-                        onNavigateToAuth = authViewModel::showOnboarding
-                    )
+                    MainNavigation(appName = deployment.appName)
                 }
             }
         }
