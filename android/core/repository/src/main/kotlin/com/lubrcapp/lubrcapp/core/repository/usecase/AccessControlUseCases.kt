@@ -20,13 +20,18 @@ import kotlinx.coroutines.flow.Flow
 class AuthorizationService @Inject constructor(
     private val repository: AccessControlRepository,
 ) {
-    suspend fun snapshot(context: TenantContext): AuthorizationSnapshot =
-        repository.authorization(context)
+    suspend fun snapshot(context: TenantContext): AuthorizationSnapshot {
+        repository.ensureOwnerAccess(context.tenantId, context.businessId)
+        return repository.authorization(context)
+    }
 
     suspend fun allows(
         context: TenantContext,
         capability: CapabilityKey,
-    ): Boolean = repository.authorization(context).allows(capability)
+    ): Boolean {
+        repository.ensureOwnerAccess(context.tenantId, context.businessId)
+        return repository.authorization(context).allows(capability)
+    }
 
     suspend fun require(
         context: TenantContext,
