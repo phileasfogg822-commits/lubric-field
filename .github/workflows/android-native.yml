@@ -167,6 +167,41 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce platform and capability boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! grep -q 'compileSdk = 36' app/build.gradle.kts || ! grep -q 'targetSdk = 36' app/build.gradle.kts; then
+            echo "Phase 10 requires compileSdk/targetSdk 36."
+            exit 1
+          fi
+
+          if grep -R --line-number 'kotlinCompilerExtensionVersion' --include='build.gradle.kts' . 2>/dev/null; then
+            echo "Kotlin 2 Compose modules must use org.jetbrains.kotlin.plugin.compose."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'hasRole\(|isOwnerOrAdmin\(|role\.name[[:space:]]*==|roleName[[:space:]]*==' core feature app 2>/dev/null; then
+            echo "Business authorization must use capability keys, never role-name checks."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'import .*\.core\.store\.db\.dao\.' feature/*/src/main 2>/dev/null; then
+            echo "Feature modules must not access authorization DAOs directly."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'Text\("[^"]+' feature/*/src/main core/ui/src/main app/src/main 2>/dev/null; then
+            echo "Visible Compose text must come from localized resources or runtime configuration."
+            exit 1
+          fi
+
+          if ! grep -q 'Capabilities.ROLES_MANAGE' core/repository/src/main/kotlin/com/lubrcapp/lubrcapp/core/repository/usecase/AccessControlUseCases.kt; then
+            echo "Access-control mutations must remain capability protected."
+            exit 1
+          fi
+
       - name: Unit tests lint debug and release APKs
         run: ./gradlew clean test lint :app:assembleDebug :app:assembleRelease --no-daemon
 
