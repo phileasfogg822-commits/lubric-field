@@ -1,1 +1,1 @@
-<resources><string name="common_loading">جارٍ التحميل…</string><string name="common_error">خطأ: %1$s</string><string name="common_retry">إعادة المحاولة</string></resources>
+<resources><string name="common_loading">جارٍ التحميل…</string><string name="common_error">خطأ: %1$s</string><string name="common_retry">إعادة المحاولة</string><string name="common_business_bootstrap_error">تعذر تحميل حالة النشاط المحلية.</string></resources>
