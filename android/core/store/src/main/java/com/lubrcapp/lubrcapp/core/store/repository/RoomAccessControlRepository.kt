@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.AuthorizationDeniedException
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationSnapshot
 import com.lubrcapp.lubrcapp.core.repository.BusinessMember
 import com.lubrcapp.lubrcapp.core.repository.BusinessRole
@@ -143,7 +144,11 @@ class RoomAccessControlRepository @Inject constructor(
                 businessId.value,
                 ownerRoleId.value,
             )
-            if (existingRole == null) {
+            if (
+                existingRole == null ||
+                !existingRole.isSystemTemplate ||
+                !existingRole.isActive
+            ) {
                 accessDao.upsertRole(
                     RoleEntity(
                         id = ownerRoleId.value,
@@ -152,8 +157,8 @@ class RoomAccessControlRepository @Inject constructor(
                         name = OWNER_ROLE_DISPLAY_NAME,
                         isSystemTemplate = true,
                         isActive = true,
-                        createdAt = now,
-                        createdBy = ownerId,
+                        createdAt = existingRole?.createdAt ?: now,
+                        createdBy = existingRole?.createdBy ?: ownerId,
                         updatedAt = now,
                         updatedBy = ownerId,
                         deviceId = deviceId.value,
@@ -254,6 +259,7 @@ class RoomAccessControlRepository @Inject constructor(
         actor: TenantContext,
         request: CreateBusinessUserRequest,
     ): BusinessMember {
+        requireCapability(actor, Capabilities.USERS_MANAGE)
         val deviceId = deviceIdentityProvider.getOrCreate()
         val now = Instant.now().toEpochMilli()
         val userId = idGenerator.userId()
@@ -306,6 +312,7 @@ class RoomAccessControlRepository @Inject constructor(
         membershipId: UserBusinessId,
         active: Boolean,
     ) {
+        requireCapability(actor, Capabilities.USERS_MANAGE)
         val membership = requireMembership(actor, membershipId)
         val ownerUserId = settingsDao.get(
             actor.tenantId.value,
@@ -332,6 +339,7 @@ class RoomAccessControlRepository @Inject constructor(
         actor: TenantContext,
         request: CreateBusinessRoleRequest,
     ): BusinessRole {
+        requireCapability(actor, Capabilities.ROLES_MANAGE)
         validateCapabilities(request.capabilities)
         val deviceId = deviceIdentityProvider.getOrCreate()
         val roleId = idGenerator.roleId()
@@ -372,6 +380,7 @@ class RoomAccessControlRepository @Inject constructor(
         roleId: RoleId,
         capabilities: Set<CapabilityKey>,
     ) {
+        requireCapability(actor, Capabilities.ROLES_MANAGE)
         validateCapabilities(capabilities)
         val role = requireRole(actor, roleId)
         require(!role.isSystemTemplate) {
@@ -389,6 +398,7 @@ class RoomAccessControlRepository @Inject constructor(
         membershipId: UserBusinessId,
         roleIds: Set<RoleId>,
     ) {
+        requireCapability(actor, Capabilities.ROLES_MANAGE)
         val membership = requireMembership(actor, membershipId)
         val ownerUserId = settingsDao.get(
             actor.tenantId.value,
@@ -420,6 +430,16 @@ class RoomAccessControlRepository @Inject constructor(
                     )
                 )
             }
+        }
+    }
+
+    private suspend fun requireCapability(
+        actor: TenantContext,
+        capability: CapabilityKey,
+    ) {
+        ensureOwnerAccess(actor.tenantId, actor.businessId)
+        if (!authorization(actor).allows(capability)) {
+            throw AuthorizationDeniedException(actor, capability)
         }
     }
 
