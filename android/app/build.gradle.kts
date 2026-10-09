@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
 }
@@ -24,12 +25,12 @@ fun quotedBuildConfig(value: String): String =
 
 android {
     namespace = "com.lubrcapp.lubrcapp"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = deploymentValue("applicationId")
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = deploymentValue("versionCode").toInt()
         versionName = deploymentValue("versionName")
 
@@ -113,10 +114,7 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
-    packaging {
+packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -125,7 +123,7 @@ android {
 
 dependencies {
     // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -138,7 +136,7 @@ dependencies {
     implementation("androidx.core:core-ktx")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.appcompat:appcompat")
     implementation("com.google.android.material:material")
     implementation("androidx.constraintlayout:constraintlayout")
