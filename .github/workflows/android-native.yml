@@ -127,6 +127,36 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce tenant isolation boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R --line-number --fixed-strings 'whitelist:tenant' app/build.gradle.kts settings.gradle.kts 2>/dev/null; then
+            echo "Tenant/business context belongs to core repository/store layers, not the legacy white-label tenant module."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'hasRole\(|isOwnerOrAdmin\(|getUserRoles\(' core/repository/src/main feature/dashboard/src/main 2>/dev/null; then
+            echo "Phase 9 business selection must not use role-name shortcuts; permissions are a later capability layer."
+            exit 1
+          fi
+
+          if ! grep -q 'getActiveById' core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/PersistentBusinessContextService.kt; then
+            echo "Business switching must validate the active business under the supplied tenant."
+            exit 1
+          fi
+
+          if ! grep -q 'getMembership' core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/PersistentBusinessContextService.kt; then
+            echo "Business switching must validate user membership before changing current context."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'SharedPreferences|DataStore' feature/dashboard/src/main 2>/dev/null; then
+            echo "Dashboard must consume tenant-context contracts and must not persist current business directly."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 
