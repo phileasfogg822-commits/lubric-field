@@ -93,15 +93,26 @@ fun DashboardScreen(
             style = MaterialTheme.typography.bodyLarge,
         )
 
-        state.errorMessage?.let { error ->
+        state.error?.let { error ->
             Text(
-                text = error,
+                text = dashboardErrorMessage(error),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
 }
+
+@Composable
+private fun dashboardErrorMessage(error: DashboardError): String =
+    stringResource(
+        when (error) {
+            DashboardError.RESTORE_FAILED -> R.string.dashboard_error_restore
+            DashboardError.NO_VALID_CURRENT -> R.string.dashboard_error_no_current
+            DashboardError.ACCESS_DENIED -> R.string.dashboard_error_access_denied
+            DashboardError.BUSINESS_UNAVAILABLE -> R.string.dashboard_error_unavailable
+        }
+    )
 
 @Composable
 private fun BusinessSwitcherMenu(
