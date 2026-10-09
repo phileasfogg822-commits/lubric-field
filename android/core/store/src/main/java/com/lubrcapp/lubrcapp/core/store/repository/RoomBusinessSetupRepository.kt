@@ -21,7 +21,7 @@ import com.lubrcapp.lubrcapp.domain.common.SettingId
 import com.lubrcapp.lubrcapp.domain.common.SyncStatus
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.domain.common.UserId
-import com.lubrcapp.lubrcapp.domain.common.UuidIdGenerator
+import com.lubrcapp.lubrcapp.domain.common.IdGenerator
 import com.lubrcapp.lubrcapp.domain.common.businessId
 import com.lubrcapp.lubrcapp.domain.common.settingId
 import com.lubrcapp.lubrcapp.domain.common.tenantId
@@ -42,6 +42,7 @@ class RoomBusinessSetupRepository @Inject constructor(
     private val settingsDao: SettingsDao,
     private val transactionRunner: DatabaseTransactionRunner,
     private val deviceIdentityProvider: DeviceIdentityProvider,
+    private val idGenerator: IdGenerator,
 ) : BusinessSetupRepository {
 
     override fun observeBootstrap(): Flow<BusinessBootstrap?> =
@@ -56,10 +57,10 @@ class RoomBusinessSetupRepository @Inject constructor(
         request: CreateInitialBusinessRequest,
     ): BusinessBootstrap {
         val deviceId = deviceIdentityProvider.getOrCreate()
-        val tenantId = UuidIdGenerator.tenantId()
-        val businessId = UuidIdGenerator.businessId()
-        val ownerUserId = UuidIdGenerator.userId()
-        val membershipId = UuidIdGenerator.userBusinessId()
+        val tenantId = idGenerator.tenantId()
+        val businessId = idGenerator.businessId()
+        val ownerUserId = idGenerator.userId()
+        val membershipId = idGenerator.userBusinessId()
         val now = Instant.now()
         val nowMillis = now.toEpochMilli()
         val syncStatus = SyncStatus.LOCAL_ONLY.name
@@ -138,7 +139,7 @@ class RoomBusinessSetupRepository @Inject constructor(
 
             val settings = listOf(
                 settingEntity(
-                    id = UuidIdGenerator.settingId(),
+                    id = idGenerator.settingId(),
                     tenantId = tenantId,
                     businessId = businessId,
                     key = BusinessSetupSettingKeys.OWNER_USER_ID,
@@ -149,7 +150,7 @@ class RoomBusinessSetupRepository @Inject constructor(
                     syncStatus = syncStatus,
                 ),
                 settingEntity(
-                    id = UuidIdGenerator.settingId(),
+                    id = idGenerator.settingId(),
                     tenantId = tenantId,
                     businessId = businessId,
                     key = BusinessSetupSettingKeys.LOCALE_LANGUAGE,
@@ -160,7 +161,7 @@ class RoomBusinessSetupRepository @Inject constructor(
                     syncStatus = syncStatus,
                 ),
                 settingEntity(
-                    id = UuidIdGenerator.settingId(),
+                    id = idGenerator.settingId(),
                     tenantId = tenantId,
                     businessId = businessId,
                     key = BusinessSetupSettingKeys.TAX_ENABLED,
@@ -172,7 +173,7 @@ class RoomBusinessSetupRepository @Inject constructor(
                 ),
             )
             for (setting in settings) {
-                settingsDao.upsert(setting)
+                settingsDao.insert(setting)
             }
         }
 
