@@ -33,7 +33,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -66,7 +66,7 @@ class PersistentBusinessContextService @Inject constructor(
                 }
             }
             context to business
-        }.mapLatest { (context, business) ->
+        }.map { (context, business) ->
             if (context == null || business == null) {
                 null
             } else {
@@ -113,7 +113,7 @@ class PersistentBusinessContextService @Inject constructor(
         userId: UserId,
     ): Flow<List<BusinessChoice>> =
         accessDao.observeBusinessesForUser(userId.value)
-            .mapLatest { businesses ->
+            .map { businesses ->
                 businesses.map { business ->
                     buildChoice(business, userId)
                 }
