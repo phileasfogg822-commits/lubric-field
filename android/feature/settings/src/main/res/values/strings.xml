@@ -1,0 +1,26 @@
+<resources>
+    <string name="access_title">Team &amp; access</string>
+    <string name="access_subtitle">Manage business users, roles and capabilities.</string>
+    <string name="access_back">Back</string>
+    <string name="access_users">Users</string>
+    <string name="access_add_user">Add user</string>
+    <string name="access_no_users">No users found for this business.</string>
+    <string name="access_roles">Roles</string>
+    <string name="access_add_role">Add role</string>
+    <string name="access_no_roles">No roles found for this business.</string>
+    <string name="access_no_role_assigned">No role assigned</string>
+    <string name="access_assign_roles">Assign roles</string>
+    <string name="access_system_role">System role</string>
+    <string name="access_custom_role">Custom role</string>
+    <string name="access_capability_count">%1$d capabilities</string>
+    <string name="access_edit_permissions">Edit permissions</string>
+    <string name="access_name">Name</string>
+    <string name="access_phone">Phone</string>
+    <string name="access_email">Email</string>
+    <string name="access_create">Create</string>
+    <string name="access_cancel">Cancel</string>
+    <string name="access_save">Save</string>
+    <string name="access_role_name">Role name</string>
+    <string name="access_edit_permissions_for">Permissions: %1$s</string>
+    <string name="access_assign_roles_to">Roles: %1$s</string>
+</resources>
