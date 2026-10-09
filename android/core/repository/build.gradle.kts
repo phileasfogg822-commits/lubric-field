@@ -18,6 +18,7 @@ dependencies {
     api(project(":domain:business"))
     api(project(":domain:user"))
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core")
+    implementation("javax.inject:javax.inject:1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
