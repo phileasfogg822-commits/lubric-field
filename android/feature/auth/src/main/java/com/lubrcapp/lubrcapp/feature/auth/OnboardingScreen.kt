@@ -106,9 +106,9 @@ object OnboardingScreen {
                             onNext = onNext,
                         )
 
-                        state.errorMessage?.let { error ->
+                        state.error?.let { error ->
                             Text(
-                                text = error,
+                                text = businessSetupErrorMessage(error),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -482,6 +482,20 @@ object OnboardingScreen {
             }
         }
     }
+
+    @Composable
+    private fun businessSetupErrorMessage(error: BusinessSetupError): String =
+        stringResource(
+            when (error) {
+                BusinessSetupError.LANGUAGE_REQUIRED -> R.string.setup_error_language
+                BusinessSetupError.BUSINESS_NAME_REQUIRED -> R.string.setup_error_business_name
+                BusinessSetupError.COUNTRY_REQUIRED -> R.string.setup_error_country
+                BusinessSetupError.CURRENCY_REQUIRED -> R.string.setup_error_currency
+                BusinessSetupError.BUSINESS_TYPE_REQUIRED -> R.string.setup_error_business_type
+                BusinessSetupError.OWNER_NAME_REQUIRED -> R.string.setup_error_owner_name
+                BusinessSetupError.CREATE_FAILED -> R.string.setup_error_create
+            }
+        )
 
     private fun progressFor(step: BusinessSetupStep): Float =
         (step.ordinal + 1).toFloat() / BusinessSetupStep.entries.size.toFloat()
