@@ -107,6 +107,26 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce business-creation boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -n -E 'retrofit|okhttp|core\.network' core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/RoomBusinessSetupRepository.kt 2>/dev/null; then
+            echo "Initial business creation must remain local/offline and must not depend on network code."
+            exit 1
+          fi
+
+          if grep -n -E 'val (countryCode|currencyCode): String = "[A-Z]+' feature/auth/src/main/java/com/lubrcapp/lubrcapp/feature/auth/BusinessSetupViewModel.kt 2>/dev/null; then
+            echo "First-run business setup must not hard-code a default country or currency."
+            exit 1
+          fi
+
+          if ! grep -q 'transactionRunner.run' core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/RoomBusinessSetupRepository.kt; then
+            echo "Initial business creation must remain atomic in a Room transaction."
+            exit 1
+          fi
+
       - name: Unit tests and debug APK
         run: ./gradlew clean test :app:assembleDebug --no-daemon
 

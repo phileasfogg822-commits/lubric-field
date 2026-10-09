@@ -1,6 +1,8 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
+import com.lubrcapp.lubrcapp.core.repository.BusinessSetupRepository
+import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.core.repository.ConfigurationRepository
 import com.lubrcapp.lubrcapp.core.repository.DefaultBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.DefaultConfigurationRepository
@@ -29,6 +31,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class LocalDataSourceModule {
+    @Binds @Singleton
+    abstract fun bindBusinessSetupRepository(
+        impl: RoomBusinessSetupRepository,
+    ): BusinessSetupRepository
+
+    @Binds @Singleton
+    abstract fun bindDeviceIdentityProvider(
+        impl: PersistentDeviceIdentityProvider,
+    ): DeviceIdentityProvider
+
     @Binds @Singleton
     abstract fun bindBusinessLocal(impl: RoomBusinessLocalDataSource): BusinessLocalDataSource
 

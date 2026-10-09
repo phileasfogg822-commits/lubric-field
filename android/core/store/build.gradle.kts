@@ -53,6 +53,7 @@ dependencies {
     implementation("androidx.core:core-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx")
+    implementation("androidx.datastore:datastore-preferences")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android")
 
     implementation("androidx.room:room-runtime")
