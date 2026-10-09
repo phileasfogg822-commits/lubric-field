@@ -69,7 +69,7 @@ object OnboardingScreen {
             verticalArrangement = Arrangement.spacedBy(spacing),
         ) {
             LinearProgressIndicator(
-                progress = { progressFor(state.step) },
+                progress = progressFor(state.step),
                 modifier = Modifier.fillMaxWidth(),
             )
 
