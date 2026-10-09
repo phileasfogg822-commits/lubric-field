@@ -50,7 +50,6 @@ dependencies {
     implementation(project(":whitelist:config"))
     implementation(project(":whitelist:branding"))
     implementation(project(":whitelist:featureflags"))
-    implementation(project(":whitelist:tenant"))
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
