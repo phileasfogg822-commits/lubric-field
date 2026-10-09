@@ -116,6 +116,12 @@ interface AccessControlRepository {
         request: CreateBusinessRoleRequest,
     ): BusinessRole
 
+    suspend fun setRoleActive(
+        actor: TenantContext,
+        roleId: RoleId,
+        active: Boolean,
+    )
+
     suspend fun setRoleCapabilities(
         actor: TenantContext,
         roleId: RoleId,
