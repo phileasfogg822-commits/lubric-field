@@ -366,6 +366,7 @@ interface AccessDao {
         SELECT ubr.roleId
         FROM user_business_roles ubr
         INNER JOIN user_businesses ub ON ub.id = ubr.userBusinessId
+        INNER JOIN roles r ON r.id = ubr.roleId
         WHERE ub.tenantId = :tenantId
           AND ub.businessId = :businessId
           AND ub.userId = :userId
@@ -373,6 +374,10 @@ interface AccessDao {
           AND ub.isActive = 1
           AND ubr.tenantId = :tenantId
           AND ubr.businessId = :businessId
+          AND r.tenantId = :tenantId
+          AND r.businessId = :businessId
+          AND r.deletedAt IS NULL
+          AND r.isActive = 1
         ORDER BY ubr.roleId
         """
     )
