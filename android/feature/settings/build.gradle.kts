@@ -35,7 +35,7 @@ buildFeatures {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:repository"))
     implementation(project(":core:ui"))
+    implementation(project(":domain:user"))
     implementation(project(":whitelist:config"))
     implementation(project(":whitelist:branding"))
     implementation(project(":whitelist:featureflags"))
