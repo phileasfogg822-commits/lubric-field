@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
@@ -105,13 +106,13 @@ fun MainNavigation(
             )
         }
 
-        is BusinessBootstrapState.Error -> {
+        BusinessBootstrapState.Error -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = bootstrap.message,
+                    text = stringResource(R.string.business_bootstrap_error),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
