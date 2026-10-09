@@ -43,11 +43,11 @@ class AccessControlViewModel @Inject constructor(
     private val ensureOwnerAccess: EnsureOwnerAccessUseCase,
     private val observeMembers: ObserveBusinessMembersUseCase,
     private val observeRoles: ObserveBusinessRolesUseCase,
-    private val createUser: CreateBusinessUserUseCase,
-    private val setMembershipActive: SetMembershipActiveUseCase,
-    private val createRole: CreateBusinessRoleUseCase,
-    private val setRoleCapabilities: SetRoleCapabilitiesUseCase,
-    private val assignRoles: AssignBusinessRolesUseCase,
+    private val createUserUseCase: CreateBusinessUserUseCase,
+    private val setMembershipActiveUseCase: SetMembershipActiveUseCase,
+    private val createRoleUseCase: CreateBusinessRoleUseCase,
+    private val setRoleCapabilitiesUseCase: SetRoleCapabilitiesUseCase,
+    private val assignRolesUseCase: AssignBusinessRolesUseCase,
     private val authorization: AuthorizationService,
 ) : ViewModel() {
 
@@ -91,7 +91,7 @@ class AccessControlViewModel @Inject constructor(
         phone: String = "",
         email: String? = null,
     ) = withContextAction { actor ->
-        createUser(
+        createUserUseCase(
             actor,
             CreateBusinessUserRequest(name, phone, email),
         )
@@ -101,14 +101,14 @@ class AccessControlViewModel @Inject constructor(
         membershipId: UserBusinessId,
         active: Boolean,
     ) = withContextAction { actor ->
-        setMembershipActive(actor, membershipId, active)
+        setMembershipActiveUseCase(actor, membershipId, active)
     }
 
     fun createRole(
         name: String,
         capabilities: Set<CapabilityKey>,
     ) = withContextAction { actor ->
-        createRole(
+        createRoleUseCase(
             actor,
             CreateBusinessRoleRequest(name, capabilities),
         )
@@ -118,14 +118,14 @@ class AccessControlViewModel @Inject constructor(
         roleId: RoleId,
         capabilities: Set<CapabilityKey>,
     ) = withContextAction { actor ->
-        setRoleCapabilities(actor, roleId, capabilities)
+        setRoleCapabilitiesUseCase(actor, roleId, capabilities)
     }
 
     fun assignRoles(
         membershipId: UserBusinessId,
         roleIds: Set<RoleId>,
     ) = withContextAction { actor ->
-        assignRoles(actor, membershipId, roleIds)
+        assignRolesUseCase(actor, membershipId, roleIds)
     }
 
     private fun withContextAction(
