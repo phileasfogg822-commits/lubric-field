@@ -17,17 +17,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
+import com.lubrcapp.lubrcapp.feature.dashboard.R
 
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
     onSwitchBusiness: (TenantId, BusinessId) -> Unit,
+    onOpenAccessControl: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spacing = LubrcTheme.tokens.contentPadding
@@ -54,6 +57,13 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.headlineMedium,
             )
 
+            OutlinedButton(
+                onClick = onOpenAccessControl,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.dashboard_team_access))
+            }
+
             if (state.availableBusinesses.size > 1) {
                 BusinessSwitcherMenu(
                     state = state,
@@ -67,7 +77,7 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(spacing),
                 ) {
                     Text(
-                        text = "Current business",
+                        text = stringResource(R.string.dashboard_current_business),
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
@@ -80,26 +90,37 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "Tenant " + current.context.tenantId.value.take(8) + "…",
+                        text = stringResource(R.string.dashboard_tenant_short, current.context.tenantId.value.take(8)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         } ?: Text(
-            text = "No accessible business is available for this user.",
+            text = stringResource(R.string.dashboard_no_business),
             style = MaterialTheme.typography.bodyLarge,
         )
 
-        state.errorMessage?.let { error ->
+        state.error?.let { error ->
             Text(
-                text = error,
+                text = dashboardErrorMessage(error),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
 }
+
+@Composable
+private fun dashboardErrorMessage(error: DashboardError): String =
+    stringResource(
+        when (error) {
+            DashboardError.RESTORE_FAILED -> R.string.dashboard_error_restore
+            DashboardError.NO_VALID_CURRENT -> R.string.dashboard_error_no_current
+            DashboardError.ACCESS_DENIED -> R.string.dashboard_error_access_denied
+            DashboardError.BUSINESS_UNAVAILABLE -> R.string.dashboard_error_unavailable
+        }
+    )
 
 @Composable
 private fun BusinessSwitcherMenu(
@@ -117,9 +138,9 @@ private fun BusinessSwitcherMenu(
         ) {
             Text(
                 if (state.isSwitching) {
-                    "Switching…"
+                    stringResource(R.string.dashboard_switching)
                 } else {
-                    "Switch business"
+                    stringResource(R.string.dashboard_switch_business)
                 }
             )
         }

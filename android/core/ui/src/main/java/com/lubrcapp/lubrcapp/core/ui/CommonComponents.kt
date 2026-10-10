@@ -12,13 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import com.lubrcapp.lubrcapp.core.designsystem.AppButton
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
+import com.lubrcapp.lubrcapp.core.ui.R
 
 @Composable
 fun LoadingOverlay(
     isLoading: Boolean,
-    message: String = "Loading..."
+    message: String? = null
 ) {
     if (isLoading) {
         Box(
@@ -31,7 +33,7 @@ fun LoadingOverlay(
             ) {
                 CircularProgressIndicator()
                 Text(
-                    text = message,
+                    text = message ?: stringResource(R.string.common_loading),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -55,13 +57,13 @@ fun ErrorState(
             verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
         ) {
             Text(
-                text = "Error: $error",
+                text = stringResource(R.string.common_error, error),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.error
             )
             AppButton(onClick = onRetry) {
-                Text("Retry")
+                Text(stringResource(R.string.common_retry))
             }
         }
     }

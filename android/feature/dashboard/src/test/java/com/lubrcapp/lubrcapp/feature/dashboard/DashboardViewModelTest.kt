@@ -58,7 +58,7 @@ class DashboardViewModelTest {
         assertEquals("business-a", viewModel.state.value.currentBusiness?.context?.businessId?.value)
         assertEquals(2, viewModel.state.value.availableBusinesses.size)
         assertTrue(!viewModel.state.value.isLoading)
-        assertNull(viewModel.state.value.errorMessage)
+        assertNull(viewModel.state.value.error)
     }
 
     @Test
@@ -105,7 +105,7 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         assertEquals("business-a", viewModel.state.value.currentBusiness?.context?.businessId?.value)
-        assertNull(viewModel.state.value.errorMessage)
+        assertNull(viewModel.state.value.error)
     }
 
     private fun viewModel(

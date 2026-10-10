@@ -10,15 +10,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
 import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
+import com.lubrcapp.lubrcapp.feature.settings.AccessControlScreen
 
 /**
  * App entry routing.
@@ -35,6 +41,7 @@ fun MainNavigation(
 ) {
     val setupState by businessSetupViewModel.state.collectAsState()
     val dashboardState by dashboardViewModel.state.collectAsState()
+    var showAccessControl by remember { mutableStateOf(false) }
 
     val languageCode = when (val bootstrap = setupState.bootstrapState) {
         is BusinessBootstrapState.Ready -> {
@@ -99,19 +106,28 @@ fun MainNavigation(
                 )
             }
 
-            DashboardScreen(
-                state = dashboardState,
-                onSwitchBusiness = dashboardViewModel::switchTo,
-            )
+            val currentContext = dashboardState.currentBusiness?.context
+            if (showAccessControl && currentContext != null) {
+                AccessControlScreen(
+                    context = currentContext,
+                    onBack = { showAccessControl = false },
+                )
+            } else {
+                DashboardScreen(
+                    state = dashboardState,
+                    onSwitchBusiness = dashboardViewModel::switchTo,
+                    onOpenAccessControl = { showAccessControl = true },
+                )
+            }
         }
 
-        is BusinessBootstrapState.Error -> {
+        BusinessBootstrapState.Error -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = bootstrap.message,
+                    text = stringResource(CoreUiR.string.common_business_bootstrap_error),
                     color = MaterialTheme.colorScheme.error,
                 )
             }

@@ -1,0 +1,1 @@
+<resources><string name="common_loading">Loading…</string><string name="common_error">Error: %1$s</string><string name="common_retry">Retry</string><string name="common_business_bootstrap_error">Unable to load the local business state.</string></resources>

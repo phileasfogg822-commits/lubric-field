@@ -21,12 +21,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
+enum class DashboardError {
+    RESTORE_FAILED,
+    NO_VALID_CURRENT,
+    ACCESS_DENIED,
+    BUSINESS_UNAVAILABLE,
+}
+
 data class DashboardUiState(
     val currentBusiness: BusinessChoice? = null,
     val availableBusinesses: List<BusinessChoice> = emptyList(),
     val isLoading: Boolean = true,
     val isSwitching: Boolean = false,
-    val errorMessage: String? = null,
+    val error: DashboardError? = null,
 )
 
 @HiltViewModel
@@ -66,7 +73,7 @@ class DashboardViewModel @Inject constructor(
             }.onFailure { error ->
                 mutableState.value = mutableState.value.copy(
                     isLoading = false,
-                    errorMessage = error.message ?: "Unable to restore business context",
+                    error = DashboardError.RESTORE_FAILED,
                 )
             }
 
@@ -86,7 +93,7 @@ class DashboardViewModel @Inject constructor(
                             availableBusinesses = available,
                             isLoading = false,
                             isSwitching = false,
-                            errorMessage = null,
+                            error = null,
                         )
                         return@collect
                     }
@@ -97,8 +104,8 @@ class DashboardViewModel @Inject constructor(
                     availableBusinesses = available,
                     isLoading = false,
                     isSwitching = false,
-                    errorMessage = if (current == null && available.isNotEmpty()) {
-                        "No valid current business is selected"
+                    error = if (current == null && available.isNotEmpty()) {
+                        DashboardError.NO_VALID_CURRENT
                     } else {
                         null
                     },
@@ -116,7 +123,7 @@ class DashboardViewModel @Inject constructor(
 
         mutableState.value = mutableState.value.copy(
             isSwitching = true,
-            errorMessage = null,
+            error = null,
         )
 
         viewModelScope.launch {
@@ -125,19 +132,19 @@ class DashboardViewModel @Inject constructor(
                     mutableState.value = mutableState.value.copy(
                         currentBusiness = result.business,
                         isSwitching = false,
-                        errorMessage = null,
+                        error = null,
                     )
                 }
                 is BusinessSwitchResult.AccessDenied -> {
                     mutableState.value = mutableState.value.copy(
                         isSwitching = false,
-                        errorMessage = "You do not have access to that business",
+                        error = DashboardError.ACCESS_DENIED,
                     )
                 }
                 is BusinessSwitchResult.Unavailable -> {
                     mutableState.value = mutableState.value.copy(
                         isSwitching = false,
-                        errorMessage = "That business is no longer available",
+                        error = DashboardError.BUSINESS_UNAVAILABLE,
                     )
                 }
             }

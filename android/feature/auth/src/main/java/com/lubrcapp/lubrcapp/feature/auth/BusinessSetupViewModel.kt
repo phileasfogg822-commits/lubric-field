@@ -48,7 +48,7 @@ data class CurrencyOption(
 )
 
 data class BusinessSetupDraft(
-    val languageCode: String = "en",
+    val languageCode: String = "",
     val businessName: String = "",
     val phone: String = "",
     val email: String = "",
@@ -69,7 +69,17 @@ sealed interface BusinessBootstrapState {
     data object Loading : BusinessBootstrapState
     data object NeedsSetup : BusinessBootstrapState
     data class Ready(val bootstrap: BusinessBootstrap) : BusinessBootstrapState
-    data class Error(val message: String) : BusinessBootstrapState
+    data object Error : BusinessBootstrapState
+}
+
+enum class BusinessSetupError {
+    LANGUAGE_REQUIRED,
+    BUSINESS_NAME_REQUIRED,
+    COUNTRY_REQUIRED,
+    CURRENCY_REQUIRED,
+    BUSINESS_TYPE_REQUIRED,
+    OWNER_NAME_REQUIRED,
+    CREATE_FAILED,
 }
 
 data class BusinessSetupUiState(
@@ -77,7 +87,7 @@ data class BusinessSetupUiState(
     val step: BusinessSetupStep = BusinessSetupStep.LANGUAGE,
     val draft: BusinessSetupDraft = BusinessSetupDraft(),
     val isSaving: Boolean = false,
-    val errorMessage: String? = null,
+    val error: BusinessSetupError? = null,
 )
 
 @HiltViewModel
@@ -96,39 +106,45 @@ class BusinessSetupViewModel @Inject constructor(
         LanguageOption("hi", "हिन्दी"),
     )
 
-    val countries: List<CountryOption> = Locale.getAvailableLocales()
-        .asSequence()
-        .filter { it.country.isNotBlank() }
-        .map { locale ->
-            CountryOption(
-                code = locale.country.uppercase(Locale.ROOT),
-                label = locale.getDisplayCountry(Locale.ENGLISH),
-            )
+    val countries: List<CountryOption>
+        get() {
+            val displayLocale = selectedDisplayLocale()
+            return Locale.getAvailableLocales()
+                .asSequence()
+                .filter { it.country.isNotBlank() }
+                .map { locale ->
+                    CountryOption(
+                        code = locale.country.uppercase(Locale.ROOT),
+                        label = locale.getDisplayCountry(displayLocale),
+                    )
+                }
+                .filter { it.label.isNotBlank() }
+                .distinctBy { it.code }
+                .sortedBy { it.label }
+                .toList()
         }
-        .filter { it.label.isNotBlank() }
-        .distinctBy { it.code }
-        .sortedBy { it.label }
-        .toList()
 
-    val currencies: List<CurrencyOption> = Currency.getAvailableCurrencies()
-        .asSequence()
-        .map { currency ->
-            CurrencyOption(
-                code = currency.currencyCode,
-                label = "${currency.currencyCode} — ${currency.displayName}",
-            )
+    val currencies: List<CurrencyOption>
+        get() {
+            val displayLocale = selectedDisplayLocale()
+            return Currency.getAvailableCurrencies()
+                .asSequence()
+                .map { currency ->
+                    CurrencyOption(
+                        code = currency.currencyCode,
+                        label = "${currency.currencyCode} — ${currency.getDisplayName(displayLocale)}",
+                    )
+                }
+                .sortedBy { it.code }
+                .toList()
         }
-        .sortedBy { it.code }
-        .toList()
 
     init {
         viewModelScope.launch {
             observeBootstrap()
                 .catch { error ->
                     mutableState.value = mutableState.value.copy(
-                        bootstrapState = BusinessBootstrapState.Error(
-                            error.message ?: "Unable to read local business state"
-                        )
+                        bootstrapState = BusinessBootstrapState.Error
                     )
                 }
                 .collectLatest { bootstrap ->
@@ -180,7 +196,7 @@ class BusinessSetupViewModel @Inject constructor(
     fun next() {
         val current = mutableState.value
         validateStep(current)?.let { error ->
-            mutableState.value = current.copy(errorMessage = error)
+            mutableState.value = current.copy(error = error)
             return
         }
 
@@ -196,7 +212,7 @@ class BusinessSetupViewModel @Inject constructor(
             BusinessSetupStep.OWNER -> BusinessSetupStep.REVIEW
             BusinessSetupStep.REVIEW -> BusinessSetupStep.REVIEW
         }
-        mutableState.value = current.copy(step = next, errorMessage = null)
+        mutableState.value = current.copy(step = next, error = null)
     }
 
     fun back() {
@@ -213,7 +229,7 @@ class BusinessSetupViewModel @Inject constructor(
             BusinessSetupStep.OWNER -> BusinessSetupStep.BUSINESS_TYPE
             BusinessSetupStep.REVIEW -> BusinessSetupStep.OWNER
         }
-        mutableState.value = current.copy(step = previous, errorMessage = null)
+        mutableState.value = current.copy(step = previous, error = null)
     }
 
     fun createBusiness() {
@@ -221,11 +237,11 @@ class BusinessSetupViewModel @Inject constructor(
         if (current.step != BusinessSetupStep.REVIEW || current.isSaving) return
 
         validateComplete(current.draft)?.let { error ->
-            mutableState.value = current.copy(errorMessage = error)
+            mutableState.value = current.copy(error = error)
             return
         }
 
-        mutableState.value = current.copy(isSaving = true, errorMessage = null)
+        mutableState.value = current.copy(isSaving = true, error = null)
         viewModelScope.launch {
             runCatching {
                 val draft = mutableState.value.draft
@@ -252,7 +268,7 @@ class BusinessSetupViewModel @Inject constructor(
             }.onFailure { error ->
                 mutableState.value = mutableState.value.copy(
                     isSaving = false,
-                    errorMessage = error.message ?: "Unable to create business",
+                    error = BusinessSetupError.CREATE_FAILED,
                 )
             }
         }
@@ -262,37 +278,42 @@ class BusinessSetupViewModel @Inject constructor(
         val current = mutableState.value
         mutableState.value = current.copy(
             draft = current.draft.transform(),
-            errorMessage = null,
+            error = null,
         )
     }
 
-    private fun validateStep(state: BusinessSetupUiState): String? =
+    private fun validateStep(state: BusinessSetupUiState): BusinessSetupError? =
         when (state.step) {
             BusinessSetupStep.LANGUAGE ->
-                if (state.draft.languageCode.isBlank()) "Select a language" else null
+                if (state.draft.languageCode.isBlank()) BusinessSetupError.LANGUAGE_REQUIRED else null
             BusinessSetupStep.BUSINESS_DETAILS ->
-                if (state.draft.businessName.isBlank()) "Business name is required" else null
+                if (state.draft.businessName.isBlank()) BusinessSetupError.BUSINESS_NAME_REQUIRED else null
             BusinessSetupStep.COUNTRY ->
-                if (state.draft.countryCode.isBlank()) "Country is required" else null
+                if (state.draft.countryCode.isBlank()) BusinessSetupError.COUNTRY_REQUIRED else null
             BusinessSetupStep.CURRENCY ->
-                if (state.draft.currencyCode.isBlank()) "Currency is required" else null
+                if (state.draft.currencyCode.isBlank()) BusinessSetupError.CURRENCY_REQUIRED else null
             BusinessSetupStep.BUSINESS_TYPE ->
-                if (state.draft.businessType.isBlank()) "Business type is required" else null
+                if (state.draft.businessType.isBlank()) BusinessSetupError.BUSINESS_TYPE_REQUIRED else null
             BusinessSetupStep.OWNER ->
-                if (state.draft.ownerName.isBlank()) "Owner name is required" else null
+                if (state.draft.ownerName.isBlank()) BusinessSetupError.OWNER_NAME_REQUIRED else null
             else -> null
         }
 
-    private fun validateComplete(draft: BusinessSetupDraft): String? =
+    private fun validateComplete(draft: BusinessSetupDraft): BusinessSetupError? =
         when {
-            draft.languageCode.isBlank() -> "Language is required"
-            draft.businessName.isBlank() -> "Business name is required"
-            draft.countryCode.isBlank() -> "Country is required"
-            draft.currencyCode.isBlank() -> "Currency is required"
-            draft.businessType.isBlank() -> "Business type is required"
-            draft.ownerName.isBlank() -> "Owner name is required"
+            draft.languageCode.isBlank() -> BusinessSetupError.LANGUAGE_REQUIRED
+            draft.businessName.isBlank() -> BusinessSetupError.BUSINESS_NAME_REQUIRED
+            draft.countryCode.isBlank() -> BusinessSetupError.COUNTRY_REQUIRED
+            draft.currencyCode.isBlank() -> BusinessSetupError.CURRENCY_REQUIRED
+            draft.businessType.isBlank() -> BusinessSetupError.BUSINESS_TYPE_REQUIRED
+            draft.ownerName.isBlank() -> BusinessSetupError.OWNER_NAME_REQUIRED
             else -> null
         }
+
+    private fun selectedDisplayLocale(): Locale {
+        val language = mutableState.value.draft.languageCode
+        return if (language.isBlank()) Locale.getDefault() else Locale.forLanguageTag(language)
+    }
 
     private fun currencyForCountry(countryCode: String): String? {
         val locale = Locale.getAvailableLocales()
