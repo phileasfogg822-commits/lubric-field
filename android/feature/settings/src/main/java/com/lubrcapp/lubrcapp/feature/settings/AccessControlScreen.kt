@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -236,7 +235,7 @@ private fun MemberCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.72f)) {
                     Text(member.name, style = MaterialTheme.typography.titleMedium)
                     val contact = member.email ?: member.phone
                     if (contact.isNotBlank()) {
@@ -288,7 +287,7 @@ private fun RoleCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.72f)) {
                     Text(role.name, style = MaterialTheme.typography.titleMedium)
                     Text(
                         text = if (role.systemTemplate) {
