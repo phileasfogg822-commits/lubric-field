@@ -397,6 +397,7 @@ private fun AuditEventCard(event: AuditEvent) {
 @Composable
 private fun auditActionLabel(action: String): String =
     when (action) {
+        AuditActions.BUSINESS_CREATED -> stringResource(R.string.access_audit_business_created)
         AuditActions.USER_CREATED -> stringResource(R.string.access_audit_user_created)
         AuditActions.MEMBERSHIP_ACTIVE_CHANGED ->
             stringResource(R.string.access_audit_membership_active_changed)
