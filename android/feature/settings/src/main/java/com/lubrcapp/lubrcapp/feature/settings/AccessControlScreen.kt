@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
+import com.lubrcapp.lubrcapp.core.repository.AuditEvent
 import com.lubrcapp.lubrcapp.core.repository.BusinessMember
 import com.lubrcapp.lubrcapp.core.repository.BusinessRole
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
@@ -38,6 +40,10 @@ import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
 import com.lubrcapp.lubrcapp.domain.common.RoleId
 import com.lubrcapp.lubrcapp.domain.user.Capabilities
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun AccessControlScreen(
@@ -147,6 +153,30 @@ fun AccessControlScreen(
                 onEditPermissions = { roleEditor = role },
             )
         }
+
+        if (state.canViewAudit) {
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.access_audit_history),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = stringResource(R.string.access_audit_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (state.auditEvents.isEmpty() && !state.isLoading) {
+                Text(
+                    text = stringResource(R.string.access_no_audit_events),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            state.auditEvents.forEach { event ->
+                AuditEventCard(event)
+            }
+        }
     }
 
     if (showCreateUser) {
@@ -192,6 +222,71 @@ fun AccessControlScreen(
         )
     }
 }
+
+
+@Composable
+private fun AuditEventCard(event: AuditEvent) {
+    val formatter = remember {
+        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+    }
+    val timestamp = remember(event.createdAt) {
+        Instant.ofEpochMilli(event.createdAt)
+            .atZone(ZoneId.systemDefault())
+            .format(formatter)
+    }
+
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+        ) {
+            Text(
+                text = auditActionLabel(event.action),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(
+                    R.string.access_audit_entity,
+                    event.entityType,
+                    event.entityId,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    R.string.access_audit_actor,
+                    event.actorUserId ?: stringResource(R.string.access_audit_system_actor),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = timestamp,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun auditActionLabel(action: String): String =
+    when (action) {
+        AuditActions.USER_CREATED -> stringResource(R.string.access_audit_user_created)
+        AuditActions.MEMBERSHIP_ACTIVE_CHANGED ->
+            stringResource(R.string.access_audit_membership_active_changed)
+        AuditActions.ROLE_CREATED -> stringResource(R.string.access_audit_role_created)
+        AuditActions.ROLE_ACTIVE_CHANGED ->
+            stringResource(R.string.access_audit_role_active_changed)
+        AuditActions.ROLE_CAPABILITIES_CHANGED ->
+            stringResource(R.string.access_audit_role_capabilities_changed)
+        AuditActions.ROLE_ASSIGNMENTS_CHANGED ->
+            stringResource(R.string.access_audit_role_assignments_changed)
+        AuditActions.AUTHORIZATION_DENIED ->
+            stringResource(R.string.access_audit_authorization_denied)
+        else -> action
+    }
 
 @Composable
 private fun AccessSectionHeader(
