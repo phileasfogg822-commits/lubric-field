@@ -5,6 +5,7 @@ import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -144,6 +145,38 @@ class SessionManagerTest {
             manager.state.value,
         )
         assertEquals("access-new", manager.freshAccessTokenOrNull())
+    }
+
+
+    @Test
+    fun lockWithoutUnlockMethodDoesNotTrapSession() = runBlocking {
+        val manager = manager(
+            tokenStore = FakeTokenStore(freshSession()),
+            gate = FakeGateStore(),
+        )
+        manager.initialize()
+
+        manager.lock()
+
+        assertEquals(
+            AuthState.Authenticated(UserId("user-1"), SessionFreshness.FRESH),
+            manager.state.value,
+        )
+        assertEquals("access-new", manager.freshAccessTokenOrNull())
+    }
+
+    @Test
+    fun securityInfoExposesMetadataWithoutTokenMaterial() = runBlocking {
+        val manager = manager(tokenStore = FakeTokenStore(freshSession()))
+
+        val info = manager.securityInfo()
+
+        assertNotNull(info)
+        assertEquals("session-1", info?.sessionId)
+        assertEquals(UserId("user-1"), info?.userId)
+        assertEquals(freshSession().tokens.offlineAccessUntil, info?.offlineAccessUntil)
+        assertFalse(info.toString().contains("access-new"))
+        assertFalse(info.toString().contains("refresh-new"))
     }
 
     @Test
