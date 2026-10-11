@@ -62,6 +62,7 @@ interface AuthSessionController : SessionAccessTokenProvider {
     suspend fun requestOtp(phone: String): AuthRemoteResult<OtpChallenge>
     suspend fun verifyOtp(challengeId: String, otp: CharArray)
     suspend fun refresh()
+    suspend fun securityInfo(): SessionSecurityInfo?
     suspend fun logout()
     suspend fun lock()
     suspend fun unlockWithPin(pin: CharArray): Boolean
