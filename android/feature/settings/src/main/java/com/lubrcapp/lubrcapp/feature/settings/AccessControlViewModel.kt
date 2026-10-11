@@ -2,6 +2,7 @@ package com.lubrcapp.lubrcapp.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lubrcapp.lubrcapp.core.repository.AuditEvent
 import com.lubrcapp.lubrcapp.core.repository.BusinessMember
 import com.lubrcapp.lubrcapp.core.repository.BusinessRole
 import com.lubrcapp.lubrcapp.core.repository.CreateBusinessRoleRequest
@@ -12,6 +13,7 @@ import com.lubrcapp.lubrcapp.core.repository.usecase.AuthorizationService
 import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessRoleUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessUserUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.EnsureOwnerAccessUseCase
+import com.lubrcapp.lubrcapp.core.repository.ObserveAuditEventsUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessMembersUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.ObserveBusinessRolesUseCase
 import com.lubrcapp.lubrcapp.core.repository.usecase.SetMembershipActiveUseCase
@@ -28,13 +30,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 data class AccessControlUiState(
     val members: List<BusinessMember> = emptyList(),
     val roles: List<BusinessRole> = emptyList(),
+    val auditEvents: List<AuditEvent> = emptyList(),
     val canManageUsers: Boolean = false,
     val canManageRoles: Boolean = false,
+    val canViewAudit: Boolean = false,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
 )
@@ -44,6 +49,7 @@ class AccessControlViewModel @Inject constructor(
     private val ensureOwnerAccess: EnsureOwnerAccessUseCase,
     private val observeMembers: ObserveBusinessMembersUseCase,
     private val observeRoles: ObserveBusinessRolesUseCase,
+    private val observeAuditEvents: ObserveAuditEventsUseCase,
     private val createUserUseCase: CreateBusinessUserUseCase,
     private val setMembershipActiveUseCase: SetMembershipActiveUseCase,
     private val createRoleUseCase: CreateBusinessRoleUseCase,
@@ -65,26 +71,40 @@ class AccessControlViewModel @Inject constructor(
         observationJob?.cancel()
 
         observationJob = viewModelScope.launch {
-            runCatching {
+            val snapshot = runCatching {
                 ensureOwnerAccess(context.tenantId, context.businessId)
-                val snapshot = authorization.snapshot(context)
-                mutableState.value = mutableState.value.copy(
-                    canManageUsers = snapshot.allows(Capabilities.USERS_MANAGE),
-                    canManageRoles = snapshot.allows(Capabilities.ROLES_MANAGE),
-                )
-            }.onFailure(::showError)
+                authorization.snapshot(context)
+            }.onFailure(::showError).getOrNull()
+
+            val canViewAudit = snapshot?.allows(Capabilities.AUDIT_VIEW) == true
+            mutableState.value = mutableState.value.copy(
+                canManageUsers = snapshot?.allows(Capabilities.USERS_MANAGE) == true,
+                canManageRoles = snapshot?.allows(Capabilities.ROLES_MANAGE) == true,
+                canViewAudit = canViewAudit,
+            )
+
+            val auditFlow = if (canViewAudit) {
+                runCatching { observeAuditEvents(context, limit = 100) }
+                    .onFailure(::showError)
+                    .getOrElse { flowOf(emptyList()) }
+            } else {
+                flowOf(emptyList())
+            }
 
             combine(
                 observeMembers(context.tenantId, context.businessId),
                 observeRoles(context.tenantId, context.businessId),
-            ) { members, roles -> members to roles }
-                .collect { (members, roles) ->
-                    mutableState.value = mutableState.value.copy(
-                        members = members,
-                        roles = roles,
-                        isLoading = false,
-                    )
-                }
+                auditFlow,
+            ) { members, roles, auditEvents ->
+                Triple(members, roles, auditEvents)
+            }.collect { (members, roles, auditEvents) ->
+                mutableState.value = mutableState.value.copy(
+                    members = members,
+                    roles = roles,
+                    auditEvents = auditEvents,
+                    isLoading = false,
+                )
+            }
         }
     }
 
