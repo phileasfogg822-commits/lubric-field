@@ -22,6 +22,7 @@ data class AuditEvent(
 )
 
 object AuditActions {
+    const val BUSINESS_CREATED = "security.business.created"
     const val USER_CREATED = "security.user.created"
     const val MEMBERSHIP_ACTIVE_CHANGED = "security.membership.active_changed"
     const val ROLE_CREATED = "security.role.created"
