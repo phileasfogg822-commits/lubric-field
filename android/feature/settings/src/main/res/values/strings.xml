@@ -36,4 +36,18 @@
     <string name="access_audit_role_capabilities_changed">Role permissions changed</string>
     <string name="access_audit_role_assignments_changed">Role assignment changed</string>
     <string name="access_audit_authorization_denied">Unauthorized action blocked</string>
+    <string name="access_security_title">Security</string>
+    <string name="access_security_subtitle">These protections are stored securely on this device and work offline.</string>
+    <string name="access_block_screenshots">Block screenshots</string>
+    <string name="access_block_screenshots_hint">Prevent screenshots and screen recording in the Android app.</string>
+    <string name="access_lock_on_background">Lock when app goes to background</string>
+    <string name="access_lock_on_background_hint">Locks the local session when a PIN or biometric unlock method is configured.</string>
+    <string name="access_device_id">Device: %1$s</string>
+    <string name="access_session_title">Current session</string>
+    <string name="access_session_id">Session: %1$s</string>
+    <string name="access_session_user">User: %1$s</string>
+    <string name="access_session_issued">Issued: %1$s</string>
+    <string name="access_session_access_expires">Online token expires: %1$s</string>
+    <string name="access_session_offline_until">Offline access until: %1$s</string>
+    <string name="access_no_session">No cloud authentication session is active on this device.</string>
 </resources>
