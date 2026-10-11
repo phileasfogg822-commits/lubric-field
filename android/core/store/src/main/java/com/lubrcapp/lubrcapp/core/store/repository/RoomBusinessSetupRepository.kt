@@ -191,6 +191,7 @@ class RoomBusinessSetupRepository @Inject constructor(
                     entityType = "BUSINESS",
                     entityId = businessId.value,
                     action = AuditActions.BUSINESS_CREATED,
+                    reason = "initial_setup",
                     afterJson = "{\"tenantId\":\"" + tenantId.value + "\",\"ownerUserId\":\"" + ownerUserId.value + "\"}",
                     createdAt = nowMillis,
                     syncStatus = syncStatus,
