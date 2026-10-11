@@ -23,4 +23,17 @@
     <string name="access_role_name">Role name</string>
     <string name="access_edit_permissions_for">Permissions: %1$s</string>
     <string name="access_assign_roles_to">Roles: %1$s</string>
+    <string name="access_audit_history">Audit history</string>
+    <string name="access_audit_subtitle">Security-sensitive changes are recorded locally and remain scoped to this business.</string>
+    <string name="access_no_audit_events">No audit events yet.</string>
+    <string name="access_audit_entity">%1$s · %2$s</string>
+    <string name="access_audit_actor">Actor: %1$s</string>
+    <string name="access_audit_system_actor">System</string>
+    <string name="access_audit_user_created">User created</string>
+    <string name="access_audit_membership_active_changed">User access changed</string>
+    <string name="access_audit_role_created">Role created</string>
+    <string name="access_audit_role_active_changed">Role status changed</string>
+    <string name="access_audit_role_capabilities_changed">Role permissions changed</string>
+    <string name="access_audit_role_assignments_changed">Role assignment changed</string>
+    <string name="access_audit_authorization_denied">Unauthorized action blocked</string>
 </resources>
