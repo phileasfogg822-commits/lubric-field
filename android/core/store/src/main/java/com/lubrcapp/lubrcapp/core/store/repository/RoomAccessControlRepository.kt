@@ -303,6 +303,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "USER_MEMBERSHIP",
                 entityId = membershipId.value,
                 action = AuditActions.USER_CREATED,
+                reason = "administrative_provisioning",
                 afterJson = securityJson(
                     "userId" to userId.value,
                     "active" to "true",
@@ -353,6 +354,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "USER_MEMBERSHIP",
                 entityId = membershipId.value,
                 action = AuditActions.MEMBERSHIP_ACTIVE_CHANGED,
+                reason = if (active) "access_restored" else "access_revoked",
                 beforeJson = securityJson("active" to membership.isActive.toString()),
                 afterJson = securityJson("active" to active.toString()),
             )
@@ -393,6 +395,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "ROLE",
                 entityId = roleId.value,
                 action = AuditActions.ROLE_CREATED,
+                reason = "administrative_role_creation",
                 afterJson = securityJson(
                     "active" to "true",
                     "capabilities" to capabilityList(request.capabilities),
@@ -435,6 +438,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "ROLE",
                 entityId = roleId.value,
                 action = AuditActions.ROLE_ACTIVE_CHANGED,
+                reason = if (active) "role_reactivated" else "role_deactivated",
                 beforeJson = securityJson("active" to role.isActive.toString()),
                 afterJson = securityJson("active" to active.toString()),
             )
@@ -467,6 +471,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "ROLE",
                 entityId = roleId.value,
                 action = AuditActions.ROLE_CAPABILITIES_CHANGED,
+                reason = "permission_set_changed",
                 beforeJson = securityJson(
                     "capabilities" to capabilityList(previousCapabilities),
                 ),
@@ -525,6 +530,7 @@ class RoomAccessControlRepository @Inject constructor(
                 entityType = "USER_MEMBERSHIP",
                 entityId = membershipId.value,
                 action = AuditActions.ROLE_ASSIGNMENTS_CHANGED,
+                reason = "role_assignment_changed",
                 beforeJson = securityJson(
                     "roleIds" to previousRoleIds.sorted().joinToString(","),
                 ),
