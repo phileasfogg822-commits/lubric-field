@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationDeniedException
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationSnapshot
 import com.lubrcapp.lubrcapp.core.repository.BusinessMember
@@ -12,8 +13,10 @@ import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
 import com.lubrcapp.lubrcapp.core.store.db.DatabaseTransactionRunner
 import com.lubrcapp.lubrcapp.core.store.db.dao.AccessDao
+import com.lubrcapp.lubrcapp.core.store.db.dao.AuditDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.SettingsDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.UserDao
+import com.lubrcapp.lubrcapp.core.store.db.entity.AuditLogEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.PermissionEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.RoleEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.RolePermissionEntity
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.map
 class RoomAccessControlRepository @Inject constructor(
     private val userDao: UserDao,
     private val accessDao: AccessDao,
+    private val auditDao: AuditDao,
     private val settingsDao: SettingsDao,
     private val transactionRunner: DatabaseTransactionRunner,
     private val deviceIdentityProvider: DeviceIdentityProvider,
@@ -294,6 +298,16 @@ class RoomAccessControlRepository @Inject constructor(
                     syncStatus = SyncStatus.LOCAL_ONLY.name,
                 )
             )
+            recordAudit(
+                actor = actor,
+                entityType = "USER_MEMBERSHIP",
+                entityId = membershipId.value,
+                action = AuditActions.USER_CREATED,
+                afterJson = securityJson(
+                    "userId" to userId.value,
+                    "active" to "true",
+                ),
+            )
         }
 
         return BusinessMember(
@@ -324,15 +338,25 @@ class RoomAccessControlRepository @Inject constructor(
             "The initial business owner membership cannot be deactivated"
         }
 
-        val changed = accessDao.setMembershipActive(
-            tenantId = actor.tenantId.value,
-            businessId = actor.businessId.value,
-            membershipId = membershipId.value,
-            active = active,
-            updatedAt = Instant.now().toEpochMilli(),
-            updatedBy = actor.userId.value,
-        )
-        check(changed == 1) { "Membership update failed" }
+        transactionRunner.run {
+            val changed = accessDao.setMembershipActive(
+                tenantId = actor.tenantId.value,
+                businessId = actor.businessId.value,
+                membershipId = membershipId.value,
+                active = active,
+                updatedAt = Instant.now().toEpochMilli(),
+                updatedBy = actor.userId.value,
+            )
+            check(changed == 1) { "Membership update failed" }
+            recordAudit(
+                actor = actor,
+                entityType = "USER_MEMBERSHIP",
+                entityId = membershipId.value,
+                action = AuditActions.MEMBERSHIP_ACTIVE_CHANGED,
+                beforeJson = securityJson("active" to membership.isActive.toString()),
+                afterJson = securityJson("active" to active.toString()),
+            )
+        }
     }
 
     override suspend fun createRole(
@@ -364,6 +388,16 @@ class RoomAccessControlRepository @Inject constructor(
                 )
             )
             replaceRoleCapabilities(actor, roleId, request.capabilities)
+            recordAudit(
+                actor = actor,
+                entityType = "ROLE",
+                entityId = roleId.value,
+                action = AuditActions.ROLE_CREATED,
+                afterJson = securityJson(
+                    "active" to "true",
+                    "capabilities" to capabilityList(request.capabilities),
+                ),
+            )
         }
 
         return BusinessRole(
@@ -386,15 +420,25 @@ class RoomAccessControlRepository @Inject constructor(
             "System roles cannot be deactivated"
         }
 
-        val changed = accessDao.setRoleActive(
-            tenantId = actor.tenantId.value,
-            businessId = actor.businessId.value,
-            roleId = roleId.value,
-            active = active,
-            updatedAt = Instant.now().toEpochMilli(),
-            updatedBy = actor.userId.value,
-        )
-        check(changed == 1) { "Role update failed" }
+        transactionRunner.run {
+            val changed = accessDao.setRoleActive(
+                tenantId = actor.tenantId.value,
+                businessId = actor.businessId.value,
+                roleId = roleId.value,
+                active = active,
+                updatedAt = Instant.now().toEpochMilli(),
+                updatedBy = actor.userId.value,
+            )
+            check(changed == 1) { "Role update failed" }
+            recordAudit(
+                actor = actor,
+                entityType = "ROLE",
+                entityId = roleId.value,
+                action = AuditActions.ROLE_ACTIVE_CHANGED,
+                beforeJson = securityJson("active" to role.isActive.toString()),
+                afterJson = securityJson("active" to active.toString()),
+            )
+        }
     }
 
     override suspend fun setRoleCapabilities(
@@ -409,9 +453,27 @@ class RoomAccessControlRepository @Inject constructor(
             "System role capabilities cannot be modified"
         }
 
+        val previousCapabilities = accessDao.getRolePermissionKeys(
+            actor.tenantId.value,
+            actor.businessId.value,
+            roleId.value,
+        ).mapNotNullTo(linkedSetOf()) { parseCapability(it) }
+
         transactionRunner.run {
             seedCapabilityCatalog()
             replaceRoleCapabilities(actor, roleId, capabilities)
+            recordAudit(
+                actor = actor,
+                entityType = "ROLE",
+                entityId = roleId.value,
+                action = AuditActions.ROLE_CAPABILITIES_CHANGED,
+                beforeJson = securityJson(
+                    "capabilities" to capabilityList(previousCapabilities),
+                ),
+                afterJson = securityJson(
+                    "capabilities" to capabilityList(capabilities),
+                ),
+            )
         }
     }
 
@@ -436,6 +498,12 @@ class RoomAccessControlRepository @Inject constructor(
             "System roles cannot be manually assigned"
         }
 
+        val previousRoleIds = accessDao.getRoleIds(
+            actor.tenantId.value,
+            actor.businessId.value,
+            membershipId.value,
+        ).toSet()
+
         transactionRunner.run {
             accessDao.clearUserBusinessRoles(
                 actor.tenantId.value,
@@ -452,6 +520,18 @@ class RoomAccessControlRepository @Inject constructor(
                     )
                 )
             }
+            recordAudit(
+                actor = actor,
+                entityType = "USER_MEMBERSHIP",
+                entityId = membershipId.value,
+                action = AuditActions.ROLE_ASSIGNMENTS_CHANGED,
+                beforeJson = securityJson(
+                    "roleIds" to previousRoleIds.sorted().joinToString(","),
+                ),
+                afterJson = securityJson(
+                    "roleIds" to roleIds.map { it.value }.sorted().joinToString(","),
+                ),
+            )
         }
     }
 
@@ -461,6 +541,15 @@ class RoomAccessControlRepository @Inject constructor(
     ) {
         ensureOwnerAccess(actor.tenantId, actor.businessId)
         if (!authorization(actor).allows(capability)) {
+            runCatching {
+                recordAudit(
+                    actor = actor,
+                    entityType = "CAPABILITY",
+                    entityId = capability.value,
+                    action = AuditActions.AUTHORIZATION_DENIED,
+                    reason = "required_capability",
+                )
+            }
             throw AuthorizationDeniedException(actor, capability)
         }
     }
@@ -528,6 +617,50 @@ class RoomAccessControlRepository @Inject constructor(
             "Role contains capability keys outside the platform catalog"
         }
     }
+
+    private suspend fun recordAudit(
+        actor: TenantContext,
+        entityType: String,
+        entityId: String,
+        action: String,
+        beforeJson: String? = null,
+        afterJson: String? = null,
+        reason: String? = null,
+    ) {
+        val deviceId = deviceIdentityProvider.getOrCreate()
+        auditDao.insert(
+            AuditLogEntity(
+                id = UUID.randomUUID().toString(),
+                tenantId = actor.tenantId.value,
+                businessId = actor.businessId.value,
+                actorUserId = actor.userId.value,
+                deviceId = deviceId.value,
+                entityType = entityType,
+                entityId = entityId,
+                action = action,
+                beforeJson = beforeJson,
+                afterJson = afterJson,
+                reason = reason,
+                createdAt = Instant.now().toEpochMilli(),
+                syncStatus = SyncStatus.LOCAL_ONLY.name,
+            )
+        )
+    }
+
+    private fun capabilityList(capabilities: Set<CapabilityKey>): String =
+        capabilities.map { it.value }.sorted().joinToString(",")
+
+    private fun securityJson(vararg values: Pair<String, String>): String =
+        values.joinToString(prefix = "{", postfix = "}") { (key, value) ->
+            "\"" + escapeJson(key) + "\":\"" + escapeJson(value) + "\""
+        }
+
+    private fun escapeJson(value: String): String =
+        value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
 
     private fun deniedSnapshot(context: TenantContext) =
         AuthorizationSnapshot(
