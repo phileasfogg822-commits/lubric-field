@@ -202,6 +202,40 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce audit and security policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AUDIT_DAO="core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/db/dao/FoundationDaos.kt"
+          ACCESS_REPO="core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/RoomAccessControlRepository.kt"
+          AUDIT_POLICY="core/repository/src/main/kotlin/com/lubrcapp/lubrcapp/core/repository/AuditPolicy.kt"
+
+          if sed -n '/interface AuditDao/,/interface ActivityDao/p' "$AUDIT_DAO" | grep -E 'UPDATE[[:space:]]+audit_logs|DELETE[[:space:]]+FROM[[:space:]]+audit_logs'; then
+            echo "Audit logs must remain append-only: AuditDao may not update or delete audit rows."
+            exit 1
+          fi
+
+          if ! grep -q 'auditDao.insert' "$ACCESS_REPO"; then
+            echo "Privileged access-control mutations must emit audit records."
+            exit 1
+          fi
+
+          if ! grep -q 'Capabilities.AUDIT_VIEW' "$AUDIT_POLICY"; then
+            echo "Audit history must remain protected by the audit.view capability."
+            exit 1
+          fi
+
+          if grep -E -i 'password|refreshToken|accessToken|otp|pin' "$ACCESS_REPO" | grep -E 'beforeJson|afterJson|securityJson|recordAudit'; then
+            echo "Credential material must never be written into audit payloads."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'AuditRepository' feature/*/src/main 2>/dev/null; then
+            echo "Feature code must consume capability-gated audit use cases, not AuditRepository directly."
+            exit 1
+          fi
+
       - name: Unit tests lint debug and release APKs
         run: ./gradlew clean test lint :app:assembleDebug :app:assembleRelease --no-daemon
 
