@@ -29,6 +29,7 @@
     <string name="access_audit_entity">%1$s · %2$s</string>
     <string name="access_audit_actor">Actor: %1$s</string>
     <string name="access_audit_system_actor">System</string>
+    <string name="access_audit_business_created">Business created</string>
     <string name="access_audit_user_created">User created</string>
     <string name="access_audit_membership_active_changed">User access changed</string>
     <string name="access_audit_role_created">Role created</string>
