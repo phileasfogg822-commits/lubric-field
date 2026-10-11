@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.core.store.repository
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationDeniedException
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
 import com.lubrcapp.lubrcapp.core.repository.CreateBusinessRoleRequest
@@ -62,6 +63,7 @@ class RoomAccessControlRepositoryTest {
         repository = RoomAccessControlRepository(
             userDao = database.userDao(),
             accessDao = database.accessDao(),
+            auditDao = database.auditDao(),
             settingsDao = database.settingsDao(),
             transactionRunner = DatabaseTransactionRunner(database),
             deviceIdentityProvider = FixedDeviceIdentityProvider(),
@@ -299,6 +301,96 @@ class RoomAccessControlRepositoryTest {
         }
 
         assertTrue(failure.exceptionOrNull() is AuthorizationDeniedException)
+    }
+
+
+    @Test
+    fun creatingUserWritesRedactedAuditEntry() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = "Sensitive Person",
+                phone = "+123456789",
+                email = "sensitive@example.test",
+            ),
+        )
+
+        val events = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "USER_MEMBERSHIP",
+            member.membershipId.value,
+        )
+
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertEquals(AuditActions.USER_CREATED, event.action)
+        assertEquals("owner-a", event.actorUserId)
+        assertTrue(event.afterJson.orEmpty().contains(member.userId.value))
+        assertFalse(event.afterJson.orEmpty().contains("Sensitive Person"))
+        assertFalse(event.afterJson.orEmpty().contains("+123456789"))
+        assertFalse(event.afterJson.orEmpty().contains("sensitive@example.test"))
+    }
+
+    @Test
+    fun deniedRoleMutationWritesAuthorizationAudit() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "No Privilege"),
+        )
+        val unprivileged = ownerContext.copy(userId = member.userId)
+
+        val failure = runCatching {
+            repository.createRole(
+                unprivileged,
+                CreateBusinessRoleRequest(
+                    name = "Forbidden",
+                    capabilities = setOf(Capabilities.REPORTS_VIEW),
+                ),
+            )
+        }
+
+        assertTrue(failure.exceptionOrNull() is AuthorizationDeniedException)
+        val events = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "CAPABILITY",
+            Capabilities.ROLES_MANAGE.value,
+        )
+        assertEquals(1, events.size)
+        assertEquals(AuditActions.AUTHORIZATION_DENIED, events.single().action)
+        assertEquals(member.userId.value, events.single().actorUserId)
+    }
+
+    @Test
+    fun auditHistoryRemainsBusinessScoped() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Scoped",
+                capabilities = setOf(Capabilities.REPORTS_VIEW),
+            ),
+        )
+
+        val ownEvents = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "ROLE",
+            role.roleId.value,
+        )
+        val otherEvents = database.auditDao().getForEntity(
+            "tenant-b",
+            "business-b",
+            "ROLE",
+            role.roleId.value,
+        )
+
+        assertEquals(1, ownEvents.size)
+        assertTrue(otherEvents.isEmpty())
     }
 
     private suspend fun seedBusiness(
