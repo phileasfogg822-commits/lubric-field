@@ -52,6 +52,15 @@ data class AuthSession(
     }
 }
 
+data class SessionSecurityInfo(
+    val sessionId: String,
+    val userId: UserId,
+    val issuedAt: Instant,
+    val accessTokenExpiresAt: Instant,
+    val refreshTokenExpiresAt: Instant,
+    val offlineAccessUntil: Instant,
+)
+
 data class OtpChallenge(
     val challengeId: String,
     val destinationHint: String,
