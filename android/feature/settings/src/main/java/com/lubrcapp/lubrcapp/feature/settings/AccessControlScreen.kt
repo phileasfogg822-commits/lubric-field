@@ -154,6 +154,93 @@ fun AccessControlScreen(
             )
         }
 
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.access_security_title),
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Text(
+            text = stringResource(R.string.access_security_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        SecurityPolicyRow(
+            title = stringResource(R.string.access_block_screenshots),
+            subtitle = stringResource(R.string.access_block_screenshots_hint),
+            checked = state.securityPolicy.blockScreenshots,
+            enabled = state.canManageSecurity,
+            onCheckedChange = viewModel::setBlockScreenshots,
+        )
+        SecurityPolicyRow(
+            title = stringResource(R.string.access_lock_on_background),
+            subtitle = stringResource(R.string.access_lock_on_background_hint),
+            checked = state.securityPolicy.lockOnBackground,
+            enabled = state.canManageSecurity,
+            onCheckedChange = viewModel::setLockOnBackground,
+        )
+
+        state.deviceId?.let { deviceId ->
+            Text(
+                text = stringResource(R.string.access_device_id, deviceId),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        state.sessionInfo?.let { session ->
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+                    verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+                ) {
+                    Text(
+                        text = stringResource(R.string.access_session_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_id,
+                            session.sessionId.take(12),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_user,
+                            session.userId.value,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_issued,
+                            formatSecurityTime(session.issuedAt),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_access_expires,
+                            formatSecurityTime(session.accessTokenExpiresAt),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_offline_until,
+                            formatSecurityTime(session.offlineAccessUntil),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        } ?: Text(
+            text = stringResource(R.string.access_no_session),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         if (state.canViewAudit) {
             HorizontalDivider()
             Text(
@@ -223,6 +310,43 @@ fun AccessControlScreen(
     }
 }
 
+
+@Composable
+private fun SecurityPolicyRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(LubrcTheme.tokens.contentPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth(0.72f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+private fun formatSecurityTime(instant: Instant): String =
+    instant.atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
 
 @Composable
 private fun AuditEventCard(event: AuditEvent) {
