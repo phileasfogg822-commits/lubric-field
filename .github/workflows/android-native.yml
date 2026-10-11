@@ -1,5 +1,9 @@
 name: Native Android CI
 
+concurrency:
+  group: native-android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     paths:
