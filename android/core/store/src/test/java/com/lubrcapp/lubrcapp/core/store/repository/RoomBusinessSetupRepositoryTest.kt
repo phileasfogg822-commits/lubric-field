@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.core.store.repository
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
 import com.lubrcapp.lubrcapp.core.repository.CreateInitialBusinessRequest
 import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -110,6 +112,19 @@ class RoomBusinessSetupRepositoryTest {
                 BusinessSetupSettingKeys.TAX_ENABLED,
             )?.value,
         )
+
+        val audit = database.auditDao().getForEntity(
+            "tenant-1",
+            "business-1",
+            "BUSINESS",
+            "business-1",
+        ).single()
+        assertEquals(AuditActions.BUSINESS_CREATED, audit.action)
+        assertEquals("owner-1", audit.actorUserId)
+        assertTrue(audit.afterJson.orEmpty().contains("tenant-1"))
+        assertFalse(audit.afterJson.orEmpty().contains("Acme Traders"))
+        assertFalse(audit.afterJson.orEmpty().contains("Ayesha Owner"))
+        assertFalse(audit.afterJson.orEmpty().contains("office@example.test"))
     }
 
     @Test
@@ -209,6 +224,7 @@ class RoomBusinessSetupRepositoryTest {
         businessDao = database.businessDao(),
         userDao = database.userDao(),
         accessDao = database.accessDao(),
+        auditDao = database.auditDao(),
         settingsDao = database.settingsDao(),
         transactionRunner = DatabaseTransactionRunner(database),
         deviceIdentityProvider = FixedDeviceIdentityProvider(),
