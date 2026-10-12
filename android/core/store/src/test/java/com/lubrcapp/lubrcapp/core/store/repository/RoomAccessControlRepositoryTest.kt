@@ -552,6 +552,18 @@ class RoomAccessControlRepositoryTest {
         }
     }
 
+
+    @Test
+    fun auditDaoExposesNoUpdateOrDeleteOperation() {
+        val methods = com.lubrcapp.lubrcapp.core.store.db.dao.AuditDao::class.java
+            .declaredMethods.map { it.name.lowercase() }
+        assertTrue(methods.none {
+            it.startsWith("update") || it.startsWith("delete") ||
+                it.startsWith("remove") || it.startsWith("clear") ||
+                it.startsWith("upsert")
+        })
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
