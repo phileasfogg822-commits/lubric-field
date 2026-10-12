@@ -14,6 +14,7 @@ import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
 import com.lubrcapp.lubrcapp.core.repository.usecase.AuthorizationService
 import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessRoleUseCase
+import com.lubrcapp.lubrcapp.core.store.db.AuditIntegrityGuard
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.DatabaseTransactionRunner
 import com.lubrcapp.lubrcapp.core.store.db.entity.BusinessEntity
@@ -60,6 +61,7 @@ class RoomAccessControlRepositoryTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
+            .addCallback(AuditIntegrityGuard.callback)
             .build()
 
         repository = RoomAccessControlRepository(
@@ -621,7 +623,7 @@ class RoomAccessControlRepositoryTest {
 
 
     @Test
-    fun directSqlAuditTamperingIsCurrentlyPossibleAndNeedsHardening() = runBlocking {
+    fun directSqlAuditUpdateAndDeleteAreRejected() = runBlocking {
         repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
         val member = repository.createBusinessUser(
             ownerContext, CreateBusinessUserRequest(name = "Audit Integrity Probe"),
@@ -632,16 +634,16 @@ class RoomAccessControlRepositoryTest {
         assertEquals(1, events.size)
         val id = events.single().id
         val db = database.openHelper.writableDatabase
-        db.execSQL("UPDATE audit_logs SET reason = 'tampered' WHERE id = ?", arrayOf(id))
+        assertTrue(runCatching { db.execSQL("UPDATE audit_logs SET reason = 'tampered' WHERE id = ?", arrayOf(id)) }.isFailure)
         val changed = database.auditDao().getForEntity(
             "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
         )
-        assertEquals("tampered", changed.single().reason)
-        db.execSQL("DELETE FROM audit_logs WHERE id = ?", arrayOf(id))
+        assertEquals(events.single(), changed.single())
+        assertTrue(runCatching { db.execSQL("DELETE FROM audit_logs WHERE id = ?", arrayOf(id)) }.isFailure)
         assertTrue(
             database.auditDao().getForEntity(
                 "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
-            ).isEmpty()
+            ).single().id == id
         )
     }
 
