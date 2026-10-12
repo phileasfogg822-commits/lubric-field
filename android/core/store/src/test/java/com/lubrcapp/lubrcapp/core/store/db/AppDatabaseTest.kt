@@ -30,6 +30,7 @@ class AppDatabaseTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
+            .addCallback(AuditIntegrityGuard.callback)
             .build()
     }
 
@@ -111,6 +112,31 @@ class AppDatabaseTest {
         )
 
         assertEquals(listOf("q-first", "q-later"), batch.map { it.id })
+    }
+
+
+    @Test
+    fun auditIntegrityTriggersDoNotBlockSyncQueueStatusUpdates() = runBlocking {
+        database.tenantDao().upsert(tenant("tenant-a", 1_000L))
+        database.businessDao().upsert(business("tenant-a", "business-a", "Alpha", 1_000L))
+        database.syncQueueDao().enqueue(
+            queue("audit-sync-job", "tenant-a", "business-a", createdAt = 1_000L)
+        )
+        val updated = database.syncQueueDao().updateState(
+            tenantId = "tenant-a",
+            businessId = "business-a",
+            id = "audit-sync-job",
+            status = "SYNCED",
+            attemptCount = 1,
+            lastError = null,
+            nextAttemptAt = null,
+            updatedAt = 2_000L,
+        )
+        assertEquals(1, updated)
+        assertEquals(
+            1,
+            database.syncQueueDao().countByStatus("tenant-a", "business-a", "SYNCED")
+        )
     }
 
     private fun tenant(id: String, now: Long) = TenantEntity(
