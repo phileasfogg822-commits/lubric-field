@@ -446,6 +446,30 @@ class RoomAccessControlRepositoryTest {
         )
     }
 
+
+    @Test
+    fun transactionRunnerRollsBackWritesWhenLaterOperationFails() = runBlocking {
+        val original = database.userDao().getById("user-new")
+        assertTrue(original == null)
+        val failure = runCatching {
+            DatabaseTransactionRunner(database).run {
+                database.userDao().upsert(
+                    UserEntity(
+                        id = "user-new",
+                        name = "Should Roll Back",
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        deviceId = "device-1",
+                        syncStatus = "LOCAL_ONLY",
+                    )
+                )
+                error("simulated audit persistence failure")
+            }
+        }
+        assertTrue(failure.isFailure)
+        assertTrue(database.userDao().getById("user-new") == null)
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
