@@ -5,6 +5,7 @@ import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -146,6 +147,38 @@ class SessionManagerTest {
         assertEquals("access-new", manager.freshAccessTokenOrNull())
     }
 
+
+    @Test
+    fun lockWithoutUnlockMethodDoesNotTrapSession() = runBlocking {
+        val manager = manager(
+            tokenStore = FakeTokenStore(freshSession()),
+            gate = FakeGateStore(),
+        )
+        manager.initialize()
+
+        manager.lock()
+
+        assertEquals(
+            AuthState.Authenticated(UserId("user-1"), SessionFreshness.FRESH),
+            manager.state.value,
+        )
+        assertEquals("access-new", manager.freshAccessTokenOrNull())
+    }
+
+    @Test
+    fun securityInfoExposesMetadataWithoutTokenMaterial() = runBlocking {
+        val manager = manager(tokenStore = FakeTokenStore(freshSession()))
+
+        val info = manager.securityInfo()
+
+        assertNotNull(info)
+        assertEquals("session-1", info?.sessionId)
+        assertEquals(UserId("user-1"), info?.userId)
+        assertEquals(freshSession().tokens.offlineAccessUntil, info?.offlineAccessUntil)
+        assertFalse(info.toString().contains("access-new"))
+        assertFalse(info.toString().contains("refresh-new"))
+    }
+
     @Test
     fun logoutClearsSessionUnlockMethodsAndAttemptsRevoke() = runBlocking {
         val store = FakeTokenStore(freshSession())
@@ -188,6 +221,89 @@ class SessionManagerTest {
             AuthState.Authenticated(UserId("user-1"), SessionFreshness.FRESH),
             manager.state.value,
         )
+    }
+
+
+    @Test
+    fun revokedCredentialsDuringRefreshClearTokensAndBlockAccess() = runBlocking {
+        val store = FakeTokenStore(freshSession())
+        val remote = FakeRemote().apply {
+            refreshResult = AuthRemoteResult.InvalidCredentials("revoked")
+        }
+        val manager = manager(store, remote = remote)
+        manager.initialize()
+        assertEquals("access-new", manager.freshAccessTokenOrNull())
+
+        manager.refresh()
+
+        assertEquals(
+            AuthState.Unauthenticated(SignOutReason.CREDENTIALS_REVOKED),
+            manager.state.value,
+        )
+        assertNull(store.session)
+        assertNull(manager.freshAccessTokenOrNull())
+        assertNull(manager.securityInfo())
+    }
+
+    @Test
+    fun expiredAccessTokenIsNeverReturnedDuringOfflineGrace() = runBlocking {
+        val session = freshSession().copy(
+            tokens = freshSession().tokens.copy(
+                accessTokenExpiresAt = now.minusSeconds(1),
+            ),
+        )
+        val manager = manager(FakeTokenStore(session))
+        manager.initialize()
+        assertTrue(manager.state.value is AuthState.Authenticated)
+        assertNull(manager.freshAccessTokenOrNull())
+    }
+
+    @Test
+    fun expiredRefreshTokenBlocksRefreshAndClearsStoredSession() = runBlocking {
+        val session = freshSession().copy(
+            tokens = freshSession().tokens.copy(
+                accessTokenExpiresAt = now.minusSeconds(30),
+                offlineAccessUntil = now.minusSeconds(20),
+                refreshTokenExpiresAt = now.minusSeconds(10),
+            ),
+        )
+        val store = FakeTokenStore(session)
+        val manager = manager(store)
+        manager.refresh()
+        assertEquals(
+            AuthState.Unauthenticated(SignOutReason.SESSION_EXPIRED),
+            manager.state.value,
+        )
+        assertNull(store.session)
+        assertNull(manager.freshAccessTokenOrNull())
+    }
+
+
+    @Test
+    fun authModelsDoNotExposeCredentialValuesInDiagnosticStrings() {
+        val session = freshSession()
+        val tokensText = session.tokens.toString()
+        val sessionText = session.toString()
+        listOf(tokensText, sessionText).forEach { diagnostic ->
+            assertFalse(diagnostic.contains("access-new"))
+            assertFalse(diagnostic.contains("refresh-new"))
+            assertTrue(diagnostic.contains("[REDACTED]"))
+        }
+    }
+
+
+    @Test
+    fun authenticationErrorDiagnosticsDoNotContainCredentials() = runBlocking {
+        val remote = FakeRemote().apply {
+            signInResult = AuthRemoteResult.InvalidCredentials()
+        }
+        val manager = manager(remote = remote)
+        val password = "diagnostic-secret-marker".toCharArray()
+        manager.signInWithEmail("user@example.com", password)
+        val diagnostic = manager.state.value.toString()
+        assertFalse(diagnostic.contains("diagnostic-secret-marker"))
+        assertFalse(diagnostic.contains("access-new"))
+        assertFalse(diagnostic.contains("refresh-new"))
     }
 
     private fun manager(

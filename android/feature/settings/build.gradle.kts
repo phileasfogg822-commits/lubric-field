@@ -46,6 +46,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose")
 
     implementation(project(":core:designsystem"))
+    implementation(project(":core:auth"))
     implementation(project(":core:repository"))
     implementation(project(":core:ui"))
     implementation(project(":domain:user"))

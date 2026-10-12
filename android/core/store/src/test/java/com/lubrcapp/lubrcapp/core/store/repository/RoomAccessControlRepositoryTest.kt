@@ -3,6 +3,9 @@ package com.lubrcapp.lubrcapp.core.store.repository
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.lubrcapp.lubrcapp.core.repository.GetEntityAuditUseCase
+import com.lubrcapp.lubrcapp.core.repository.ObserveAuditEventsUseCase
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationDeniedException
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
 import com.lubrcapp.lubrcapp.core.repository.CreateBusinessRoleRequest
@@ -11,6 +14,7 @@ import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
 import com.lubrcapp.lubrcapp.core.repository.usecase.AuthorizationService
 import com.lubrcapp.lubrcapp.core.repository.usecase.CreateBusinessRoleUseCase
+import com.lubrcapp.lubrcapp.core.store.db.AuditIntegrityGuard
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.DatabaseTransactionRunner
 import com.lubrcapp.lubrcapp.core.store.db.entity.BusinessEntity
@@ -57,11 +61,13 @@ class RoomAccessControlRepositoryTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
+            .addCallback(AuditIntegrityGuard.callback)
             .build()
 
         repository = RoomAccessControlRepository(
             userDao = database.userDao(),
             accessDao = database.accessDao(),
+            auditDao = database.auditDao(),
             settingsDao = database.settingsDao(),
             transactionRunner = DatabaseTransactionRunner(database),
             deviceIdentityProvider = FixedDeviceIdentityProvider(),
@@ -299,6 +305,346 @@ class RoomAccessControlRepositoryTest {
         }
 
         assertTrue(failure.exceptionOrNull() is AuthorizationDeniedException)
+    }
+
+
+    @Test
+    fun creatingUserWritesRedactedAuditEntry() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = "Sensitive Person",
+                phone = "+123456789",
+                email = "sensitive@example.test",
+            ),
+        )
+
+        val events = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "USER_MEMBERSHIP",
+            member.membershipId.value,
+        )
+
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertEquals(AuditActions.USER_CREATED, event.action)
+        assertEquals("owner-a", event.actorUserId)
+        assertTrue(event.afterJson.orEmpty().contains(member.userId.value))
+        assertFalse(event.afterJson.orEmpty().contains("Sensitive Person"))
+        assertFalse(event.afterJson.orEmpty().contains("+123456789"))
+        assertFalse(event.afterJson.orEmpty().contains("sensitive@example.test"))
+    }
+
+    @Test
+    fun deniedRoleMutationWritesAuthorizationAudit() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "No Privilege"),
+        )
+        val unprivileged = ownerContext.copy(userId = member.userId)
+
+        val failure = runCatching {
+            repository.createRole(
+                unprivileged,
+                CreateBusinessRoleRequest(
+                    name = "Forbidden",
+                    capabilities = setOf(Capabilities.REPORTS_VIEW),
+                ),
+            )
+        }
+
+        assertTrue(failure.exceptionOrNull() is AuthorizationDeniedException)
+        val events = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "CAPABILITY",
+            Capabilities.ROLES_MANAGE.value,
+        )
+        assertEquals(1, events.size)
+        assertEquals(AuditActions.AUTHORIZATION_DENIED, events.single().action)
+        assertEquals(member.userId.value, events.single().actorUserId)
+    }
+
+    @Test
+    fun auditHistoryRemainsBusinessScoped() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Scoped",
+                capabilities = setOf(Capabilities.REPORTS_VIEW),
+            ),
+        )
+
+        val ownEvents = database.auditDao().getForEntity(
+            "tenant-a",
+            "business-a",
+            "ROLE",
+            role.roleId.value,
+        )
+        val otherEvents = database.auditDao().getForEntity(
+            "tenant-b",
+            "business-b",
+            "ROLE",
+            role.roleId.value,
+        )
+
+        assertEquals(1, ownEvents.size)
+        assertTrue(otherEvents.isEmpty())
+    }
+
+
+    @Test
+    fun auditUseCasesDenyMemberWithoutAuditView() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "Audit Denied"),
+        )
+        val unprivileged = ownerContext.copy(userId = member.userId)
+        val auditRepository = RoomAuditRepository(database.auditDao())
+        val authorization = AuthorizationService(repository)
+
+        val entityRead = runCatching {
+            GetEntityAuditUseCase(auditRepository, authorization)(
+                unprivileged, "USER_MEMBERSHIP", member.membershipId.value,
+            )
+        }
+        val streamRead = runCatching {
+            ObserveAuditEventsUseCase(auditRepository, authorization)(unprivileged)
+        }
+
+        assertTrue(entityRead.exceptionOrNull() is AuthorizationDeniedException)
+        assertTrue(streamRead.exceptionOrNull() is AuthorizationDeniedException)
+    }
+
+    @Test
+    fun auditUseCasesDoNotLeakOtherTenantRecords() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        repository.ensureOwnerAccess(TenantId("tenant-b"), BusinessId("business-b"))
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Confidential",
+                capabilities = setOf(Capabilities.REPORTS_VIEW),
+            ),
+        )
+        val auditRepository = RoomAuditRepository(database.auditDao())
+        val authorization = AuthorizationService(repository)
+        val getAudit = GetEntityAuditUseCase(auditRepository, authorization)
+        val otherOwner = TenantContext(
+            TenantId("tenant-b"), BusinessId("business-b"), UserId("owner-b"),
+        )
+
+        assertEquals(1, getAudit(ownerContext, "ROLE", role.roleId.value).size)
+        assertTrue(getAudit(otherOwner, "ROLE", role.roleId.value).isEmpty())
+        assertTrue(
+            ObserveAuditEventsUseCase(auditRepository, authorization)(otherOwner)
+                .first().none { it.entityId == role.roleId.value }
+        )
+    }
+
+
+    @Test
+    fun transactionRunnerRollsBackWritesWhenLaterOperationFails() = runBlocking {
+        val original = database.userDao().getById("user-new")
+        assertTrue(original == null)
+        val failure = runCatching {
+            DatabaseTransactionRunner(database).run {
+                database.userDao().upsert(
+                    UserEntity(
+                        id = "user-new",
+                        name = "Should Roll Back",
+                        createdAt = 1L,
+                        updatedAt = 1L,
+                        deviceId = "device-1",
+                        syncStatus = "LOCAL_ONLY",
+                    )
+                )
+                error("simulated audit persistence failure")
+            }
+        }
+        assertTrue(failure.isFailure)
+        assertTrue(database.userDao().getById("user-new") == null)
+    }
+
+
+    @Test
+    fun revokedMembershipImmediatelyLosesPreviouslyGrantedCapabilities() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Temporary Staff"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Temporary Role",
+                capabilities = setOf(Capabilities.SALES_VIEW),
+            ),
+        )
+        repository.assignRoles(ownerContext, member.membershipId, setOf(role.roleId))
+        val memberContext = ownerContext.copy(userId = member.userId)
+        assertTrue(repository.authorization(memberContext).allows(Capabilities.SALES_VIEW))
+
+        repository.setMembershipActive(ownerContext, member.membershipId, false)
+
+        assertFalse(repository.authorization(memberContext).allows(Capabilities.SALES_VIEW))
+        assertTrue(repository.authorization(memberContext).capabilities.isEmpty())
+    }
+
+    @Test
+    fun auditPayloadNeverContainsProvisionedContactDetails() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = "Confidential Person",
+                phone = "+10000000001",
+                email = "private-audit@example.test",
+            ),
+        )
+        val entries = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, entries.size)
+        val payload = listOfNotNull(
+            entries.single().beforeJson,
+            entries.single().afterJson,
+            entries.single().reason,
+        ).joinToString(" ")
+        assertFalse(payload.contains("Confidential Person"))
+        assertFalse(payload.contains("+10000000001"))
+        assertFalse(payload.contains("private-audit@example.test"))
+    }
+
+
+    @Test
+    fun auditInsertFailureRollsBackBusinessUserAndMembership() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        database.openHelper.writableDatabase.execSQL(
+            """CREATE TRIGGER fail_audit_insert BEFORE INSERT ON audit_logs
+               BEGIN SELECT RAISE(ABORT, 'audit write unavailable'); END"""
+        )
+        try {
+            val result = runCatching {
+                repository.createBusinessUser(
+                    ownerContext,
+                    CreateBusinessUserRequest(name = "Must Not Persist"),
+                )
+            }
+            assertTrue("The audit insertion must fail", result.isFailure)
+            assertTrue("User insertion must roll back", database.userDao().getById("user-new") == null)
+            assertTrue(
+                "Membership insertion must roll back",
+                database.accessDao().getMembershipById(
+                    "tenant-a", "business-a", "membership-new",
+                ) == null,
+            )
+            assertTrue(
+                database.auditDao().getForEntity(
+                    "tenant-a", "business-a", "USER_MEMBERSHIP", "membership-new",
+                ).isEmpty()
+            )
+        } finally {
+            database.openHelper.writableDatabase.execSQL("DROP TRIGGER IF EXISTS fail_audit_insert")
+        }
+    }
+
+
+    @Test
+    fun auditDaoExposesNoUpdateOrDeleteOperation() {
+        val methods = com.lubrcapp.lubrcapp.core.store.db.dao.AuditDao::class.java
+            .declaredMethods.map { it.name.lowercase() }
+        assertTrue(methods.none {
+            it.startsWith("update") || it.startsWith("delete") ||
+                it.startsWith("remove") || it.startsWith("clear") ||
+                it.startsWith("upsert")
+        })
+    }
+
+
+    @Test
+    fun auditPayloadDoesNotEchoSecretLikeUserInputs() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val secrets = listOf(
+            "password=secret-password-marker",
+            "pin=729184",
+            "access_token=access-token-marker",
+            "refresh_token=refresh-token-marker",
+        )
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = secrets[0],
+                phone = secrets[1],
+                email = secrets[2],
+            ),
+        )
+        val events = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, events.size)
+        val audit = events.single().toString()
+        secrets.forEach { secret ->
+            assertFalse("Audit must not contain input secret", audit.contains(secret))
+        }
+    }
+
+
+    @Test
+    fun revokedMemberCannotExecuteProtectedRepositoryOperation() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Former Manager"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "User Manager",
+                capabilities = setOf(Capabilities.USERS_MANAGE),
+            ),
+        )
+        repository.assignRoles(ownerContext, member.membershipId, setOf(role.roleId))
+        val actor = ownerContext.copy(userId = member.userId)
+        assertTrue(repository.authorization(actor).allows(Capabilities.USERS_MANAGE))
+        repository.setMembershipActive(ownerContext, member.membershipId, false)
+        val attempt = runCatching {
+            repository.createBusinessUser(
+                actor, CreateBusinessUserRequest(name = "Unauthorized User"),
+            )
+        }
+        assertTrue(attempt.exceptionOrNull() is AuthorizationDeniedException)
+        assertTrue(database.userDao().getById("generated-unauthorized") == null)
+    }
+
+
+    @Test
+    fun directSqlAuditUpdateAndDeleteAreRejected() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Audit Integrity Probe"),
+        )
+        val events = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, events.size)
+        val id = events.single().id
+        val db = database.openHelper.writableDatabase
+        assertTrue(runCatching { db.execSQL("UPDATE audit_logs SET reason = 'tampered' WHERE id = ?", arrayOf(id)) }.isFailure)
+        val changed = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(events.single(), changed.single())
+        assertTrue(runCatching { db.execSQL("DELETE FROM audit_logs WHERE id = ?", arrayOf(id)) }.isFailure)
+        assertTrue(
+            database.auditDao().getForEntity(
+                "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+            ).single().id == id
+        )
     }
 
     private suspend fun seedBusiness(

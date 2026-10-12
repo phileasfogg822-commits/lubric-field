@@ -1,5 +1,9 @@
 name: Native Android CI
 
+concurrency:
+  group: native-android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     paths:
@@ -199,6 +203,71 @@ jobs:
 
           if ! grep -q 'Capabilities.ROLES_MANAGE' core/repository/src/main/kotlin/com/lubrcapp/lubrcapp/core/repository/usecase/AccessControlUseCases.kt; then
             echo "Access-control mutations must remain capability protected."
+            exit 1
+          fi
+
+      - name: Enforce audit and security policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AUDIT_DAO="core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/db/dao/FoundationDaos.kt"
+          ACCESS_REPO="core/store/src/main/java/com/lubrcapp/lubrcapp/core/store/repository/RoomAccessControlRepository.kt"
+          AUDIT_POLICY="core/repository/src/main/kotlin/com/lubrcapp/lubrcapp/core/repository/AuditPolicy.kt"
+
+          if sed -n '/interface AuditDao/,/interface ActivityDao/p' "$AUDIT_DAO" | grep -E 'UPDATE[[:space:]]+audit_logs|DELETE[[:space:]]+FROM[[:space:]]+audit_logs'; then
+            echo "Audit logs must remain append-only: AuditDao may not update or delete audit rows."
+            exit 1
+          fi
+
+          if ! grep -q 'auditDao.insert' "$ACCESS_REPO"; then
+            echo "Privileged access-control mutations must emit audit records."
+            exit 1
+          fi
+
+          if ! grep -q 'Capabilities.AUDIT_VIEW' "$AUDIT_POLICY"; then
+            echo "Audit history must remain protected by the audit.view capability."
+            exit 1
+          fi
+
+          if grep -E -i 'password|refreshToken|accessToken|otp|pin' "$ACCESS_REPO" | grep -E 'beforeJson|afterJson|securityJson|recordAudit'; then
+            echo "Credential material must never be written into audit payloads."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'AuditRepository' feature/*/src/main 2>/dev/null; then
+            echo "Feature code must consume capability-gated audit use cases, not AuditRepository directly."
+            exit 1
+          fi
+
+          if ! grep -q 'WindowManager.LayoutParams.FLAG_SECURE' app/src/main/java/com/lubrcapp/lubrcapp/MainActivity.kt; then
+            echo "Screenshot policy must be enforced at the Android window boundary."
+            exit 1
+          fi
+
+          if ! grep -q 'lockOnBackground' app/src/main/java/com/lubrcapp/lubrcapp/MainActivity.kt; then
+            echo "The app-lock background policy must be enforced by the activity lifecycle."
+            exit 1
+          fi
+
+          if ! grep -q 'Capabilities.SETTINGS_MANAGE' feature/settings/src/main/java/com/lubrcapp/lubrcapp/feature/settings/AccessControlViewModel.kt; then
+            echo "Security policy changes must remain capability gated."
+            exit 1
+          fi
+
+          if grep -R --line-number -E 'Log\.[a-zA-Z]+\([^\n]*(password|accessToken|refreshToken|otp|pin)' core app feature 2>/dev/null; then
+            echo "Secrets or authentication material must never be written to application logs."
+            exit 1
+          fi
+
+          HISTORY_POLICY="core/repository/src/main/kotlin/com/lubrcapp/lubrcapp/core/repository/HistoryMutationPolicy.kt"
+          if ! grep -q 'HistoryMutation.DIRECT_EDIT' "$HISTORY_POLICY" || ! grep -q 'HistoryMutation.DIRECT_DELETE' "$HISTORY_POLICY"; then
+            echo "Protected history policy must explicitly reject direct edit and delete."
+            exit 1
+          fi
+
+          if ! grep -q 'reason.isNullOrBlank' "$HISTORY_POLICY"; then
+            echo "Reversals and corrections must require a reason."
             exit 1
           fi
 

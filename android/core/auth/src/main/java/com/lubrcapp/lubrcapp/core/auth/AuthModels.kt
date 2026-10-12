@@ -39,6 +39,13 @@ data class AuthTokens(
             "offline access cannot outlive refresh token"
         }
     }
+
+    // Prevent accidental credential disclosure through structured logging or exceptions.
+    override fun toString(): String =
+        "AuthTokens(accessToken=[REDACTED], refreshToken=[REDACTED], " +
+            "accessTokenExpiresAt=$accessTokenExpiresAt, " +
+            "refreshTokenExpiresAt=$refreshTokenExpiresAt, " +
+            "offlineAccessUntil=$offlineAccessUntil)"
 }
 
 data class AuthSession(
@@ -51,6 +58,15 @@ data class AuthSession(
         require(sessionId.isNotBlank()) { "sessionId cannot be blank" }
     }
 }
+
+data class SessionSecurityInfo(
+    val sessionId: String,
+    val userId: UserId,
+    val issuedAt: Instant,
+    val accessTokenExpiresAt: Instant,
+    val refreshTokenExpiresAt: Instant,
+    val offlineAccessUntil: Instant,
+)
 
 data class OtpChallenge(
     val challengeId: String,

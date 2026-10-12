@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.BusinessBootstrap
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
@@ -7,10 +8,12 @@ import com.lubrcapp.lubrcapp.core.repository.CreateInitialBusinessRequest
 import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
 import com.lubrcapp.lubrcapp.core.store.db.DatabaseTransactionRunner
 import com.lubrcapp.lubrcapp.core.store.db.dao.AccessDao
+import com.lubrcapp.lubrcapp.core.store.db.dao.AuditDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.BusinessDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.SettingsDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.TenantDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.UserDao
+import com.lubrcapp.lubrcapp.core.store.db.entity.AuditLogEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.BusinessEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.SettingEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
@@ -28,6 +31,7 @@ import com.lubrcapp.lubrcapp.domain.common.tenantId
 import com.lubrcapp.lubrcapp.domain.common.userBusinessId
 import com.lubrcapp.lubrcapp.domain.common.userId
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +43,7 @@ class RoomBusinessSetupRepository @Inject constructor(
     private val businessDao: BusinessDao,
     private val userDao: UserDao,
     private val accessDao: AccessDao,
+    private val auditDao: AuditDao,
     private val settingsDao: SettingsDao,
     private val transactionRunner: DatabaseTransactionRunner,
     private val deviceIdentityProvider: DeviceIdentityProvider,
@@ -175,6 +180,23 @@ class RoomBusinessSetupRepository @Inject constructor(
             for (setting in settings) {
                 settingsDao.insert(setting)
             }
+
+            auditDao.insert(
+                AuditLogEntity(
+                    id = UUID.randomUUID().toString(),
+                    tenantId = tenantId.value,
+                    businessId = businessId.value,
+                    actorUserId = ownerUserId.value,
+                    deviceId = deviceId.value,
+                    entityType = "BUSINESS",
+                    entityId = businessId.value,
+                    action = AuditActions.BUSINESS_CREATED,
+                    reason = "initial_setup",
+                    afterJson = "{\"tenantId\":\"" + tenantId.value + "\",\"ownerUserId\":\"" + ownerUserId.value + "\"}",
+                    createdAt = nowMillis,
+                    syncStatus = syncStatus,
+                )
+            )
         }
 
         return BusinessBootstrap(

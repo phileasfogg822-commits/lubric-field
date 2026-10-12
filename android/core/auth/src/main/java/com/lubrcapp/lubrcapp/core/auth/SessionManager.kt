@@ -140,6 +140,20 @@ class SessionManager @Inject constructor(
         }
     }
 
+    override suspend fun securityInfo(): SessionSecurityInfo? =
+        mutex.withLock {
+            tokenStore.read()?.let { session ->
+                SessionSecurityInfo(
+                    sessionId = session.sessionId,
+                    userId = session.userId,
+                    issuedAt = session.issuedAt,
+                    accessTokenExpiresAt = session.tokens.accessTokenExpiresAt,
+                    refreshTokenExpiresAt = session.tokens.refreshTokenExpiresAt,
+                    offlineAccessUntil = session.tokens.offlineAccessUntil,
+                )
+            }
+        }
+
     override suspend fun logout() {
         val refreshToken = mutex.withLock {
             val token = tokenStore.read()?.tokens?.refreshToken
@@ -160,8 +174,19 @@ class SessionManager @Inject constructor(
                 mutableState.value = AuthState.Unauthenticated()
                 return
             }
+            val pinAvailable = localGateStore.hasPin()
+            val biometricAvailable = localGateStore.isBiometricEnabled()
+            if (!pinAvailable && !biometricAvailable) {
+                localGateStore.setLocked(false)
+                mutableState.value = stateForSession(session, respectLock = false)
+                return@withLock
+            }
             localGateStore.setLocked(true)
-            mutableState.value = lockedState(session)
+            mutableState.value = AuthState.Locked(
+                userId = session.userId,
+                pinAvailable = pinAvailable,
+                biometricAvailable = biometricAvailable,
+            )
         }
     }
 

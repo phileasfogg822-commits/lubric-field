@@ -539,6 +539,20 @@ interface AuditDao {
         """
         SELECT * FROM audit_logs
         WHERE tenantId = :tenantId AND businessId = :businessId
+        ORDER BY createdAt DESC
+        LIMIT :limit
+        """
+    )
+    fun observeRecent(
+        tenantId: String,
+        businessId: String,
+        limit: Int,
+    ): Flow<List<AuditLogEntity>>
+
+    @Query(
+        """
+        SELECT * FROM audit_logs
+        WHERE tenantId = :tenantId AND businessId = :businessId
           AND entityType = :entityType AND entityId = :entityId
         ORDER BY createdAt DESC
         """

@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.AuditRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessSwitcher
 import com.lubrcapp.lubrcapp.core.repository.CurrentBusinessProvider
@@ -38,6 +39,11 @@ abstract class LocalDataSourceModule {
     abstract fun bindAccessControlRepository(
         impl: RoomAccessControlRepository,
     ): AccessControlRepository
+
+    @Binds @Singleton
+    abstract fun bindAuditRepository(
+        impl: RoomAuditRepository,
+    ): AuditRepository
 
     @Binds @Singleton
     abstract fun bindCurrentBusinessProvider(

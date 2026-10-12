@@ -37,6 +37,12 @@ abstract class AuthBindingsModule {
 
     @Binds
     @Singleton
+    abstract fun bindSecurityPolicyStore(
+        implementation: SecureSecurityPolicyStore,
+    ): SecurityPolicyStore
+
+    @Binds
+    @Singleton
     abstract fun bindAccessTokenProvider(
         implementation: SessionManager,
     ): SessionAccessTokenProvider

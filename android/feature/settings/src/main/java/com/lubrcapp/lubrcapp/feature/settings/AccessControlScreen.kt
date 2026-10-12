@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lubrcapp.lubrcapp.core.repository.AuditActions
+import com.lubrcapp.lubrcapp.core.repository.AuditEvent
 import com.lubrcapp.lubrcapp.core.repository.BusinessMember
 import com.lubrcapp.lubrcapp.core.repository.BusinessRole
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
@@ -38,6 +40,10 @@ import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
 import com.lubrcapp.lubrcapp.domain.common.RoleId
 import com.lubrcapp.lubrcapp.domain.user.Capabilities
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun AccessControlScreen(
@@ -147,6 +153,117 @@ fun AccessControlScreen(
                 onEditPermissions = { roleEditor = role },
             )
         }
+
+        HorizontalDivider()
+        Text(
+            text = stringResource(R.string.access_security_title),
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Text(
+            text = stringResource(R.string.access_security_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        SecurityPolicyRow(
+            title = stringResource(R.string.access_block_screenshots),
+            subtitle = stringResource(R.string.access_block_screenshots_hint),
+            checked = state.securityPolicy.blockScreenshots,
+            enabled = state.canManageSecurity,
+            onCheckedChange = viewModel::setBlockScreenshots,
+        )
+        SecurityPolicyRow(
+            title = stringResource(R.string.access_lock_on_background),
+            subtitle = stringResource(R.string.access_lock_on_background_hint),
+            checked = state.securityPolicy.lockOnBackground,
+            enabled = state.canManageSecurity,
+            onCheckedChange = viewModel::setLockOnBackground,
+        )
+
+        state.deviceId?.let { deviceId ->
+            Text(
+                text = stringResource(R.string.access_device_id, deviceId),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        state.sessionInfo?.let { session ->
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+                    verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+                ) {
+                    Text(
+                        text = stringResource(R.string.access_session_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_id,
+                            session.sessionId.take(12),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_user,
+                            session.userId.value,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_issued,
+                            formatSecurityTime(session.issuedAt),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_access_expires,
+                            formatSecurityTime(session.accessTokenExpiresAt),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.access_session_offline_until,
+                            formatSecurityTime(session.offlineAccessUntil),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        } ?: Text(
+            text = stringResource(R.string.access_no_session),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (state.canViewAudit) {
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.access_audit_history),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                text = stringResource(R.string.access_audit_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (state.auditEvents.isEmpty() && !state.isLoading) {
+                Text(
+                    text = stringResource(R.string.access_no_audit_events),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            state.auditEvents.forEach { event ->
+                AuditEventCard(event)
+            }
+        }
     }
 
     if (showCreateUser) {
@@ -192,6 +309,109 @@ fun AccessControlScreen(
         )
     }
 }
+
+
+@Composable
+private fun SecurityPolicyRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(LubrcTheme.tokens.contentPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth(0.72f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+private fun formatSecurityTime(instant: Instant): String =
+    instant.atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT))
+
+@Composable
+private fun AuditEventCard(event: AuditEvent) {
+    val formatter = remember {
+        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+    }
+    val timestamp = remember(event.createdAt) {
+        Instant.ofEpochMilli(event.createdAt)
+            .atZone(ZoneId.systemDefault())
+            .format(formatter)
+    }
+
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(LubrcTheme.tokens.contentPadding),
+            verticalArrangement = Arrangement.spacedBy(LubrcTheme.tokens.contentPadding),
+        ) {
+            Text(
+                text = auditActionLabel(event.action),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(
+                    R.string.access_audit_entity,
+                    event.entityType,
+                    event.entityId,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(
+                    R.string.access_audit_actor,
+                    event.actorUserId ?: stringResource(R.string.access_audit_system_actor),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = timestamp,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun auditActionLabel(action: String): String =
+    when (action) {
+        AuditActions.BUSINESS_CREATED -> stringResource(R.string.access_audit_business_created)
+        AuditActions.USER_CREATED -> stringResource(R.string.access_audit_user_created)
+        AuditActions.MEMBERSHIP_ACTIVE_CHANGED ->
+            stringResource(R.string.access_audit_membership_active_changed)
+        AuditActions.ROLE_CREATED -> stringResource(R.string.access_audit_role_created)
+        AuditActions.ROLE_ACTIVE_CHANGED ->
+            stringResource(R.string.access_audit_role_active_changed)
+        AuditActions.ROLE_CAPABILITIES_CHANGED ->
+            stringResource(R.string.access_audit_role_capabilities_changed)
+        AuditActions.ROLE_ASSIGNMENTS_CHANGED ->
+            stringResource(R.string.access_audit_role_assignments_changed)
+        AuditActions.AUTHORIZATION_DENIED ->
+            stringResource(R.string.access_audit_authorization_denied)
+        else -> action
+    }
 
 @Composable
 private fun AccessSectionHeader(
