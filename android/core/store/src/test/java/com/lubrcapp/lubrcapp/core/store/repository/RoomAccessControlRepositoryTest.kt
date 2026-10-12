@@ -470,6 +470,55 @@ class RoomAccessControlRepositoryTest {
         assertTrue(database.userDao().getById("user-new") == null)
     }
 
+
+    @Test
+    fun revokedMembershipImmediatelyLosesPreviouslyGrantedCapabilities() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Temporary Staff"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Temporary Role",
+                capabilities = setOf(Capabilities.SALES_VIEW),
+            ),
+        )
+        repository.assignRoles(ownerContext, member.membershipId, setOf(role.roleId))
+        val memberContext = ownerContext.copy(userId = member.userId)
+        assertTrue(repository.authorization(memberContext).allows(Capabilities.SALES_VIEW))
+
+        repository.setMembershipActive(ownerContext, member.membershipId, false)
+
+        assertFalse(repository.authorization(memberContext).allows(Capabilities.SALES_VIEW))
+        assertTrue(repository.authorization(memberContext).capabilities.isEmpty())
+    }
+
+    @Test
+    fun auditPayloadNeverContainsProvisionedContactDetails() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = "Confidential Person",
+                phone = "+10000000001",
+                email = "private-audit@example.test",
+            ),
+        )
+        val entries = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, entries.size)
+        val payload = listOfNotNull(
+            entries.single().beforeJson,
+            entries.single().afterJson,
+            entries.single().reason,
+        ).joinToString(" ")
+        assertFalse(payload.contains("Confidential Person"))
+        assertFalse(payload.contains("+10000000001"))
+        assertFalse(payload.contains("private-audit@example.test"))
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
