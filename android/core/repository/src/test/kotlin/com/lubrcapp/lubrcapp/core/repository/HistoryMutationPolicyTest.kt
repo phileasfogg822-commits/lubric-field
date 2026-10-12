@@ -20,6 +20,18 @@ class HistoryMutationPolicyTest {
     }
 
     @Test
+    fun everyProtectedHistoryTypeRejectsDirectMutation() {
+        ProtectedHistoryType.entries.forEach { type ->
+            listOf(HistoryMutation.DIRECT_EDIT, HistoryMutation.DIRECT_DELETE).forEach { mutation ->
+                val result = runCatching {
+                    HistoryMutationPolicy.requireAllowed(type, mutation, reason = "admin override")
+                }
+                assertTrue("$type must reject $mutation", result.isFailure)
+            }
+        }
+    }
+
+    @Test
     fun reversalAndCorrectionRequireReasonsForEveryProtectedRecordType() {
         ProtectedHistoryType.entries.forEach { type ->
             assertTrue(
