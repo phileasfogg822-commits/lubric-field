@@ -519,6 +519,39 @@ class RoomAccessControlRepositoryTest {
         assertFalse(payload.contains("private-audit@example.test"))
     }
 
+
+    @Test
+    fun auditInsertFailureRollsBackBusinessUserAndMembership() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        database.openHelper.writableDatabase.execSQL(
+            """CREATE TRIGGER fail_audit_insert BEFORE INSERT ON audit_logs
+               BEGIN SELECT RAISE(ABORT, 'audit write unavailable'); END"""
+        )
+        try {
+            val result = runCatching {
+                repository.createBusinessUser(
+                    ownerContext,
+                    CreateBusinessUserRequest(name = "Must Not Persist"),
+                )
+            }
+            assertTrue("The audit insertion must fail", result.isFailure)
+            assertTrue("User insertion must roll back", database.userDao().getById("user-new") == null)
+            assertTrue(
+                "Membership insertion must roll back",
+                database.accessDao().getMembershipById(
+                    "tenant-a", "business-a", "membership-new",
+                ) == null,
+            )
+            assertTrue(
+                database.auditDao().getForEntity(
+                    "tenant-a", "business-a", "USER_MEMBERSHIP", "membership-new",
+                ).isEmpty()
+            )
+        } finally {
+            database.openHelper.writableDatabase.execSQL("DROP TRIGGER IF EXISTS fail_audit_insert")
+        }
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
