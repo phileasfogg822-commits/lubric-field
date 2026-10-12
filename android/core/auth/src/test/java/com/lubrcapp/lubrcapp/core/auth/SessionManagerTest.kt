@@ -278,6 +278,19 @@ class SessionManagerTest {
         assertNull(manager.freshAccessTokenOrNull())
     }
 
+
+    @Test
+    fun authModelsDoNotExposeCredentialValuesInDiagnosticStrings() {
+        val session = freshSession()
+        val tokensText = session.tokens.toString()
+        val sessionText = session.toString()
+        listOf(tokensText, sessionText).forEach { diagnostic ->
+            assertFalse(diagnostic.contains("access-new"))
+            assertFalse(diagnostic.contains("refresh-new"))
+            assertTrue(diagnostic.contains("[REDACTED]"))
+        }
+    }
+
     private fun manager(
         tokenStore: FakeTokenStore = FakeTokenStore(),
         gate: FakeGateStore = FakeGateStore(),
