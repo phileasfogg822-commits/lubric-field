@@ -592,6 +592,33 @@ class RoomAccessControlRepositoryTest {
         }
     }
 
+
+    @Test
+    fun revokedMemberCannotExecuteProtectedRepositoryOperation() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Former Manager"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "User Manager",
+                capabilities = setOf(Capabilities.USERS_MANAGE),
+            ),
+        )
+        repository.assignRoles(ownerContext, member.membershipId, setOf(role.roleId))
+        val actor = ownerContext.copy(userId = member.userId)
+        assertTrue(repository.authorization(actor).allows(Capabilities.USERS_MANAGE))
+        repository.setMembershipActive(ownerContext, member.membershipId, false)
+        val attempt = runCatching {
+            repository.createBusinessUser(
+                actor, CreateBusinessUserRequest(name = "Unauthorized User"),
+            )
+        }
+        assertTrue(attempt.exceptionOrNull() is AuthorizationDeniedException)
+        assertTrue(database.userDao().getById("generated-unauthorized") == null)
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
