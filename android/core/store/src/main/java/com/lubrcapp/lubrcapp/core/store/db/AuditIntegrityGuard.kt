@@ -5,8 +5,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Prevents existing audit events from being silently rewritten or removed.
- * New events remain append-only; synchronization metadata is deliberately
- * not exempted, so sync must not mutate historical audit rows.
+ * New events remain append-only. Sync state is tracked in sync_queue rather
+ * than by rewriting historical audit rows.
  *
  * This protects against application SQL mistakes, not a compromised device
  * owner who can replace the database or drop triggers.
