@@ -564,6 +564,34 @@ class RoomAccessControlRepositoryTest {
         })
     }
 
+
+    @Test
+    fun auditPayloadDoesNotEchoSecretLikeUserInputs() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val secrets = listOf(
+            "password=secret-password-marker",
+            "pin=729184",
+            "access_token=access-token-marker",
+            "refresh_token=refresh-token-marker",
+        )
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(
+                name = secrets[0],
+                phone = secrets[1],
+                email = secrets[2],
+            ),
+        )
+        val events = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, events.size)
+        val audit = events.single().toString()
+        secrets.forEach { secret ->
+            assertFalse("Audit must not contain input secret", audit.contains(secret))
+        }
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
