@@ -619,6 +619,32 @@ class RoomAccessControlRepositoryTest {
         assertTrue(database.userDao().getById("generated-unauthorized") == null)
     }
 
+
+    @Test
+    fun directSqlAuditTamperingIsCurrentlyPossibleAndNeedsHardening() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext, CreateBusinessUserRequest(name = "Audit Integrity Probe"),
+        )
+        val events = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals(1, events.size)
+        val id = events.single().id
+        val db = database.openHelper.writableDatabase
+        db.execSQL("UPDATE audit_logs SET reason = 'tampered' WHERE id = ?", arrayOf(id))
+        val changed = database.auditDao().getForEntity(
+            "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+        )
+        assertEquals("tampered", changed.single().reason)
+        db.execSQL("DELETE FROM audit_logs WHERE id = ?", arrayOf(id))
+        assertTrue(
+            database.auditDao().getForEntity(
+                "tenant-a", "business-a", "USER_MEMBERSHIP", member.membershipId.value,
+            ).isEmpty()
+        )
+    }
+
     private suspend fun seedBusiness(
         tenantId: String,
         businessId: String,
