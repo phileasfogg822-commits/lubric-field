@@ -32,6 +32,7 @@ object DatabaseModule {
             AppDatabase.DATABASE_NAME,
         )
             .addMigrations(*DatabaseMigrations.ALL)
+            .addCallback(AuditIntegrityGuard.callback)
             .build()
 
     @Provides fun provideTenantDao(database: AppDatabase): TenantDao = database.tenantDao()
