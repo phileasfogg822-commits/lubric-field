@@ -3,6 +3,8 @@ package com.lubrcapp.lubrcapp.core.store.repository
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.lubrcapp.lubrcapp.core.repository.GetEntityAuditUseCase
+import com.lubrcapp.lubrcapp.core.repository.ObserveAuditEventsUseCase
 import com.lubrcapp.lubrcapp.core.repository.AuditActions
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationDeniedException
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
@@ -391,6 +393,57 @@ class RoomAccessControlRepositoryTest {
 
         assertEquals(1, ownEvents.size)
         assertTrue(otherEvents.isEmpty())
+    }
+
+
+    @Test
+    fun auditUseCasesDenyMemberWithoutAuditView() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "Audit Denied"),
+        )
+        val unprivileged = ownerContext.copy(userId = member.userId)
+        val auditRepository = RoomAuditRepository(database.auditDao())
+        val authorization = AuthorizationService(repository)
+
+        val entityRead = runCatching {
+            GetEntityAuditUseCase(auditRepository, authorization)(
+                unprivileged, "USER_MEMBERSHIP", member.membershipId.value,
+            )
+        }
+        val streamRead = runCatching {
+            ObserveAuditEventsUseCase(auditRepository, authorization)(unprivileged)
+        }
+
+        assertTrue(entityRead.exceptionOrNull() is AuthorizationDeniedException)
+        assertTrue(streamRead.exceptionOrNull() is AuthorizationDeniedException)
+    }
+
+    @Test
+    fun auditUseCasesDoNotLeakOtherTenantRecords() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        repository.ensureOwnerAccess(TenantId("tenant-b"), BusinessId("business-b"))
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(
+                name = "Confidential",
+                capabilities = setOf(Capabilities.REPORTS_VIEW),
+            ),
+        )
+        val auditRepository = RoomAuditRepository(database.auditDao())
+        val authorization = AuthorizationService(repository)
+        val getAudit = GetEntityAuditUseCase(auditRepository, authorization)
+        val otherOwner = TenantContext(
+            TenantId("tenant-b"), BusinessId("business-b"), UserId("owner-b"),
+        )
+
+        assertEquals(1, getAudit(ownerContext, "ROLE", role.roleId.value).size)
+        assertTrue(getAudit(otherOwner, "ROLE", role.roleId.value).isEmpty())
+        assertTrue(
+            ObserveAuditEventsUseCase(auditRepository, authorization)(otherOwner)
+                .first().none { it.entityId == role.roleId.value }
+        )
     }
 
     private suspend fun seedBusiness(
