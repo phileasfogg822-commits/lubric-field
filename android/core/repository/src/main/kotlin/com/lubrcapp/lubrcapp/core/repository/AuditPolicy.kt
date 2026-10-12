@@ -32,6 +32,11 @@ object AuditActions {
     const val AUTHORIZATION_DENIED = "security.authorization.denied"
 }
 
+
+/**
+ * Read-only audit access must be tenant scoped and authorized at the use-case boundary.
+ * Consumers must not receive unrestricted DAO access or expose raw audit payloads in logs.
+ */
 interface AuditRepository {
     fun observeRecent(
         tenantId: TenantId,
