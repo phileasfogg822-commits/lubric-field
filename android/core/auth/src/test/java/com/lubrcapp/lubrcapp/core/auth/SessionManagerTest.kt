@@ -291,6 +291,21 @@ class SessionManagerTest {
         }
     }
 
+
+    @Test
+    fun authenticationErrorDiagnosticsDoNotContainCredentials() = runBlocking {
+        val remote = FakeRemote().apply {
+            signInResult = AuthRemoteResult.InvalidCredentials()
+        }
+        val manager = manager(remote = remote)
+        val password = "diagnostic-secret-marker".toCharArray()
+        manager.signInWithEmail("user@example.com", password)
+        val diagnostic = manager.state.value.toString()
+        assertFalse(diagnostic.contains("diagnostic-secret-marker"))
+        assertFalse(diagnostic.contains("access-new"))
+        assertFalse(diagnostic.contains("refresh-new"))
+    }
+
     private fun manager(
         tokenStore: FakeTokenStore = FakeTokenStore(),
         gate: FakeGateStore = FakeGateStore(),
