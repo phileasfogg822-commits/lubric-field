@@ -39,6 +39,13 @@ data class AuthTokens(
             "offline access cannot outlive refresh token"
         }
     }
+
+    // Prevent accidental credential disclosure through structured logging or exceptions.
+    override fun toString(): String =
+        "AuthTokens(accessToken=[REDACTED], refreshToken=[REDACTED], " +
+            "accessTokenExpiresAt=$accessTokenExpiresAt, " +
+            "refreshTokenExpiresAt=$refreshTokenExpiresAt, " +
+            "offlineAccessUntil=$offlineAccessUntil)"
 }
 
 data class AuthSession(
