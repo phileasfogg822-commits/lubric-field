@@ -223,6 +223,61 @@ class SessionManagerTest {
         )
     }
 
+
+    @Test
+    fun revokedCredentialsDuringRefreshClearTokensAndBlockAccess() = runBlocking {
+        val store = FakeTokenStore(freshSession())
+        val remote = FakeRemote().apply {
+            refreshResult = AuthRemoteResult.InvalidCredentials("revoked")
+        }
+        val manager = manager(store, remote = remote)
+        manager.initialize()
+        assertEquals("access-new", manager.freshAccessTokenOrNull())
+
+        manager.refresh()
+
+        assertEquals(
+            AuthState.Unauthenticated(SignOutReason.CREDENTIALS_REVOKED),
+            manager.state.value,
+        )
+        assertNull(store.session)
+        assertNull(manager.freshAccessTokenOrNull())
+        assertNull(manager.securityInfo())
+    }
+
+    @Test
+    fun expiredAccessTokenIsNeverReturnedDuringOfflineGrace() = runBlocking {
+        val session = freshSession().copy(
+            tokens = freshSession().tokens.copy(
+                accessTokenExpiresAt = now.minusSeconds(1),
+            ),
+        )
+        val manager = manager(FakeTokenStore(session))
+        manager.initialize()
+        assertTrue(manager.state.value is AuthState.Authenticated)
+        assertNull(manager.freshAccessTokenOrNull())
+    }
+
+    @Test
+    fun expiredRefreshTokenBlocksRefreshAndClearsStoredSession() = runBlocking {
+        val session = freshSession().copy(
+            tokens = freshSession().tokens.copy(
+                accessTokenExpiresAt = now.minusSeconds(30),
+                offlineAccessUntil = now.minusSeconds(20),
+                refreshTokenExpiresAt = now.minusSeconds(10),
+            ),
+        )
+        val store = FakeTokenStore(session)
+        val manager = manager(store)
+        manager.refresh()
+        assertEquals(
+            AuthState.Unauthenticated(SignOutReason.SESSION_EXPIRED),
+            manager.state.value,
+        )
+        assertNull(store.session)
+        assertNull(manager.freshAccessTokenOrNull())
+    }
+
     private fun manager(
         tokenStore: FakeTokenStore = FakeTokenStore(),
         gate: FakeGateStore = FakeGateStore(),
