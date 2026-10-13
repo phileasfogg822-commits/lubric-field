@@ -49,6 +49,7 @@ dependencies {
     implementation(project(":domain:business"))
     implementation(project(":domain:user"))
     implementation(project(":core:repository"))
+    implementation(project(":core:sync"))
 
     implementation("androidx.core:core-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
