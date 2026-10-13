@@ -702,7 +702,9 @@ async function postFieldCollection(client, mv, shopId) {
 /** Pull: everything changed since `since` (ms epoch), for this device's shop. */
 app.get('/api/v1/pull', async (req, res) => {
   if (!req.device) return res.status(401).json({ error: 'Device token required' });
-  const since = new Date(Number(req.query.since) || 0);
+  const sinceValue = Number(req.query.since ?? 0);
+  if (!Number.isSafeInteger(sinceValue) || sinceValue < 0) return res.status(400).json({ error: 'Invalid sync cursor' });
+  const since = new Date(sinceValue);
   const shopId = req.device.shop_id;
   const serverNow = new Date();
   const changes = {};
@@ -718,9 +720,12 @@ app.get('/api/v1/pull', async (req, res) => {
       sqlText += ` ORDER BY updated_at LIMIT 500`;
       // shopId third arg sets the row-security context for the device's outlet.
       const r = await query(sqlText, params, shopId);
+      // Never advance a global cursor past rows omitted by the per-table limit.
+      if (r.rows.length >= 500) return res.status(409).json({ error: 'Sync batch exceeds safe page size; cursor unchanged', table });
       if (r.rows.length) changes[table] = r.rows;
     } catch (e) {
       console.error(`[sync] pull failed for "${table}":`, e.message);
+      return res.status(503).json({ error: "Sync pull incomplete; cursor unchanged" });
     }
   }
 
