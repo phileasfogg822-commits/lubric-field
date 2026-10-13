@@ -630,6 +630,16 @@ interface SyncQueueDao {
 
     @Query(
         """
+        SELECT * FROM sync_queue
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :id
+        LIMIT 1
+        """
+    )
+    suspend fun findById(tenantId: String, businessId: String, id: String): SyncQueueEntity?
+
+    @Query(
+        """
         SELECT COUNT(*) FROM sync_queue
         WHERE tenantId = :tenantId AND businessId = :businessId AND status = :status
         """
