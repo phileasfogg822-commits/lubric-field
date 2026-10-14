@@ -31,8 +31,12 @@ class AuthenticatedVpsTransport(
         val token = tokenProvider.token()?.takeIf { it.isNotBlank() }
             ?: error("Device is not paired with the VPS")
         val changes = JSONArray()
+        require(batch.changes.map { it.entityType to it.entityId }.distinct().size == batch.changes.size) {
+            "Legacy VPS receipts are keyed by table and UUID; duplicate entity changes cannot be acknowledged safely"
+        }
         batch.changes.forEach { change ->
             require(change.entityType in allowedTables) { "Unsupported VPS entity type" }
+            require(change.operation != OperationType.SYNC) { "SYNC is not a VPS row operation" }
             val row = change.payload?.let { JSONObject(it) } ?: JSONObject()
             changes.put(JSONObject()
                 .put("table", change.entityType)
