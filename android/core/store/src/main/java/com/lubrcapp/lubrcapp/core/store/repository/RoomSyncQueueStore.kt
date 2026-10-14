@@ -3,6 +3,8 @@ package com.lubrcapp.lubrcapp.core.store.repository
 import androidx.room.withTransaction
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.entity.SettingEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.VpsBusinessRecordEntity
+import org.json.JSONObject
 import com.lubrcapp.lubrcapp.core.sync.OperationType
 import com.lubrcapp.lubrcapp.core.sync.SyncChange
 import com.lubrcapp.lubrcapp.core.sync.SyncIdentity
@@ -86,6 +88,19 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                 require(change.entityType.matches(Regex("[a-z][a-z0-9_]*")))
                 require(change.entityId.isNotBlank())
                 require(change.payload != null) { "Incoming row payload required" }
+                val json = JSONObject(requireNotNull(change.payload))
+                require(json.getString("uuid") == change.entityId) { "VPS row UUID mismatch" }
+                val pendingLocal = database.syncQueueDao().nextBatch(
+                    identity.tenantId, identity.businessId,
+                    listOf("PENDING", "FAILED"), Long.MAX_VALUE, 200
+                ).any { it.entityType == change.entityType && it.entityId == change.entityId }
+                require(!pendingLocal) { "Remote change conflicts with unsynchronized local edit" }
+                database.vpsBusinessRecordDao().upsert(
+                    VpsBusinessRecordEntity(
+                        identity.tenantId, identity.businessId, change.entityType,
+                        change.entityId, json.toString(), now
+                    )
+                )
                 val key = inboxKey(identity, change)
                 val previous = settings.get(identity.tenantId, identity.businessId, key)
                 settings.upsert(
