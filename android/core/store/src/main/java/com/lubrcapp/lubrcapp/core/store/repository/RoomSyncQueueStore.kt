@@ -94,7 +94,7 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                         tenantId = identity.tenantId,
                         businessId = identity.businessId,
                         settingKey = key,
-                        value = change.payload,
+                        value = requireNotNull(change.payload),
                         createdAt = previous?.createdAt ?: now,
                         updatedAt = now,
                         deviceId = identity.deviceId,
