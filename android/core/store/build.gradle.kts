@@ -52,6 +52,7 @@ dependencies {
     implementation(project(":core:sync"))
 
     implementation("androidx.core:core-ktx")
+    implementation("androidx.work:work-runtime-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx")
     implementation("androidx.datastore:datastore-preferences")
