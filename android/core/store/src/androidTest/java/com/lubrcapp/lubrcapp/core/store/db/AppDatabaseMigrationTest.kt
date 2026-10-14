@@ -27,6 +27,21 @@ class AppDatabaseMigrationTest {
      */
     @Test
     fun canCreateInitialSchemaForFutureMigrationTests() {
-        helper.createDatabase(testDatabaseName, DatabaseMigrations.SCHEMA_VERSION).close()
+        helper.createDatabase(testDatabaseName, 1).close()
+    }
+
+    @Test
+    fun migrationFromV1CreatesBusinessReplicaWithoutDroppingOldTables() {
+        helper.createDatabase(testDatabaseName, 1).close()
+        helper.runMigrationsAndValidate(
+            testDatabaseName, 2, true, *DatabaseMigrations.ALL
+        ).use { db ->
+            db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='vps_business_records'").use {
+                org.junit.Assert.assertTrue(it.moveToFirst())
+            }
+            db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'").use {
+                org.junit.Assert.assertTrue(it.moveToFirst())
+            }
+        }
     }
 }
