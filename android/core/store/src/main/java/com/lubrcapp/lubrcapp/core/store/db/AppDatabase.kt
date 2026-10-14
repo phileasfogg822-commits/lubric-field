@@ -24,6 +24,7 @@ import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserBusinessEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserBusinessRoleEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.VpsBusinessRecordEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserEntity
 
 @Database(
@@ -41,6 +42,7 @@ import com.lubrcapp.lubrcapp.core.store.db.entity.UserEntity
         AuditLogEntity::class,
         ActivityLogEntity::class,
         SyncQueueEntity::class,
+        VpsBusinessRecordEntity::class,
     ],
     version = DatabaseMigrations.SCHEMA_VERSION,
     exportSchema = true,
