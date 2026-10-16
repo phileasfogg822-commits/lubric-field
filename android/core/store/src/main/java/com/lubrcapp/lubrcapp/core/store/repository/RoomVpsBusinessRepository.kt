@@ -1,5 +1,11 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
+import androidx.room.withTransaction
+import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
+import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
+import org.json.JSONObject
+import java.util.UUID
+import com.lubrcapp.lubrcapp.core.sync.SyncIdentity
 import com.lubrcapp.lubrcapp.core.store.db.dao.VpsBusinessRecordDao
 import com.lubrcapp.lubrcapp.core.store.db.entity.VpsBusinessRecordEntity
 import javax.inject.Inject
@@ -17,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 @Singleton
 class RoomVpsBusinessRepository @Inject constructor(
     private val records: VpsBusinessRecordDao,
+    private val database: AppDatabase,
 ) {
     private val allowedTypes = setOf(
         "products", "services", "customers", "vehicles", "vendors",
@@ -47,6 +54,33 @@ class RoomVpsBusinessRepository @Inject constructor(
     ): List<VpsBusinessRecordEntity> {
         validate(tenantId, businessId, entityType)
         return records.listByType(tenantId, businessId, entityType)
+    }
+
+    /** Atomically persist an offline edit and its durable upload intent. */
+    suspend fun saveOffline(
+        identity: SyncIdentity, entityType: String, entityId: String,
+        payloadJson: String, revision: Long = 0L,
+    ) {
+        validate(identity.tenantId, identity.businessId, entityType)
+        require(identity.deviceId.isNotBlank() && entityId.isNotBlank())
+        require(revision >= 0)
+        val payload = JSONObject(payloadJson)
+        require(payload.getString("uuid") == entityId) { "Payload UUID mismatch" }
+        val now = System.currentTimeMillis()
+        database.withTransaction {
+            records.upsert(VpsBusinessRecordEntity(
+                identity.tenantId, identity.businessId, entityType, entityId,
+                payload.toString(), now,
+            ))
+            database.syncQueueDao().enqueue(SyncQueueEntity(
+                id = UUID.randomUUID().toString(),
+                tenantId = identity.tenantId, businessId = identity.businessId,
+                entityType = entityType, entityId = entityId,
+                operation = "UPSERT", payloadJson = payload.toString(),
+                revision = revision, status = "PENDING",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+            ))
+        }
     }
 
     suspend fun get(
