@@ -62,13 +62,14 @@ CREATE TABLE IF NOT EXISTS sync_state (
 INSERT OR IGNORE INTO sync_state (key, value) VALUES ('pull_cursor', '0');
 `;
 
-let schemaReady: Promise<void> | null = null;
+let schemaReady = new WeakMap<object, Promise<void>>();
 function ensureOutbox(db: any): Promise<void> {
-  if (!schemaReady) {
-    const p: Promise<void> = db.execute(OUTBOX_SCHEMA).catch((e: unknown) => { schemaReady = null; throw e; });
-    schemaReady = p;
+  let ready = schemaReady.get(db);
+  if (!ready) {
+    ready = db.execute(OUTBOX_SCHEMA).catch((e: unknown) => { schemaReady.delete(db); throw e; });
+    schemaReady.set(db, ready);
   }
-  return schemaReady;
+  return ready;
 }
 
 export type SyncStatus = "offline" | "idle" | "syncing" | "error";
@@ -97,6 +98,7 @@ function setStatus(s: SyncStatus, err = "") {
 export async function syncNow(db: any): Promise<{ pushed: number; rejected: number; pulled: number }> {
   const base = getCloudBase();
   if (!base) throw new Error("Cloud URL not configured");
+  if (!getDeviceToken()) throw new Error("Device pairing required before cloud sync");
   await ensureOutbox(db);
   setStatus("syncing");
 
@@ -119,8 +121,9 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       rejected = data.rejected?.length ?? 0;
       // Clear rows that were applied; keep rejected ones (with the error).
       const appliedUuids = new Set((data.applied ?? []).map((x: any) => x.uuid));
+      const rejectedUuids = new Set((data.rejected ?? []).map((x: any) => x.uuid));
       for (const r of outbox) {
-        if (appliedUuids.has(r.row_uuid)) {
+        if (appliedUuids.has(r.row_uuid) && !rejectedUuids.has(r.row_uuid)) {
           await db.execute("DELETE FROM sync_outbox WHERE id = $1", [r.id]);
         } else {
           await db.execute(
@@ -141,7 +144,8 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       if (!(SYNC_TABLES as readonly string[]).includes(table) || !Array.isArray(rows)) continue;
       for (const row of rows) {
         // Server id stays cloud-only; uuid is the local key.
-        const cols = Object.keys(row).filter((c) => c !== "id");
+        const cols = Object.keys(row).filter((c) => c !== "id" && /^[a-z][a-z0-9_]*$/i.test(c));
+        if (!cols.includes("uuid")) throw new Error("Sync row missing UUID");
         const vals = cols.map((c) => row[c]);
         const placeholders = cols.map((_, i) => `$${i + 1}`);
         const updateSet = cols.filter((c) => c !== "uuid").map((c) => `${c} = excluded.${c}`).join(", ");
@@ -153,7 +157,8 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
         pulled++;
       }
     }
-    await db.execute("UPDATE sync_state SET value = $1 WHERE key = 'pull_cursor'", [String(data.cursor ?? Date.now())]);
+    if (data.cursor === undefined || data.cursor === null) throw new Error("Missing server sync cursor");
+    await db.execute("UPDATE sync_state SET value = $1 WHERE key = 'pull_cursor'", [String(data.cursor)]);
     setStatus("idle");
   } catch (e: any) {
     setStatus("error", e?.message ?? String(e));

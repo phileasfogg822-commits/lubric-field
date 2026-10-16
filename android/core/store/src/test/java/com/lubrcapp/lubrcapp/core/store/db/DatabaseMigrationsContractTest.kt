@@ -13,7 +13,7 @@ import org.junit.Test
 class DatabaseMigrationsContractTest {
     @Test
     fun initialSchemaVersionAndMigrationRegistryStayAligned() {
-        assertEquals(1, DatabaseMigrations.SCHEMA_VERSION)
-        assertEquals(0, DatabaseMigrations.ALL.size)
+        assertEquals(2, DatabaseMigrations.SCHEMA_VERSION)
+        assertEquals(1, DatabaseMigrations.ALL.size)
     }
 }

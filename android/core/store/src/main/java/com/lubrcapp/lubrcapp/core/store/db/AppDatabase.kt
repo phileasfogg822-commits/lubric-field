@@ -11,6 +11,7 @@ import com.lubrcapp.lubrcapp.core.store.db.dao.FeatureFlagDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.SettingsDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.SyncQueueDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.TenantDao
+import com.lubrcapp.lubrcapp.core.store.db.dao.VpsBusinessRecordDao
 import com.lubrcapp.lubrcapp.core.store.db.dao.UserDao
 import com.lubrcapp.lubrcapp.core.store.db.entity.ActivityLogEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.AuditLogEntity
@@ -24,6 +25,7 @@ import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserBusinessEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserBusinessRoleEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.VpsBusinessRecordEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserEntity
 
 @Database(
@@ -41,6 +43,7 @@ import com.lubrcapp.lubrcapp.core.store.db.entity.UserEntity
         AuditLogEntity::class,
         ActivityLogEntity::class,
         SyncQueueEntity::class,
+        VpsBusinessRecordEntity::class,
     ],
     version = DatabaseMigrations.SCHEMA_VERSION,
     exportSchema = true,
@@ -55,6 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun featureFlagDao(): FeatureFlagDao
     abstract fun auditDao(): AuditDao
     abstract fun activityDao(): ActivityDao
+    abstract fun vpsBusinessRecordDao(): VpsBusinessRecordDao
     abstract fun syncQueueDao(): SyncQueueDao
 
     companion object {

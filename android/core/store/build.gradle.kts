@@ -49,8 +49,10 @@ dependencies {
     implementation(project(":domain:business"))
     implementation(project(":domain:user"))
     implementation(project(":core:repository"))
+    implementation(project(":core:sync"))
 
     implementation("androidx.core:core-ktx")
+    implementation("androidx.work:work-runtime-ktx")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx")
     implementation("androidx.datastore:datastore-preferences")
