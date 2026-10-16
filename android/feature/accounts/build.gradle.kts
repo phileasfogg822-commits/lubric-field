@@ -45,6 +45,7 @@ dependencies {
 
     implementation(project(":core:designsystem"))
     implementation(project(":core:repository"))
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx")
     implementation(project(":core:ui"))
     implementation(project(":domain:business"))
     implementation(project(":domain:payment"))
