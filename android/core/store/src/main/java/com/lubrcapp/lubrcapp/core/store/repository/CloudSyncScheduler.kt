@@ -32,8 +32,12 @@ class CloudSyncScheduler(private val context: Context) {
 
     fun configure(identity: SyncIdentity, mode: StorageMode, endpoint: String, tables: Set<String>) {
         val name = jobName(identity)
+        val preferences = context.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
+        val enabledKey = "enabled:${identity.tenantId}:${identity.businessId}:${identity.deviceId}"
+        preferences.edit().putBoolean(enabledKey, mode == StorageMode.CLOUD_SYNC).commit()
         if (mode != StorageMode.CLOUD_SYNC) {
             manager.cancelUniqueWork(name)
+            manager.cancelUniqueWork(name + ":once")
             return
         }
         require(endpoint.startsWith("https://"))
@@ -87,6 +91,9 @@ class CloudSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
         val device = inputData.getString("device") ?: return Result.failure()
         val endpoint = inputData.getString("endpoint") ?: return Result.failure()
         val tables = inputData.getStringArray("tables")?.toSet() ?: return Result.failure()
+        val enabled = applicationContext.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
+            .getBoolean("enabled:$tenant:$business:$device", false)
+        if (!enabled) return Result.success()
         val credentials = SecureDeviceCredentials(applicationContext)
         if (credentials.token().isNullOrBlank()) return Result.failure()
         val database = Room.databaseBuilder(
