@@ -1,6 +1,10 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
 import androidx.room.withTransaction
+import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
+import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
+import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import kotlinx.coroutines.flow.map
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
 import org.json.JSONObject
@@ -24,7 +28,16 @@ import kotlinx.coroutines.flow.Flow
 class RoomVpsBusinessRepository @Inject constructor(
     private val records: VpsBusinessRecordDao,
     private val database: AppDatabase,
-) {
+) : OperationalBusinessRepository {
+    override fun observe(scope: OperationalScope, table: String): Flow<List<OperationalRecord>> =
+        observe(scope.tenantId, scope.businessId, table).map { rows -> rows.map { OperationalRecord(it.entityId, it.payloadJson) } }
+
+    override suspend fun list(scope: OperationalScope, table: String): List<OperationalRecord> =
+        list(scope.tenantId, scope.businessId, table).map { OperationalRecord(it.entityId, it.payloadJson) }
+
+    override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) =
+        saveOffline(SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId), table, id, json, revision)
+
     private val allowedTypes = setOf(
         "products", "services", "customers", "vehicles", "vendors",
         "orders", "order_items", "expenses", "accounts", "account_transactions",
