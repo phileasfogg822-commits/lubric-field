@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
+import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
 import com.lubrcapp.lubrcapp.core.repository.AuditRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
@@ -35,6 +36,8 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class LocalDataSourceModule {
+    @Binds @Singleton
+    abstract fun bindOperationalBusinessRepository(impl: RoomVpsBusinessRepository): OperationalBusinessRepository
     @Binds @Singleton
     abstract fun bindAccessControlRepository(
         impl: RoomAccessControlRepository,
