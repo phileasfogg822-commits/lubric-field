@@ -1,5 +1,7 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
+import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
+import com.lubrcapp.lubrcapp.core.store.db.dao.VpsBusinessRecordDao
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
 import com.lubrcapp.lubrcapp.core.repository.AuditRepository
@@ -89,6 +91,8 @@ abstract class LocalDataSourceModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+    @Provides
+    fun provideVpsBusinessRecordDao(database: AppDatabase): VpsBusinessRecordDao = database.vpsBusinessRecordDao()
     @Provides
     @Singleton
     fun provideBusinessRepository(
