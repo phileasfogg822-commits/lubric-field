@@ -68,6 +68,7 @@ class RoomVpsBusinessRepository @Inject constructor(
         require(payload.getString("uuid") == entityId) { "Payload UUID mismatch" }
         val now = System.currentTimeMillis()
         database.withTransaction {
+            val existing = records.get(identity.tenantId, identity.businessId, entityType, entityId)
             records.upsert(VpsBusinessRecordEntity(
                 identity.tenantId, identity.businessId, entityType, entityId,
                 payload.toString(), now,
@@ -76,7 +77,8 @@ class RoomVpsBusinessRepository @Inject constructor(
                 id = UUID.randomUUID().toString(),
                 tenantId = identity.tenantId, businessId = identity.businessId,
                 entityType = entityType, entityId = entityId,
-                operation = "UPSERT", payloadJson = payload.toString(),
+                operation = if (existing == null) "CREATE" else "UPDATE",
+                payloadJson = payload.toString(),
                 revision = revision, status = "PENDING",
                 createdAt = now, updatedAt = now, deviceId = identity.deviceId,
             ))
