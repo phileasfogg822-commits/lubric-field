@@ -36,7 +36,13 @@ class SyncEngine(
         val changes = queue.pending(identity, 200)
         val batch = SyncBatch(identity, changes, queue.cursor(identity))
         SyncContract.validateBatch(batch)
-        val response = transport.exchange(batch)
+        val response = try {
+            transport.exchange(batch)
+        } catch (failure: java.io.IOException) {
+            // Preserve durable operations for the next WorkManager retry.
+            if (changes.isNotEmpty()) queue.markRetry(identity, changes.map { it.operationId }.toSet())
+            throw failure
+        }
         val sentIds = changes.map { it.operationId }.toSet()
         require(response.receipts.all { it.operationId in sentIds }) {
             "Unexpected sync receipt operation ID"
