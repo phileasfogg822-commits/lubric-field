@@ -128,6 +128,71 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+
+    @Test fun repeatedIncomingBatchIsIdempotentAndCursorNeverRegresses() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            val queue = RoomSyncQueueStore(db)
+            val remote = SyncChange("op-1", "products", "product-1",
+                OperationType.CREATE, 1,
+                """{"uuid":"product-1","name":"Synced"}""", 100L)
+            queue.applyRemoteAndSaveCursor(identity, listOf(remote), "9")
+            queue.applyRemoteAndSaveCursor(identity, listOf(remote), "9")
+            assertEquals("9", queue.cursor(identity))
+            val scope = OperationalScope(identity.tenantId, identity.businessId, identity.deviceId)
+            val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            assertEquals(1, repository.list(scope, "products").size)
+            try {
+                queue.applyRemoteAndSaveCursor(identity, emptyList(), "8")
+                fail("Older cursor must be rejected")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message?.contains("cursor") == true)
+            }
+            assertEquals("9", queue.cursor(identity))
+            assertEquals(1, repository.list(scope, "products").size)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test fun operationalTablesRemainIsolatedAcrossTenantsAndBusinesses() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            val first = OperationalScope("tenant-a", "business-a", "device-a")
+            val second = OperationalScope("tenant-a", "business-b", "device-b")
+            val third = OperationalScope("tenant-b", "business-a", "device-c")
+            repository.save(first, "products", "shared-id", """{"uuid":"shared-id","name":"First"}""")
+            repository.save(second, "products", "shared-id", """{"uuid":"shared-id","name":"Second"}""")
+            repository.save(third, "products", "shared-id", """{"uuid":"shared-id","name":"Third"}""")
+            assertEquals("First", org.json.JSONObject(repository.list(first, "products").single().json).getString("name"))
+            assertEquals("Second", org.json.JSONObject(repository.list(second, "products").single().json).getString("name"))
+            assertEquals("Third", org.json.JSONObject(repository.list(third, "products").single().json).getString("name"))
+            val queue = RoomSyncQueueStore(db)
+            assertEquals(1, queue.pending(SyncIdentity(first.tenantId, first.businessId, first.deviceId), 20).size)
+            assertEquals(1, queue.pending(SyncIdentity(second.tenantId, second.businessId, second.deviceId), 20).size)
+            assertEquals(1, queue.pending(SyncIdentity(third.tenantId, third.businessId, third.deviceId), 20).size)
+        } finally {
+            db.close()
+        }
+    }
+
     @Test fun incomingRecordAndCursorAreCommittedTogether() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
