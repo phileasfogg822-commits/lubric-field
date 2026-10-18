@@ -193,6 +193,47 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+
+    @Test fun failedUploadPersistsRetryStateAcrossRestart() = runBlocking {
+        val name = "sync-retry-persistence-test"
+        context.deleteDatabase(name)
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+        fun open() = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .allowMainThreadQueries().build()
+        var db = open()
+        try {
+            RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db).save(
+                scope, "products", "product-retry",
+                """{"uuid":"product-retry","name":"Offline retry"}"""
+            )
+            val queue = RoomSyncQueueStore(db)
+            val operation = queue.pending(identity, 20).single()
+            queue.markRetry(identity, setOf(operation.operationId))
+            val retryRow = db.syncQueueDao().findById(
+                identity.tenantId, identity.businessId, operation.operationId
+            )
+            assertEquals("FAILED", retryRow?.status)
+            assertEquals(1, retryRow?.attemptCount)
+            assertTrue((retryRow?.nextRetryAt ?: 0L) > System.currentTimeMillis())
+            db.close()
+            db = open()
+            val restored = db.syncQueueDao().findById(
+                identity.tenantId, identity.businessId, operation.operationId
+            )
+            assertEquals("FAILED", restored?.status)
+            assertEquals(1, restored?.attemptCount)
+            assertTrue((restored?.nextRetryAt ?: 0L) > 0L)
+            assertTrue(RoomSyncQueueStore(db).pending(identity, 20).isEmpty())
+            assertEquals(1, RoomVpsBusinessRepository(
+                db.vpsBusinessRecordDao(), db
+            ).list(scope, "products").size)
+        } finally {
+            db.close()
+            context.deleteDatabase(name)
+        }
+    }
+
     @Test fun incomingRecordAndCursorAreCommittedTogether() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
