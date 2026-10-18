@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="items_back">Back</string>
+    <string name="items_title">Items</string>
+    <string name="items_name">Item name</string>
+    <string name="items_save">Save item offline</string>
+    <string name="items_save_error">Unable to save item locally</string>
+</resources>
