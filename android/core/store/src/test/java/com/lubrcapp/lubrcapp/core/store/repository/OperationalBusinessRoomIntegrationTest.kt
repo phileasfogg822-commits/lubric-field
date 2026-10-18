@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
+import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.BusinessEntity
 import com.lubrcapp.lubrcapp.core.sync.OperationType
 import com.lubrcapp.lubrcapp.core.sync.SyncChange
 import com.lubrcapp.lubrcapp.core.sync.SyncIdentity
@@ -50,6 +52,20 @@ class OperationalBusinessRoomIntegrationTest {
             .allowMainThreadQueries().build()
         try {
             val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+            // Settings rows require existing tenant and business parents.
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
             val queue = RoomSyncQueueStore(db)
             queue.applyRemoteAndSaveCursor(identity, listOf(
                 SyncChange("op-remote", "products", "product-1", OperationType.CREATE, 1,
