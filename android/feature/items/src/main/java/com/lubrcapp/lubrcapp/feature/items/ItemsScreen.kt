@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import kotlinx.coroutines.launch
@@ -37,16 +38,17 @@ fun ItemsScreen(
     var name by remember(scope) { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val saveError = stringResource(R.string.items_save_error)
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
-        Text("Items")
+        Button(onClick = onBack) { Text(stringResource(R.string.items_back)) }
+        Text(stringResource(R.string.items_title))
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Item name") },
+            label = { Text(stringResource(R.string.items_name)) },
             modifier = Modifier.fillMaxWidth(),
         )
         Button(
@@ -60,11 +62,11 @@ fun ItemsScreen(
                         name = ""
                         error = null
                     } catch (_: Exception) {
-                        error = "Unable to save item locally"
+                        error = saveError
                     }
                 }
             },
-        ) { Text("Save item offline") }
+        ) { Text(stringResource(R.string.items_save)) }
         error?.let { Text(it) }
         LazyColumn {
             items(records, key = { it.id }) { record ->
