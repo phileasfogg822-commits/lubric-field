@@ -44,6 +44,10 @@ jobs:
           - id: "12.2.5"
             label: "Persisted retry and restart recovery"
             test: "*OperationalBusinessRoomIntegrationTest.failedUploadPersistsRetryStateAcrossRestart"
+          - id: "12.2.6"
+            label: "Network timeout and receipt safety"
+            module: ":core:sync"
+            test: "*SyncEngineTest"
           - id: "12.4.1"
             label: "Device identity persistence"
             test: "*PersistentDeviceIdentityProviderTest"
@@ -81,7 +85,7 @@ jobs:
       - name: "00.5 Gradle executable"
         run: chmod +x gradlew
       - name: "${{ matrix.id }} Execute focused regression"
-        run: ./gradlew :core:store:testDebugUnitTest --tests "${{ matrix.test }}" --stacktrace --no-daemon
+        run: ./gradlew ${{ matrix.module || ':core:store' }}:testDebugUnitTest --tests "${{ matrix.test }}" --stacktrace --no-daemon
       - name: "${{ matrix.id }} Publish result summary"
         if: always()
         shell: bash
