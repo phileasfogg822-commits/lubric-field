@@ -271,13 +271,28 @@ jobs:
             exit 1
           fi
 
-      - name: Unit tests lint debug and release APKs
-        run: ./gradlew clean test lint :app:assembleDebug :app:assembleRelease --no-daemon
+      - name: "15.1 Room incoming sync and rollback regression"
+        run: ./gradlew :core:store:testDebugUnitTest --tests "*OperationalBusinessRoomIntegrationTest" --stacktrace --no-daemon
 
-      - name: Compile Room migration instrumentation tests
+      - name: "15.2 Full Room store unit tests"
+        run: ./gradlew :core:store:testDebugUnitTest --stacktrace --no-daemon
+
+      - name: "15.3 All Android unit tests"
+        run: ./gradlew test --stacktrace --no-daemon
+
+      - name: "15.4 Android lint"
+        run: ./gradlew lint --stacktrace --no-daemon
+
+      - name: "15.5 Debug APK"
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: "15.6 Release APK"
+        run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
+
+      - name: "16. Room migration instrumentation-test compilation"
         run: ./gradlew :core:store:assembleDebugAndroidTest --no-daemon
 
-      - name: Build alternate white-label deployment
+      - name: "17. Alternate white-label APK build"
         run: |
           ./gradlew :app:assembleDebug --no-daemon \
             -Pwl.appName="ABC Pharmacy" \
