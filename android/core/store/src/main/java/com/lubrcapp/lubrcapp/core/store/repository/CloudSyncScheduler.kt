@@ -60,6 +60,7 @@ class CloudSyncScheduler(private val context: Context) {
 
     fun syncNow(identity: SyncIdentity, mode: StorageMode, endpoint: String, tables: Set<String>) {
         if (mode != StorageMode.CLOUD_SYNC) return
+        if (!CloudSyncConsent.isEnabled(context, identity)) return
         require(endpoint.startsWith("https://") && tables.isNotEmpty())
         val input = Data.Builder()
             .putString("tenant", identity.tenantId)
@@ -91,9 +92,8 @@ class CloudSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
         val device = inputData.getString("device") ?: return Result.failure()
         val endpoint = inputData.getString("endpoint") ?: return Result.failure()
         val tables = inputData.getStringArray("tables")?.toSet() ?: return Result.failure()
-        val enabled = applicationContext.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
-            .getBoolean("enabled:$tenant:$business:$device", false)
-        if (!enabled) return Result.success()
+        val identity = SyncIdentity(tenant, business, device)
+        if (!CloudSyncConsent.isEnabled(applicationContext, identity)) return Result.success()
         val credentials = SecureDeviceCredentials(applicationContext)
         if (credentials.token().isNullOrBlank()) return Result.failure()
         val database = Room.databaseBuilder(
@@ -105,7 +105,7 @@ class CloudSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
             SyncEngine(
                 RoomSyncQueueStore(database),
                 AuthenticatedVpsTransport(endpoint, credentials, tables)
-            ).run(StorageMode.CLOUD_SYNC, SyncIdentity(tenant, business, device))
+            ).run(if (CloudSyncConsent.isEnabled(applicationContext, identity)) StorageMode.CLOUD_SYNC else StorageMode.LOCAL_ONLY, identity)
             Result.success()
         } catch (_: Exception) {
             Result.retry()
@@ -113,4 +113,10 @@ class CloudSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
             database.close()
         }
     }
+}
+
+internal object CloudSyncConsent {
+    fun isEnabled(context: Context, identity: SyncIdentity): Boolean =
+        context.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
+            .getBoolean("enabled:${identity.tenantId}:${identity.businessId}:${identity.deviceId}", false)
 }
