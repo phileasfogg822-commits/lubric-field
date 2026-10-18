@@ -85,6 +85,49 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+
+    @Test fun incomingRemoteChangeCannotOverwritePendingLocalEdit() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val scope = OperationalScope("tenant-a", "business-a", "device-a")
+            val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = scope.tenantId, name = "Test tenant", createdAt = now,
+                updatedAt = now, deviceId = scope.deviceId, syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = scope.businessId, tenantId = scope.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = scope.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repository.save(scope, "products", "product-1",
+                """{"uuid":"product-1","name":"Local edit"}""")
+            val queue = RoomSyncQueueStore(db)
+            queue.applyRemoteAndSaveCursor(identity, emptyList(), "2")
+            val remote = SyncChange("remote-op", "products", "product-1",
+                OperationType.UPDATE, 3,
+                """{"uuid":"product-1","name":"Remote edit"}""", 200L)
+            try {
+                queue.applyRemoteAndSaveCursor(identity, listOf(remote), "3")
+                fail("Pending local edit must block a conflicting remote overwrite")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message?.contains("conflicts") == true)
+            }
+            assertEquals("2", queue.cursor(identity))
+            assertEquals("Local edit", org.json.JSONObject(
+                repository.list(scope, "products").single().json
+            ).getString("name"))
+            assertEquals(1, queue.pending(identity, 20).size)
+        } finally {
+            db.close()
+        }
+    }
+
     @Test fun incomingRecordAndCursorAreCommittedTogether() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
