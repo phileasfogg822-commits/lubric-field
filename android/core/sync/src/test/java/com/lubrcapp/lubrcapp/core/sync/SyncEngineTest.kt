@@ -28,6 +28,49 @@ class SyncEngineTest {
         }
     }
 
+
+    @Test fun networkTimeoutKeepsOutgoingChangeRetryable() = runBlocking {
+        val store = Store()
+        val transport = object : SyncTransport {
+            override suspend fun exchange(batch: SyncBatch): SyncResponse {
+                throw java.net.SocketTimeoutException("simulated timeout")
+            }
+        }
+        try {
+            SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity)
+            org.junit.Assert.fail("Expected timeout")
+        } catch (_: java.net.SocketTimeoutException) {
+            assertEquals(setOf("one"), store.retried)
+            assertEquals(emptySet<String>(), store.accepted)
+            assertEquals(false, store.applied)
+        }
+    }
+
+    @Test fun duplicateReceiptAcknowledgesOnlyAfterRemotePersistence() = runBlocking {
+        val store = Store()
+        val transport = object : SyncTransport {
+            override suspend fun exchange(batch: SyncBatch) =
+                SyncResponse(listOf(SyncReceipt("one", SyncOutcome.DUPLICATE)), emptyList(), "1")
+        }
+        assertEquals(1, SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity).uploaded)
+        assertEquals(setOf("one"), store.accepted)
+    }
+
+    @Test fun unknownReceiptCannotAcknowledgeLocalChanges() = runBlocking {
+        val store = Store()
+        val transport = object : SyncTransport {
+            override suspend fun exchange(batch: SyncBatch) =
+                SyncResponse(listOf(SyncReceipt("other", SyncOutcome.ACCEPTED)), emptyList(), "1")
+        }
+        try {
+            SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity)
+            org.junit.Assert.fail("Unknown receipt should fail")
+        } catch (_: IllegalArgumentException) {
+            assertEquals(emptySet<String>(), store.accepted)
+            assertEquals(false, store.applied)
+        }
+    }
+
     @Test fun localOnlyNeverCallsNetwork() = runBlocking {
         val store = Store()
         val transport = object : SyncTransport {
