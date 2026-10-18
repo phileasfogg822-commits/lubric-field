@@ -47,6 +47,44 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+    @Test fun rejectedIncomingBatchRollsBackRecordAndCursor() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            val queue = RoomSyncQueueStore(db)
+            queue.applyRemoteAndSaveCursor(identity, emptyList(), "3")
+            val valid = SyncChange("op-valid", "products", "product-1",
+                OperationType.CREATE, 1, """{"uuid":"product-1","name":"Valid"}""", 100L)
+            val invalid = SyncChange("op-invalid", "products", "product-2",
+                OperationType.CREATE, 1, """{"uuid":"wrong-id","name":"Invalid"}""", 101L)
+            try {
+                queue.applyRemoteAndSaveCursor(identity, listOf(valid, invalid), "4")
+                fail("Invalid incoming record must reject the entire transaction")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message?.contains("UUID mismatch") == true)
+            }
+            assertEquals("3", queue.cursor(identity))
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            assertTrue(repo.list(OperationalScope("tenant-a", "business-a", "device-a"), "products").isEmpty())
+        } finally {
+            db.close()
+        }
+    }
+
     @Test fun incomingRecordAndCursorAreCommittedTogether() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
