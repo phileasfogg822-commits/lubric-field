@@ -215,7 +215,7 @@ class OperationalBusinessRoomIntegrationTest {
             )
             assertEquals("FAILED", retryRow?.status)
             assertEquals(1, retryRow?.attemptCount)
-            assertTrue((retryRow?.nextRetryAt ?: 0L) > System.currentTimeMillis())
+            assertTrue((retryRow?.nextAttemptAt ?: 0L) > System.currentTimeMillis())
             db.close()
             db = open()
             val restored = db.syncQueueDao().findById(
@@ -223,7 +223,7 @@ class OperationalBusinessRoomIntegrationTest {
             )
             assertEquals("FAILED", restored?.status)
             assertEquals(1, restored?.attemptCount)
-            assertTrue((restored?.nextRetryAt ?: 0L) > 0L)
+            assertTrue((restored?.nextAttemptAt ?: 0L) > 0L)
             assertTrue(RoomSyncQueueStore(db).pending(identity, 20).isEmpty())
             assertEquals(1, RoomVpsBusinessRepository(
                 db.vpsBusinessRecordDao(), db
