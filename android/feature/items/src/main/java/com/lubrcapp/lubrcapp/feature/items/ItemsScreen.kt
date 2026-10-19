@@ -36,6 +36,8 @@ fun ItemsScreen(
     val records by remember(viewModel, scope) { viewModel.observe(scope) }
         .collectAsState(initial = emptyList())
     var name by remember(scope) { mutableStateOf("") }
+    var editingId by remember(scope) { mutableStateOf<String?>(null) }
+    var saving by remember(scope) { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.items_save_error)
@@ -52,25 +54,40 @@ fun ItemsScreen(
             modifier = Modifier.fillMaxWidth(),
         )
         Button(
-            enabled = name.isNotBlank(),
+            enabled = name.isNotBlank() && !saving,
             onClick = {
                 val itemName = name.trim()
                 coroutineScope.launch {
+                    saving = true
                     try {
-                        val id = UUID.randomUUID().toString()
-                        viewModel.save(scope, id, JSONObject().put("uuid", id).put("name", itemName).toString())
+                        val id = editingId ?: UUID.randomUUID().toString()
+                        val existing = records.firstOrNull { it.id == id }
+                        val payload = existing?.let { JSONObject(it.json) } ?: JSONObject().put("uuid", id)
+                        payload.put("name", itemName)
+                        viewModel.save(scope, id, payload.toString())
                         name = ""
+                        editingId = null
                         error = null
                     } catch (_: Exception) {
                         error = saveError
+                    } finally {
+                        saving = false
                     }
                 }
             },
-        ) { Text(stringResource(R.string.items_save)) }
+        ) { Text(stringResource(if (editingId == null) R.string.items_save else R.string.items_update)) }
+        if (editingId != null) {
+            Button(onClick = { editingId = null; name = "" }, enabled = !saving) {
+                Text(stringResource(R.string.items_cancel_edit))
+            }
+        }
         error?.let { Text(it) }
         LazyColumn {
             items(records, key = { it.id }) { record ->
-                Text(runCatching { JSONObject(record.json).optString("name", record.id) }.getOrDefault(record.id))
+                val displayName = runCatching { JSONObject(record.json).optString("name", record.id) }.getOrDefault(record.id)
+                Button(onClick = { editingId = record.id; name = displayName }, enabled = !saving) {
+                    Text(stringResource(R.string.items_edit, displayName))
+                }
             }
         }
     }
