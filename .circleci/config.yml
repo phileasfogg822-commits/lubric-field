@@ -69,6 +69,11 @@ jobs:
           command: ./gradlew :core:store:assembleDebugAndroidTest --stacktrace --no-daemon --max-workers=2
           no_output_timeout: 20m
       - run:
+          name: Preserve default debug and release APKs
+          command: |
+            mkdir -p /tmp/lubric-default-apks
+            cp -R app/build/outputs/apk/. /tmp/lubric-default-apks/
+      - run:
           name: Alternate white-label APK
           command: |
             ./gradlew :app:assembleDebug --stacktrace --no-daemon --max-workers=2 \
@@ -86,10 +91,19 @@ jobs:
               -Pwl.design.defaultLargeTouchTargets=true \
               -Pwl.paymentMethods=cash:Cash,insurance:Insurance
           no_output_timeout: 20m
+      - run:
+          name: Package default and white-label APKs
+          command: |
+            set -euo pipefail
+            mkdir -p /tmp/lubric-apk-artifacts/default /tmp/lubric-apk-artifacts/white-label
+            cp -R /tmp/lubric-default-apks/. /tmp/lubric-apk-artifacts/default/
+            cp -R app/build/outputs/apk/. /tmp/lubric-apk-artifacts/white-label/
+            find /tmp/lubric-apk-artifacts -type f -name '*.apk' -print
+            test "$(find /tmp/lubric-apk-artifacts -type f -name '*.apk' | wc -l)" -ge 3
       - store_test_results:
           path: core/store/build/test-results
       - store_artifacts:
-          path: app/build/outputs/apk
+          path: /tmp/lubric-apk-artifacts
           destination: android-apks
       - store_artifacts:
           path: app/build/reports
