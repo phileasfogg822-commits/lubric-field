@@ -20,6 +20,7 @@ class AuthenticatedVpsTransport(
     private val baseUrl: String,
     private val tokenProvider: DeviceTokenProvider,
     private val allowedTables: Set<String>,
+    private val canExchange: () -> Boolean = { true },
 ) : SyncTransport {
     init {
         require(baseUrl.startsWith("https://")) { "VPS synchronization requires HTTPS" }
@@ -95,6 +96,7 @@ class AuthenticatedVpsTransport(
     }
 
     private fun request(method: String, path: String, token: String, body: JSONObject?): JSONObject {
+        check(canExchange()) { "Cloud sync consent revoked" }
         val connection = URL(baseUrl.trimEnd('/') + path).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = method
