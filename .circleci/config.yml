@@ -107,16 +107,73 @@ jobs:
           path: core/store/build/reports/tests
           destination: room-test-reports
 
+  phase12-recovery-and-security:
+    executor: android
+    steps:
+      - prepare_android
+      - run:
+          name: Sync contract, persistence, security and consent regression
+          command: |
+            ./gradlew :core:sync:testDebugUnitTest :core:store:testDebugUnitTest --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - store_test_results:
+          path: core/sync/build/test-results
+      - store_test_results:
+          path: core/store/build/test-results
+      - store_artifacts:
+          path: core/sync/build/reports/tests
+          destination: sync-recovery-reports
+      - store_artifacts:
+          path: core/store/build/reports/tests
+          destination: store-security-reports
+
+  phase12-business-ui:
+    executor: android
+    steps:
+      - prepare_android
+      - run:
+          name: Compile business UI and execute domain tests
+          command: |
+            ./gradlew :app:assembleDebug :feature:items:testDebugUnitTest :feature:inventory:testDebugUnitTest :feature:parties:testDebugUnitTest :feature:sales:testDebugUnitTest :feature:purchases:testDebugUnitTest :feature:accounts:testDebugUnitTest --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - store_artifacts:
+          path: app/build/outputs/apk/debug
+          destination: ui-integration-apk
+
+  phase12-acceptance-gate:
+    executor: android
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Record validated source revision
+          command: |
+            set -euo pipefail
+            git rev-parse HEAD
+            git status --short
+            printf 'All required CircleCI jobs passed for %s\n' "$(git rev-parse HEAD)" > /tmp/phase12-ci-acceptance.txt
+      - store_artifacts:
+          path: /tmp/phase12-ci-acceptance.txt
+          destination: acceptance/phase12-ci-acceptance.txt
+
 workflows:
-  phase12-automatic-verification:
+  phase12-large-batch:
     jobs:
       - phase12-smoke:
           filters:
             branches:
               only: phase-12-completion
+      - phase12-recovery-and-security:
+          requires:
+            - phase12-smoke
+      - phase12-business-ui:
+          requires:
+            - phase12-smoke
       - android-full-verification:
           requires:
             - phase12-smoke
-          filters:
-            branches:
-              only: phase-12-completion
+      - phase12-acceptance-gate:
+          requires:
+            - phase12-recovery-and-security
+            - phase12-business-ui
+            - android-full-verification
