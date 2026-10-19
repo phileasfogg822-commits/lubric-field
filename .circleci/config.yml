@@ -1,38 +1,116 @@
-# CircleCI smoke test trigger
-# Initial CircleCI migration for Lubric Field Phase 12.
-# One focused cloud job replaces repeated 20-job GitHub Actions setup.
-# Deliberately restricted to phase-12-completion until the pipeline is validated.
+# Lubric Field cloud CI. GitHub remains the source of truth.
+# The fast smoke job runs on Phase 12 pushes; the full verification job
+# runs only when explicitly requested with run_full_verification=true.
 version: 2.1
 
-jobs:
-  phase12-smoke:
+parameters:
+  run_full_verification:
+    type: boolean
+    default: false
+
+executors:
+  android:
     docker:
       - image: cimg/android:2026.08
     resource_class: medium
     working_directory: ~/project/android
     environment:
       GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.jvmargs=-Xmx2048m"
+
+commands:
+  prepare_android:
     steps:
       - checkout:
           path: ~/project
       - run:
-          name: Verify Gradle wrapper
+          name: Verify Android SDK and Gradle wrapper
           command: |
+            set -euo pipefail
             test -f gradlew
             chmod +x gradlew
+            SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/opt/android-sdk}}"
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+            test -x "$SDKMANAGER"
+            yes | "$SDKMANAGER" --licenses >/dev/null || true
+            "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+
+jobs:
+  phase12-smoke:
+    executor: android
+    steps:
+      - prepare_android
       - run:
           name: Phase 12 sync-engine regression
           command: ./gradlew :core:sync:testDebugUnitTest --tests "*SyncEngineTest" --stacktrace --no-daemon --max-workers=2
       - store_test_results:
-          path: android/core/sync/build/test-results
+          path: core/sync/build/test-results
       - store_artifacts:
           path: core/sync/build/reports/tests
           destination: phase12-smoke-test-report
 
+  android-full-verification:
+    executor: android
+    no_output_timeout: 20m
+    steps:
+      - prepare_android
+      - run:
+          name: All Android unit and Room tests
+          command: ./gradlew test --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - run:
+          name: Android lint
+          command: ./gradlew lint --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - run:
+          name: Debug and release APKs
+          command: ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - run:
+          name: Room migration instrumentation-test compilation
+          command: ./gradlew :core:store:assembleDebugAndroidTest --stacktrace --no-daemon --max-workers=2
+          no_output_timeout: 20m
+      - run:
+          name: Alternate white-label APK
+          command: |
+            ./gradlew :app:assembleDebug --stacktrace --no-daemon --max-workers=2 \
+              -Pwl.appName="ABC Pharmacy" \
+              -Pwl.applicationId=com.example.abcpharmacy \
+              -Pwl.apiEndpoint=https://pharmacy.example.invalid/ \
+              -Pwl.includedModules=inventory,barcodes,batch_tracking \
+              -Pwl.term.item=Medicine \
+              -Pwl.term.customer=Patient \
+              -Pwl.brand.primaryColor=FF00695C \
+              -Pwl.brand.cardStyle=outlined \
+              -Pwl.brand.buttonStyle=flat \
+              -Pwl.brand.borderRadius=24 \
+              -Pwl.design.defaultTextScale=1.20 \
+              -Pwl.design.defaultLargeTouchTargets=true \
+              -Pwl.paymentMethods=cash:Cash,insurance:Insurance
+          no_output_timeout: 20m
+      - store_test_results:
+          path: core/store/build/test-results
+      - store_artifacts:
+          path: app/build/outputs/apk
+          destination: android-apks
+      - store_artifacts:
+          path: app/build/reports
+          destination: android-reports
+      - store_artifacts:
+          path: core/store/build/reports/tests
+          destination: room-test-reports
+
 workflows:
-  phase12-cloud-validation:
+  phase12-smoke-on-push:
     jobs:
       - phase12-smoke:
+          filters:
+            branches:
+              only: phase-12-completion
+
+  full-android-on-demand:
+    when: << pipeline.parameters.run_full_verification >>
+    jobs:
+      - android-full-verification:
           filters:
             branches:
               only: phase-12-completion
