@@ -4,8 +4,16 @@ concurrency:
   group: native-android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# CI execution is delegated to CircleCI. Manual-only GitHub workflow.
 on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android-native.yml"
+  push:
+    branches: [master]
+    paths:
+      - "android/**"
+      - ".github/workflows/android-native.yml"
   workflow_dispatch:
 
 jobs:
