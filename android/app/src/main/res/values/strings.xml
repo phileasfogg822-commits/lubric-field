@@ -70,4 +70,9 @@
     <string name="nav_items_title">Items</string>
     <string name="nav_parties_title">Parties</string>
     <string name="nav_more_title">More</string>
+    <string name="feature_inventory">Inventory</string>
+    <string name="feature_customers">Customers</string>
+    <string name="feature_sales">Sales</string>
+    <string name="feature_purchases">Purchases</string>
+    <string name="feature_accounts">Accounts</string>
 </resources>
