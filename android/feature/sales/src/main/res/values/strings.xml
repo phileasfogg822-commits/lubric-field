@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sales_back">Back</string>
+    <string name="sales_title">Sales</string>
+    <string name="sales_label">Order</string>
+    <string name="sales_saving">Saving…</string>
+    <string name="sales_save">Save order</string>
+    <string name="sales_error">Unable to save order locally</string>
+</resources>
