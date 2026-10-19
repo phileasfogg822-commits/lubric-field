@@ -170,9 +170,12 @@ fun MainNavigation(
                     )
                     if (currentContext != null) {
                         listOf(
-                            "items" to "Items", "inventory" to "Inventory",
-                            "parties" to "Customers", "sales" to "Sales",
-                            "purchases" to "Purchases", "accounts" to "Accounts",
+                            "items" to stringResource(R.string.nav_items_title),
+                            "inventory" to stringResource(R.string.feature_inventory),
+                            "parties" to stringResource(R.string.feature_customers),
+                            "sales" to stringResource(R.string.feature_sales),
+                            "purchases" to stringResource(R.string.feature_purchases),
+                            "accounts" to stringResource(R.string.feature_accounts),
                         ).forEach { (key, label) ->
                             Button(
                                 onClick = { selectedFeature = key },
