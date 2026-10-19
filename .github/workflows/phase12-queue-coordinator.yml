@@ -3,19 +3,9 @@ name: Phase 12 GitHub Queue Coordinator
 # GitHub owns task state; CircleCI supplies the external build checks.
 # IMPORTANT: schedule only runs from the default branch, and GitHub-hosted
 # jobs require available runner minutes. This workflow never writes code.
+# CI execution is delegated to CircleCI. Manual-only GitHub workflow.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 * * * *'
-
-permissions:
-  contents: read
-  issues: write
-  statuses: read
-
-concurrency:
-  group: phase12-queue-coordinator
-  cancel-in-progress: false
 
 jobs:
   reconcile:
