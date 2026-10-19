@@ -1,3 +1,4 @@
+# CircleCI smoke test trigger
 # Initial CircleCI migration for Lubric Field Phase 12.
 # One focused cloud job replaces repeated 20-job GitHub Actions setup.
 # Deliberately restricted to phase-12-completion until the pipeline is validated.
