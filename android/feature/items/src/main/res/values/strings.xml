@@ -5,4 +5,7 @@
     <string name="items_name">Item name</string>
     <string name="items_save">Save item offline</string>
     <string name="items_save_error">Unable to save item locally</string>
+    <string name="items_update">Update item offline</string>
+    <string name="items_cancel_edit">Cancel editing</string>
+    <string name="items_edit">Edit %1$s</string>
 </resources>
