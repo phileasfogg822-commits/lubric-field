@@ -1,12 +1,7 @@
 # Lubric Field cloud CI. GitHub remains the source of truth.
-# The fast smoke job runs on Phase 12 pushes; the full verification job
-# runs only when explicitly requested with run_full_verification=true.
+# On Phase 12 pushes, full verification automatically follows a successful smoke job.
+# Any failed job blocks dependent work; CircleCI reports status to GitHub.
 version: 2.1
-
-parameters:
-  run_full_verification:
-    type: boolean
-    default: false
 
 executors:
   android:
@@ -113,17 +108,15 @@ jobs:
           destination: room-test-reports
 
 workflows:
-  phase12-smoke-on-push:
+  phase12-automatic-verification:
     jobs:
       - phase12-smoke:
           filters:
             branches:
               only: phase-12-completion
-
-  full-android-on-demand:
-    when: << pipeline.parameters.run_full_verification >>
-    jobs:
       - android-full-verification:
+          requires:
+            - phase12-smoke
           filters:
             branches:
               only: phase-12-completion
