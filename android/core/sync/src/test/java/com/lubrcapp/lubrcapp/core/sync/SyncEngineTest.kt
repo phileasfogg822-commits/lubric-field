@@ -100,4 +100,63 @@ class SyncEngineTest {
         assertEquals(1, SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity).retryable)
         assertEquals(setOf("one"), store.retried)
     }
+    @Test fun persistenceFailureNeverAcknowledgesOutgoingChange() = runBlocking {
+        val store = object : SyncQueueStore {
+            var acknowledged = false
+            override suspend fun pending(identity: SyncIdentity, limit: Int) = listOf(change)
+            override suspend fun markAccepted(identity: SyncIdentity, operationIds: Set<String>) {
+                acknowledged = true
+            }
+            override suspend fun markRetry(identity: SyncIdentity, operationIds: Set<String>) = Unit
+            override suspend fun cursor(identity: SyncIdentity): String? = null
+            override suspend fun applyRemoteAndSaveCursor(
+                identity: SyncIdentity,
+                changes: List<SyncChange>,
+                nextCursor: String?,
+            ) {
+                throw IllegalStateException("simulated database rollback")
+            }
+        }
+        val transport = object : SyncTransport {
+            override suspend fun exchange(batch: SyncBatch) =
+                SyncResponse(listOf(SyncReceipt("one", SyncOutcome.ACCEPTED)), emptyList(), "2")
+        }
+        try {
+            SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity)
+            org.junit.Assert.fail("Persistence failure must propagate")
+        } catch (_: IllegalStateException) {
+            assertEquals(false, store.acknowledged)
+        }
+    }
+
+    @Test fun partialReceiptsLeaveUnacknowledgedChangesRetryable() = runBlocking {
+        val store = object : SyncQueueStore {
+            var accepted = emptySet<String>()
+            var retry = emptySet<String>()
+            override suspend fun pending(identity: SyncIdentity, limit: Int) =
+                listOf(change, change.copy(operationId = "two"))
+            override suspend fun markAccepted(identity: SyncIdentity, operationIds: Set<String>) {
+                accepted = operationIds
+            }
+            override suspend fun markRetry(identity: SyncIdentity, operationIds: Set<String>) {
+                retry = operationIds
+            }
+            override suspend fun cursor(identity: SyncIdentity): String? = null
+            override suspend fun applyRemoteAndSaveCursor(
+                identity: SyncIdentity,
+                changes: List<SyncChange>,
+                nextCursor: String?,
+            ) = Unit
+        }
+        val transport = object : SyncTransport {
+            override suspend fun exchange(batch: SyncBatch) =
+                SyncResponse(listOf(SyncReceipt("one", SyncOutcome.ACCEPTED)), emptyList(), "3")
+        }
+        val result = SyncEngine(store, transport).run(StorageMode.CLOUD_SYNC, identity)
+        assertEquals(1, result.uploaded)
+        assertEquals(1, result.retryable)
+        assertEquals(setOf("one"), store.accepted)
+        assertEquals(setOf("two"), store.retry)
+    }
+
 }
