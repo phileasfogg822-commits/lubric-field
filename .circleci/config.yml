@@ -1,0 +1,37 @@
+# Initial CircleCI migration for Lubric Field Phase 12.
+# One focused cloud job replaces repeated 20-job GitHub Actions setup.
+# Deliberately restricted to phase-12-completion until the pipeline is validated.
+version: 2.1
+
+jobs:
+  phase12-smoke:
+    docker:
+      - image: cimg/android:2026.08
+    resource_class: medium
+    working_directory: ~/project/android
+    environment:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.jvmargs=-Xmx2048m"
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          name: Verify Gradle wrapper
+          command: |
+            test -f gradlew
+            chmod +x gradlew
+      - run:
+          name: Phase 12 sync-engine regression
+          command: ./gradlew :core:sync:testDebugUnitTest --tests "*SyncEngineTest" --stacktrace --no-daemon --max-workers=2
+      - store_test_results:
+          path: android/core/sync/build/test-results
+      - store_artifacts:
+          path: core/sync/build/reports/tests
+          destination: phase12-smoke-test-report
+
+workflows:
+  phase12-cloud-validation:
+    jobs:
+      - phase12-smoke:
+          filters:
+            branches:
+              only: phase-12-completion
