@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,17 +40,18 @@ fun AccountsScreen(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val saveError = stringResource(R.string.accounts_save_error)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
-        Text("Accounts", style = MaterialTheme.typography.headlineMedium)
+        Button(onClick = onBack) { Text(stringResource(R.string.accounts_back)) }
+        Text(stringResource(R.string.accounts_title), style = MaterialTheme.typography.headlineMedium)
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Account entry") },
+            label = { Text(stringResource(R.string.accounts_entry_label)) },
             modifier = Modifier.fillMaxWidth(),
         )
         Button(
@@ -64,13 +66,13 @@ fun AccountsScreen(
                         description = ""
                         error = null
                     } catch (_: Exception) {
-                        error = "Unable to save account entry locally"
+                        error = saveError
                     } finally {
                         saving = false
                     }
                 }
             },
-        ) { Text(if (saving) "Saving…" else "Save account entry") }
+        ) { Text(if (saving) stringResource(R.string.accounts_saving) else stringResource(R.string.accounts_save)) }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         LazyColumn {
             items(records, key = { it.id }) { record ->
