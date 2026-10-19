@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inventory_back">Back</string>
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_label">Stock movement</string>
+    <string name="inventory_saving">Saving…</string>
+    <string name="inventory_save">Save stock movement</string>
+    <string name="inventory_error">Unable to save stock movement locally</string>
+</resources>
