@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="purchases_back">Back</string>
+    <string name="purchases_title">Purchases</string>
+    <string name="purchases_label">Purchase</string>
+    <string name="purchases_saving">Saving…</string>
+    <string name="purchases_save">Save purchase</string>
+    <string name="purchases_error">Unable to save purchase locally</string>
+</resources>
