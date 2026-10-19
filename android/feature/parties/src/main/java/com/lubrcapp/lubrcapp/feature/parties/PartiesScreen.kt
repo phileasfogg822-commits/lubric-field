@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,17 +40,18 @@ fun PartiesScreen(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val saveError = stringResource(R.string.parties_error)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(onClick = onBack) { Text("Back") }
-        Text("Parties", style = MaterialTheme.typography.headlineMedium)
+        Button(onClick = onBack) { Text(stringResource(R.string.parties_back)) }
+        Text(stringResource(R.string.parties_title), style = MaterialTheme.typography.headlineMedium)
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Customer") },
+            label = { Text(stringResource(R.string.parties_label)) },
             modifier = Modifier.fillMaxWidth(),
         )
         Button(
@@ -64,13 +66,13 @@ fun PartiesScreen(
                         description = ""
                         error = null
                     } catch (_: Exception) {
-                        error = "Unable to save customer locally"
+                        error = saveError
                     } finally {
                         saving = false
                     }
                 }
             },
-        ) { Text(if (saving) "Saving…" else "Save customer") }
+        ) { Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save)) }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         LazyColumn {
             items(records, key = { it.id }) { record ->
