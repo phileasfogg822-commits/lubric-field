@@ -1,15 +1,8 @@
 name: Phase 12 Segmented Verification
 
+# CI execution is delegated to CircleCI. Manual-only GitHub workflow.
 on:
-  pull_request:
-    paths:
-      - "android/**"
-      - ".github/workflows/phase-12-segments.yml"
   workflow_dispatch:
-
-concurrency:
-  group: phase12-segments-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 jobs:
   segment:
