@@ -20,7 +20,7 @@ class AuthenticatedVpsTransport(
     private val baseUrl: String,
     private val tokenProvider: DeviceTokenProvider,
     private val allowedTables: Set<String>,
-    private val canExchange: () -> Boolean = { true },
+    private val canExchange: () -> Boolean = { true }, // checked before each HTTP request
 ) : SyncTransport {
     init {
         require(baseUrl.startsWith("https://")) { "VPS synchronization requires HTTPS" }
