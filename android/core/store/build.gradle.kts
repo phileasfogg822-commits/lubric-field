@@ -72,3 +72,9 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.room:room-testing:2.8.5")
 }
+
+// Robolectric downloads Android runtime artifacts at test execution time, outside
+// Gradle's normal dependency resolver. Use Maven Central's canonical endpoint.
+tasks.withType<Test>().configureEach {
+    systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+}
