@@ -309,6 +309,9 @@ jobs:
             -Pwl.design.defaultLargeTouchTargets=true \
             -Pwl.paymentMethods=cash:Cash,insurance:Insurance
 
+      - name: "17.1 Compile Compose UI instrumentation tests"
+        run: ./gradlew :feature:items:assembleDebugAndroidTest --stacktrace --no-daemon
+
       - name: "18. Inspect and record APK artifact evidence"
         shell: bash
         run: |
