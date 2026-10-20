@@ -19,6 +19,8 @@ class ItemsViewModel @Inject constructor(
     suspend fun load(scope: OperationalScope): List<OperationalRecord> =
         repository.list(scope, "products")
 
+    suspend fun delete(scope: OperationalScope, id: String) = repository.delete(scope, "products", id)
+
     suspend fun save(scope: OperationalScope, id: String, payloadJson: String, revision: Long = 0) =
         repository.save(scope, "products", id, payloadJson, revision)
 }
