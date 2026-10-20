@@ -5,6 +5,7 @@ import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.filter
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
 import org.json.JSONObject
@@ -30,13 +31,33 @@ class RoomVpsBusinessRepository @Inject constructor(
     private val database: AppDatabase,
 ) : OperationalBusinessRepository {
     override fun observe(scope: OperationalScope, table: String): Flow<List<OperationalRecord>> =
-        observe(scope.tenantId, scope.businessId, table).map { rows -> rows.map { OperationalRecord(it.entityId, it.payloadJson) } }
+        observe(scope.tenantId, scope.businessId, table).map { rows -> rows.filterNot { JSONObject(it.payloadJson).optBoolean("_deleted", false) }.map { OperationalRecord(it.entityId, it.payloadJson) } }
 
     override suspend fun list(scope: OperationalScope, table: String): List<OperationalRecord> =
-        list(scope.tenantId, scope.businessId, table).map { OperationalRecord(it.entityId, it.payloadJson) }
+        list(scope.tenantId, scope.businessId, table).filterNot { JSONObject(it.payloadJson).optBoolean("_deleted", false) }.map { OperationalRecord(it.entityId, it.payloadJson) }
 
     override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) =
         saveOffline(SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId), table, id, json, revision)
+
+    private val deletableTypes = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
+
+    override suspend fun delete(scope: OperationalScope, table: String, id: String) {
+        validate(scope.tenantId, scope.businessId, table)
+        require(table in deletableTypes) { "Financial and inventory history requires a reversal, not deletion" }
+        require(scope.deviceId.isNotBlank() && id.isNotBlank())
+        val now = System.currentTimeMillis()
+        database.withTransaction {
+            val existing = requireNotNull(records.get(scope.tenantId, scope.businessId, table, id)) { "Record does not exist in scope" }
+            val tombstone = JSONObject(existing.payloadJson).put("_deleted", true).put("uuid", id).toString()
+            records.upsert(existing.copy(payloadJson = tombstone, updatedAt = now))
+            database.syncQueueDao().enqueue(SyncQueueEntity(
+                id = UUID.randomUUID().toString(), tenantId = scope.tenantId,
+                businessId = scope.businessId, entityType = table, entityId = id,
+                operation = "DELETE", payloadJson = tombstone, revision = 0,
+                status = "PENDING", createdAt = now, updatedAt = now, deviceId = scope.deviceId
+            ))
+        }
+    }
 
     private val allowedTypes = setOf(
         "products", "services", "customers", "vehicles", "vendors",
@@ -79,6 +100,7 @@ class RoomVpsBusinessRepository @Inject constructor(
         require(revision >= 0)
         val payload = JSONObject(payloadJson)
         require(payload.getString("uuid") == entityId) { "Payload UUID mismatch" }
+        require(!payload.optBoolean("_deleted", false)) { "Cannot save a tombstone as a live record" }
         val now = System.currentTimeMillis()
         database.withTransaction {
             val existing = records.get(identity.tenantId, identity.businessId, entityType, entityId)
