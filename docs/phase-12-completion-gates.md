@@ -28,3 +28,14 @@ Keep the smoke job on pushes. Run expensive full verification intentionally usin
 - These screens show entry/list functionality, **not verified full CRUD**. Do not claim edit/delete or automated navigation acceptance without tests.
 - GitHub Actions `39250508080` (Native Android CI) and `39250508036` (Phase 12 Segmented Verification) succeeded on the same commit.
 - PR #12 stays draft and unmerged; follow sequential Issue #19 for remaining verification and implementation.
+
+## 2026-10-20 GitHub Actions reconciliation and current 12B acceptance
+
+GitHub Actions is the sole active CI provider for this phase; earlier CircleCI-focused guidance above is historical and superseded. The last fully verified head before the current guard-test commit was `194b81a8`, with [Native Android CI 39370720005](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39370720005) and [Phase 12 Segmented Verification 39370720021](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39370720021) both successful.
+
+- **Verified implementation:** all six operational screens have scoped offline create/list/edit flows. `194b81a8` adds a six-module Room restart regression covering preserved fields, isolation and CREATE/UPDATE queue operations.
+- **Deletion safety:** `37d6ea92` adds a regression asserting incoming DELETE cannot remove local data or advance the cursor until an explicit tombstone contract is implemented. Its CI outcome must be checked before accepting the new test. Do not implement hard-delete on financial or stock records without backend and desktop contract agreement.
+- **Still open:** end-to-end safe delete/tombstone behavior, Compose navigation/backstack/loading/error/empty/localization tests, broader Room CRUD/restart/scope tests and inspection of same-commit Android lint, test reports and debug/release/white-label APK artifacts.
+- **12C:** receipt/retry/cursor/conflict/consent/security/desktop parity acceptance remains tracked in Issue #19; do not mark complete from green compilation alone.
+- **Release:** draft PR #12 must remain unmerged until explicit approval.
+
