@@ -17,6 +17,7 @@ import com.lubrcapp.lubrcapp.core.sync.SyncQueueStore
  */
 class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
     private companion object {
+        val DELETABLE_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
         val SUPPORTED_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "orders", "order_items", "expenses", "accounts", "account_transactions", "purchase_orders", "vendor_payables", "reminders", "inspections", "cash_movements", "reservations", "party_ledger", "commitments", "stock_movements", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
     }
 
@@ -92,9 +93,15 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                 require(change.entityType in SUPPORTED_TABLES) { "Unsupported VPS business table" }
                 require(change.entityId.isNotBlank())
                 require(change.payload != null) { "Incoming row payload required" }
-                require(change.operation != OperationType.DELETE) { "Delete requires explicit tombstone mapping" }
                 val json = JSONObject(requireNotNull(change.payload))
                 require(json.getString("uuid") == change.entityId) { "VPS row UUID mismatch" }
+                if (change.operation == OperationType.DELETE) {
+                    require(change.entityType in DELETABLE_TABLES && json.optBoolean("_deleted", false)) {
+                        "Delete requires an approved nonfinancial tombstone mapping"
+                    }
+                } else {
+                    require(!json.optBoolean("_deleted", false)) { "Tombstone must use DELETE operation" }
+                }
                 val pendingLocal = database.syncQueueDao().nextBatch(
                     identity.tenantId, identity.businessId,
                     listOf("PENDING", "FAILED"), Long.MAX_VALUE, 200
