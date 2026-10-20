@@ -386,4 +386,69 @@ class OperationalBusinessRoomIntegrationTest {
             assertTrue(repo.list(OperationalScope("tenant-b", "business-a", "device-a"), "products").isEmpty())
         } finally { db.close() }
     }
+    @Test fun localDeletePersistsTombstoneAndQueueAcrossRestart() = runBlocking {
+        val name = "operational-delete-restart"
+        context.deleteDatabase(name)
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+        fun open() = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .allowMainThreadQueries().build()
+        var db = open()
+        try {
+            var repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repo.save(scope, "products", "p-1", """{"uuid":"p-1","name":"Before"}""")
+            repo.delete(scope, "products", "p-1")
+            assertTrue(repo.list(scope, "products").isEmpty())
+            db.close()
+            db = open()
+            repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            assertTrue(repo.list(scope, "products").isEmpty())
+            assertTrue(org.json.JSONObject(requireNotNull(repo.get(scope.tenantId, scope.businessId, "products", "p-1")).payloadJson).getBoolean("_deleted"))
+            val pending = RoomSyncQueueStore(db).pending(identity, 20)
+            assertEquals(listOf(OperationType.CREATE, OperationType.DELETE), pending.map { it.operation })
+            assertTrue(pending.last().payload!!.contains("\"_deleted\":true"))
+            try {
+                repo.delete(scope, "accounts", "p-1")
+                fail("Financial history must not be deleted")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message!!.contains("reversal"))
+            }
+        } finally {
+            db.close()
+            context.deleteDatabase(name)
+        }
+    }
+
+    @Test fun remoteTombstoneUpdatesReplicaAndCursorAtomically() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Tenant", createdAt = now,
+                updatedAt = now, deviceId = identity.deviceId, syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Business", businessType = "RETAIL", currencyCode = "USD",
+                timezoneId = "UTC", createdAt = now, updatedAt = now,
+                deviceId = identity.deviceId, syncStatus = "LOCAL"
+            ))
+            val queue = RoomSyncQueueStore(db)
+            val create = SyncChange("create-1", "products", "p-1",
+                OperationType.CREATE, 1, """{"uuid":"p-1","name":"Remote"}""", 100L)
+            queue.applyRemoteAndSaveCursor(identity, listOf(create), "1")
+            val deletion = SyncChange("delete-1", "products", "p-1",
+                OperationType.DELETE, 2, """{"uuid":"p-1","_deleted":true}""", 200L)
+            queue.applyRemoteAndSaveCursor(identity, listOf(deletion), "2")
+            val scope = OperationalScope(identity.tenantId, identity.businessId, identity.deviceId)
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            assertTrue(repo.list(scope, "products").isEmpty())
+            assertEquals("2", queue.cursor(identity))
+            queue.applyRemoteAndSaveCursor(identity, listOf(deletion), "2")
+            assertEquals("2", queue.cursor(identity))
+        } finally { db.close() }
+    }
+
 }
