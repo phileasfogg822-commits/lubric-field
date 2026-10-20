@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp
 
+import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,6 +59,13 @@ fun MainNavigation(
     val dashboardState by dashboardViewModel.state.collectAsState()
     var showAccessControl by remember { mutableStateOf(false) }
     var selectedFeature by remember { mutableStateOf<String?>(null) }
+    // Keep Android system Back consistent with each feature's visible Back button.
+    BackHandler(enabled = selectedFeature != null || showAccessControl) {
+        when {
+            selectedFeature != null -> selectedFeature = null
+            showAccessControl -> showAccessControl = false
+        }
+    }
 
     val languageCode = when (val bootstrap = setupState.bootstrapState) {
         is BusinessBootstrapState.Ready -> {
