@@ -47,6 +47,40 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+    @Test fun offlineItemEditPreservesFieldsAndQueuesUpdateAcrossRestart() = runBlocking {
+        val name = "offline-item-edit-test"
+        context.deleteDatabase(name)
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+        fun open() = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .allowMainThreadQueries().build()
+        var db = open()
+        try {
+            val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repository.save(scope, "products", "product-edit",
+                """{"uuid":"product-edit","name":"Original","sku":"SKU-17","price":42}""")
+            val edited = org.json.JSONObject(repository.list(scope, "products").single().json)
+                .put("name", "Updated").toString()
+            repository.save(scope, "products", "product-edit", edited)
+            db.close()
+            db = open()
+            val reopened = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            val item = org.json.JSONObject(reopened.list(scope, "products").single().json)
+            assertEquals("Updated", item.getString("name"))
+            assertEquals("SKU-17", item.getString("sku"))
+            assertEquals(42, item.getInt("price"))
+            val operations = RoomSyncQueueStore(db).pending(identity, 20)
+            assertEquals(2, operations.size)
+            assertEquals(listOf(OperationType.CREATE, OperationType.UPDATE),
+                operations.map { it.operation })
+            assertTrue(reopened.list(OperationalScope("tenant-b", "business-a", "device-b"),
+                "products").isEmpty())
+        } finally {
+            db.close()
+            context.deleteDatabase(name)
+        }
+    }
+
     @Test fun rejectedIncomingBatchRollsBackRecordAndCursor() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
