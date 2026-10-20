@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -38,9 +40,11 @@ fun ItemsScreen(
     var name by remember(scope) { mutableStateOf("") }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
+    var deletingId by remember(scope) { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.items_save_error)
+    val deleteError = stringResource(R.string.items_delete_error)
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -88,7 +92,37 @@ fun ItemsScreen(
                 Button(onClick = { editingId = record.id; name = displayName }, enabled = !saving) {
                     Text(stringResource(R.string.items_edit, displayName))
                 }
+                Button(onClick = { deletingId = record.id }, enabled = !saving) {
+                    Text(stringResource(R.string.items_delete, displayName))
+                }
             }
         }
+    }
+    deletingId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { if (!saving) deletingId = null },
+            title = { Text(stringResource(R.string.items_delete_confirm)) },
+            text = { Text(stringResource(R.string.items_delete_warning)) },
+            confirmButton = {
+                TextButton(enabled = !saving, onClick = {
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            viewModel.delete(scope, id)
+                            if (editingId == id) { editingId = null; name = "" }
+                            deletingId = null
+                            error = null
+                        } catch (_: Exception) {
+                            error = deleteError
+                        } finally { saving = false }
+                    }
+                }) { Text(stringResource(R.string.items_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(enabled = !saving, onClick = { deletingId = null }) {
+                    Text(stringResource(R.string.items_cancel))
+                }
+            },
+        )
     }
 }
