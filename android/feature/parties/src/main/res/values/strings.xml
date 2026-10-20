@@ -6,4 +6,6 @@
     <string name="parties_saving">Saving…</string>
     <string name="parties_save">Save customer</string>
     <string name="parties_error">Unable to save customer locally</string>
+    <string name="parties_edit">Edit %1$s</string>
+    <string name="parties_cancel_edit">Cancel edit</string>
 </resources>
