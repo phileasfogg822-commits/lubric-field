@@ -28,6 +28,8 @@ jobs:
         run: |
           sudo chmod 666 /dev/kvm
       - name: Run Compose tests on Android emulator
+        env:
+          GRADLE_OPTS: "-Xmx4g -XX:MaxMetaspaceSize=768m -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=false"
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -37,7 +39,7 @@ jobs:
           working-directory: android
           script: |
             chmod +x gradlew
-            ./gradlew :feature:items:connectedDebugAndroidTest :feature:inventory:connectedDebugAndroidTest :feature:parties:connectedDebugAndroidTest :feature:sales:connectedDebugAndroidTest :feature:purchases:connectedDebugAndroidTest :feature:accounts:connectedDebugAndroidTest --stacktrace --no-daemon
+            ./gradlew :feature:items:connectedDebugAndroidTest :feature:inventory:connectedDebugAndroidTest :feature:parties:connectedDebugAndroidTest :feature:sales:connectedDebugAndroidTest :feature:purchases:connectedDebugAndroidTest :feature:accounts:connectedDebugAndroidTest --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=768m"
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
