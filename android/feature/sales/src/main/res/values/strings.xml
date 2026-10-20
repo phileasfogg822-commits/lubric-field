@@ -6,4 +6,6 @@
     <string name="sales_saving">Saving…</string>
     <string name="sales_save">Save order</string>
     <string name="sales_error">Unable to save order locally</string>
+    <string name="sales_edit">Edit %1$s</string>
+    <string name="sales_cancel_edit">Cancel edit</string>
 </resources>
