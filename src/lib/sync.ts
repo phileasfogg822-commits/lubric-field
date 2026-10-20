@@ -120,15 +120,28 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       pushed = data.applied?.length ?? 0;
       rejected = data.rejected?.length ?? 0;
       // Clear rows that were applied; keep rejected ones (with the error).
-      const appliedUuids = new Set((data.applied ?? []).map((x: any) => x.uuid));
-      const rejectedUuids = new Set((data.rejected ?? []).map((x: any) => x.uuid));
+      // A UUID is not an outbox operation ID: the same UUID can appear in
+      // different tables or have multiple queued edits. Never acknowledge
+      // every operation merely because the server accepted one UUID.
+      const byUuid = new Map<string, typeof outbox>();
+      for (const row of outbox) {
+        const group = byUuid.get(row.row_uuid) ?? [];
+        group.push(row);
+        byUuid.set(row.row_uuid, group);
+      }
+      const appliedUuids = new Set<string>((data.applied ?? []).map((x: any) => String(x.uuid)));
+      const rejectedUuids = new Set<string>((data.rejected ?? []).map((x: any) => String(x.uuid)));
       for (const r of outbox) {
-        if (appliedUuids.has(r.row_uuid) && !rejectedUuids.has(r.row_uuid)) {
+        // The existing server receipt only identifies UUID, so a batch with
+        // repeated UUIDs cannot be acknowledged unambiguously. Retain it for
+        // a future operation-scoped protocol rather than lose pending edits.
+        const unambiguous = byUuid.get(r.row_uuid)?.length === 1;
+        if (unambiguous && appliedUuids.has(r.row_uuid) && !rejectedUuids.has(r.row_uuid)) {
           await db.execute("DELETE FROM sync_outbox WHERE id = $1", [r.id]);
         } else {
           await db.execute(
             "UPDATE sync_outbox SET attempts = attempts + 1, last_error = $2 WHERE id = $1",
-            [r.id, "rejected by server"]
+            [r.id, unambiguous ? "rejected or unacknowledged by server" : "ambiguous UUID receipt; operation identity required"]
           );
         }
       }
