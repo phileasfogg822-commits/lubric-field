@@ -124,6 +124,38 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+    @Test fun unsupportedRemoteDeleteCannotEraseLocalDataOrAdvanceCursor() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val scope = OperationalScope("tenant-a", "business-a", "device-a")
+            val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+            val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repository.save(scope, "products", "product-delete-guard",
+                """{"uuid":"product-delete-guard","name":"Preserve me"}""")
+            val queue = RoomSyncQueueStore(db)
+            queue.applyRemoteAndSaveCursor(identity, emptyList(), "7")
+            val deletion = SyncChange(
+                "remote-delete", "products", "product-delete-guard",
+                OperationType.DELETE, 2,
+                """{"uuid":"product-delete-guard"}""", 100L
+            )
+            try {
+                queue.applyRemoteAndSaveCursor(identity, listOf(deletion), "8")
+                fail("Remote delete must not apply without a tombstone contract")
+            } catch (expected: IllegalArgumentException) {
+                assertTrue(expected.message?.contains("tombstone") == true)
+            }
+            assertEquals("7", queue.cursor(identity))
+            assertEquals("Preserve me", org.json.JSONObject(
+                repository.list(scope, "products").single().json
+            ).getString("name"))
+            assertEquals(1, queue.pending(identity, 20).size)
+        } finally {
+            db.close()
+        }
+    }
+
     @Test fun rejectedIncomingBatchRollsBackRecordAndCursor() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
