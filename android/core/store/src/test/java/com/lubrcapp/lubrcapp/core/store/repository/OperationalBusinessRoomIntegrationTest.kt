@@ -130,6 +130,19 @@ class OperationalBusinessRoomIntegrationTest {
         try {
             val scope = OperationalScope("tenant-a", "business-a", "device-a")
             val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = scope.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = scope.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = scope.businessId, tenantId = scope.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = scope.deviceId,
+                syncStatus = "LOCAL"
+            ))
             val repository = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
             repository.save(scope, "products", "product-delete-guard",
                 """{"uuid":"product-delete-guard","name":"Preserve me"}""")
