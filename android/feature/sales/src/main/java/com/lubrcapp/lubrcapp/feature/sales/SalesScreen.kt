@@ -37,7 +37,8 @@ fun SalesScreen(
     val records by remember(viewModel, scope) { viewModel.observe(scope) }
         .collectAsState(initial = emptyList())
     var description by remember(scope) { mutableStateOf("") }
-    var saving by remember { mutableStateOf(false) }
+    var editingId by remember(scope) { mutableStateOf<String?>(null) }
+    var saving by remember(scope) { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.sales_error)
@@ -61,8 +62,12 @@ fun SalesScreen(
                 saving = true
                 coroutineScope.launch {
                     try {
-                        val id = UUID.randomUUID().toString()
-                        viewModel.save(scope, id, JSONObject().put("uuid", id).put("description", value).toString())
+                        val id = editingId ?: UUID.randomUUID().toString()
+                        val existing = records.firstOrNull { it.id == id }
+                        val payload = existing?.let { JSONObject(it.json) } ?: JSONObject().put("uuid", id)
+                        payload.put("description", value)
+                        viewModel.save(scope, id, payload.toString())
+                        editingId = null
                         description = ""
                         error = null
                     } catch (_: Exception) {
@@ -73,12 +78,20 @@ fun SalesScreen(
                 }
             },
         ) { Text(if (saving) stringResource(R.string.sales_saving) else stringResource(R.string.sales_save)) }
+        if (editingId != null) {
+            Button(onClick = { editingId = null; description = "" }, enabled = !saving) {
+                Text(stringResource(R.string.sales_cancel_edit))
+            }
+        }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         LazyColumn {
             items(records, key = { it.id }) { record ->
-                Text(runCatching {
+                val displayName = runCatching {
                     JSONObject(record.json).optString("description", record.id)
-                }.getOrDefault(record.id))
+                }.getOrDefault(record.id)
+                Button(onClick = { editingId = record.id; description = displayName }, enabled = !saving) {
+                    Text(stringResource(R.string.sales_edit, displayName))
+                }
             }
         }
     }
