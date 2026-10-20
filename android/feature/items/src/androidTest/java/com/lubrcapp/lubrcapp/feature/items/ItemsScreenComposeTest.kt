@@ -1,9 +1,9 @@
 package com.lubrcapp.lubrcapp.feature.items
 
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -52,12 +52,12 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Save item offline").assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Edit Test item").performClick()
-        compose.onNodeWithText("Update item offline").assertExists()
+        compose.onNodeWithText("Update item offline").assertIsEnabled()
         compose.onNodeWithText("Delete Test item").performClick()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle { assertEquals(0, fake.deleted.size) }
         compose.onNodeWithText("Delete Test item").performClick()
-        compose.onNodeWithText("Delete item?").performClick()
+        compose.onAllNodesWithText("Delete item?")[1].performClick()
         compose.waitUntil(5000) { fake.deleted.size == 1 }
         compose.runOnIdle { assertEquals(0, fake.records.value.size) }
     }
