@@ -8,4 +8,9 @@
     <string name="items_update">Update item offline</string>
     <string name="items_cancel_edit">Cancel editing</string>
     <string name="items_edit">Edit %1$s</string>
+    <string name="items_delete">Delete %1$s</string>
+    <string name="items_delete_confirm">Delete item?</string>
+    <string name="items_delete_warning">This item will be hidden locally and its deletion queued for sync.</string>
+    <string name="items_delete_error">Unable to delete item</string>
+    <string name="items_cancel">Cancel</string>
 </resources>
