@@ -35,6 +35,9 @@ buildFeatures {
 }
 
 dependencies {
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     implementation(platform("androidx.compose:compose-bom:2026.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
