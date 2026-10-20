@@ -1,0 +1,49 @@
+name: Compose UI Emulator Tests
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/compose-ui-emulator.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: compose-emulator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable KVM
+        run: |
+          sudo chmod 666 /dev/kvm
+      - name: Run Compose tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          working-directory: android
+          script: |
+            chmod +x gradlew
+            ./gradlew :feature:items:connectedDebugAndroidTest --stacktrace --no-daemon
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-ui-emulator-reports
+          path: |
+            android/feature/*/build/outputs/androidTest-results/**
+            android/feature/*/build/reports/androidTests/**
+          if-no-files-found: warn
