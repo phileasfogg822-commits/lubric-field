@@ -81,6 +81,49 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+    @Test fun allOperationalModulesPersistOfflineEditsAcrossRestart() = runBlocking {
+        val name = "operational-modules-edit-test"
+        context.deleteDatabase(name)
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+        fun open() = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .allowMainThreadQueries().build()
+        var db = open()
+        try {
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            val modules = listOf(
+                "products" to "name", "stock_movements" to "description",
+                "customers" to "name", "orders" to "description",
+                "purchase_orders" to "description", "accounts" to "description"
+            )
+            modules.forEachIndexed { index, (table, field) ->
+                val id = "entry-$index"
+                repo.save(scope, table, id, org.json.JSONObject()
+                    .put("uuid", id).put(field, "Before").put("reference", "REF-$index").toString())
+                val edited = org.json.JSONObject(repo.list(scope, table).single().json)
+                    .put(field, "After").toString()
+                repo.save(scope, table, id, edited)
+            }
+            db.close()
+            db = open()
+            val restored = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            modules.forEachIndexed { index, (table, field) ->
+                val row = org.json.JSONObject(restored.list(scope, table).single().json)
+                assertEquals("After", row.getString(field))
+                assertEquals("REF-$index", row.getString("reference"))
+                assertTrue(restored.list(
+                    OperationalScope("tenant-a", "business-other", "device-b"), table).isEmpty())
+            }
+            val queued = RoomSyncQueueStore(db).pending(identity, 100)
+            assertEquals(12, queued.size)
+            assertEquals(6, queued.count { it.operation == OperationType.CREATE })
+            assertEquals(6, queued.count { it.operation == OperationType.UPDATE })
+        } finally {
+            db.close()
+            context.deleteDatabase(name)
+        }
+    }
+
     @Test fun rejectedIncomingBatchRollsBackRecordAndCursor() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
