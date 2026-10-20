@@ -308,3 +308,32 @@ jobs:
             -Pwl.design.defaultTextScale=1.20 \
             -Pwl.design.defaultLargeTouchTargets=true \
             -Pwl.paymentMethods=cash:Cash,insurance:Insurance
+
+      - name: "18. Inspect and record APK artifact evidence"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance-evidence
+          find app/build/outputs/apk -type f -name '*.apk' -print | sort | tee acceptance-evidence/apk-files.txt
+          test -s acceptance-evidence/apk-files.txt
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk
+          while IFS= read -r apk; do
+            test -s "$apk"
+            sha256sum "$apk" >> acceptance-evidence/apk-sha256.txt
+          done < acceptance-evidence/apk-files.txt
+          cat acceptance-evidence/apk-sha256.txt
+          echo "Verified APK paths and SHA-256 hashes for commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "19. Upload APK and acceptance evidence"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-and-acceptance-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/**/*.apk
+            android/acceptance-evidence/**
+            android/**/build/test-results/**/*.xml
+            android/**/build/reports/lint-results*.html
+          if-no-files-found: warn
+          retention-days: 14
