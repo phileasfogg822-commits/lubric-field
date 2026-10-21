@@ -115,6 +115,14 @@ try {
   assert.equal((await syncNow(retryAdapter)).pulled, 2);
   assert.equal(retryDb.prepare("SELECT COUNT(*) AS n FROM products").get().n, 3);
   assert.equal(retryDb.prepare("SELECT value FROM sync_state WHERE key = 'pull_cursor'").get().value, "2");
+  retryDb.exec("CREATE TABLE account_transactions (uuid TEXT PRIMARY KEY, amount INTEGER NOT NULL);");
+  pull = { cursor: 3, changes: { account_transactions: [{ uuid: "ledger-1", amount: 100 }] } };
+  assert.equal((await syncNow(retryAdapter)).pulled, 1);
+  pull = { cursor: 4, changes: { account_transactions: [{ uuid: "ledger-1", amount: 999 }] } };
+  assert.equal((await syncNow(retryAdapter)).pulled, 1);
+  assert.equal(retryDb.prepare("SELECT amount FROM account_transactions WHERE uuid = 'ledger-1'").get().amount, 100);
+  assert.equal(retryDb.prepare("SELECT value FROM sync_state WHERE key = 'pull_cursor'").get().value, "4");
+  console.log("PASS immutable financial ledger replay preserves original posting");
   retryDb.close();
   console.log("PASS SQLite retry applies complete batch and advances cursor");
 } finally {
