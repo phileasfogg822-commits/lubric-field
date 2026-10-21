@@ -37,8 +37,13 @@ function preparePositional(conn, sql, values) {
     ordered.push(values[Number(index) - 1]);
     return "?";
   });
+  if (values.length && !ordered.length && !normalized.includes("?")) {
+    throw new Error("SQL test adapter found values without recognized placeholders");
+  }
   return { statement: conn.prepare(normalized), args: ordered.length ? ordered : values };
 }
+assert.deepEqual(preparePositional(db, "SELECT $2, $1", ["one", "two"]).args, ["two", "one"]);
+console.log("PASS SQLite numbered placeholder translation");
 const adapter = {
   async select(sql, values = []) {
     return preparePositional(db, sql, values).statement.all(...preparePositional(db, sql, values).args);
