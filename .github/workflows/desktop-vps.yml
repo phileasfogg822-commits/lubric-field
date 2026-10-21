@@ -40,6 +40,10 @@ jobs:
         run: |
           node --check scripts/test-desktop-sync.mjs
           node --check scripts/test-desktop-sqlite.mjs
+      - name: Syntax-check synchronization test harnesses
+        run: |
+          node --check scripts/test-desktop-sync.mjs
+          node --check scripts/test-desktop-sqlite.mjs
       - name: Type-check and build desktop/web
         run: npm run build
   vps:
