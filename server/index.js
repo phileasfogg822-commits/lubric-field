@@ -828,11 +828,12 @@ app.post('/api/v1/push', async (req, res) => {
       }
       if (op === 'delete') {
         if (meta.softDelete) {
-          await client.query(
+          const deleted = await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() WHERE uuid = $1 AND shop_id = $2`,
             [uuid, shopId]
           );
-          applied.push({ table, uuid, op, operationId });
+          if (deleted.rowCount > 0) applied.push({ table, uuid, op, operationId });
+          else rejected.push({ table, uuid, op, operationId, reason: 'record not found in device shop' });
         } else {
           rejected.push({ table, uuid, op, operationId, reason: 'delete not supported for ' + table });
         }
