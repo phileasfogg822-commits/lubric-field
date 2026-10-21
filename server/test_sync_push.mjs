@@ -29,7 +29,7 @@ const client = {
       if ((mode === 'conflict' || mode === 'other-shop')) return { rowCount: 0 };
       return { rowCount: 1 };
     }
-    if (statement.startsWith('SELECT shop_id FROM')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7 }] };
+    if (statement.startsWith('SELECT shop_id FROM')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7, replay_matches: mode !== 'mismatched-replay' }] };
     if (statement.startsWith('UPDATE products SET deleted_at')) return { rowCount: 0 };
     if (statement.startsWith('SELECT id FROM cash_movements')) return { rows: [{ id: 1 }] };
     return { rowCount: 1, rows: [] };
@@ -109,3 +109,9 @@ assert.equal(batch.body.applied.length, 0);
 assert.equal(batch.statements.filter(x => x.startsWith('ROLLBACK TO SAVEPOINT')).length, 2);
 assert.ok(batch.statements.includes('COMMIT'));
 console.log('PASS multiple rejected changes do not abort transaction');
+
+result = await run([change('party_ledger', 'ledger-1', { amount: 999 })], 'mismatched-replay');
+assert.equal(result.body.applied.length, 0);
+assert.equal(result.body.rejected.length, 1);
+assert.ok(result.queries.some(x => x.statement.includes('amount IS NOT DISTINCT FROM')));
+console.log('PASS immutable UUID replay with changed amount is rejected');
