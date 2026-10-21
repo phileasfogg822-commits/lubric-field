@@ -64,11 +64,12 @@ INSERT OR IGNORE INTO sync_state (key, value) VALUES ('pull_cursor', '0');
 
 let schemaReady = new WeakMap<object, Promise<void>>();
 function ensureOutbox(db: any): Promise<void> {
-  let ready = schemaReady.get(db);
-  if (!ready) {
-    ready = db.execute(OUTBOX_SCHEMA).catch((e: unknown) => { schemaReady.delete(db); throw e; });
-    schemaReady.set(db, ready);
-  }
+  const existing = schemaReady.get(db);
+  if (existing) return existing;
+  const ready: Promise<void> = Promise.resolve(db.execute(OUTBOX_SCHEMA))
+    .then(() => undefined)
+    .catch((e: unknown) => { schemaReady.delete(db); throw e; });
+  schemaReady.set(db, ready);
   return ready;
 }
 
