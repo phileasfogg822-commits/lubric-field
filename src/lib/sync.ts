@@ -154,8 +154,8 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
         !Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
       throw new Error("Invalid or regressing server sync cursor");
     }
-    if (data.changes === null || typeof data.changes !== "object" ||
-        Array.isArray(data.changes)) throw new Error("Invalid server change batch");
+    if (data.changes !== undefined && (data.changes === null || typeof data.changes !== "object" ||
+        Array.isArray(data.changes))) throw new Error("Invalid server change batch");
     const statements: Array<{ sql: string; values: unknown[] }> = [];
     for (const [table, rows] of Object.entries(data.changes ?? {}) as [string, any[]][]) {
       if (!(SYNC_TABLES as readonly string[]).includes(table))
