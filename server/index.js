@@ -847,7 +847,9 @@ app.post('/api/v1/push', async (req, res) => {
       const cols = ['uuid', 'shop_id'];
       const vals = [uuid, shopId];
       for (const [k, v] of Object.entries(row)) {
-        if (k === 'id' || k === 'uuid' || k === 'shop_id' || !valid.has(k)) continue;
+        if (k === 'id' || k === 'uuid' || k === 'shop_id' ||
+            (table === 'cash_movements' && (k === 'posted_at' || k === 'taken_by_device_id')) ||
+            !valid.has(k)) continue;
         cols.push(k);
         vals.push(v);
       }
