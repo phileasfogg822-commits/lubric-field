@@ -10,6 +10,10 @@ const start = source.indexOf("app.post('/api/v1/push',");
 const end = source.indexOf('// ─── App update distribution', start);
 assert.ok(start >= 0 && end > start, 'production push handler located');
 const handlerSource = source.slice(start, end);
+const tableStart = source.indexOf('const SYNC_TABLES =');
+const tableEnd = source.indexOf('\n};', tableStart);
+assert.ok(tableStart >= 0 && tableEnd > tableStart, 'production sync table configuration located');
+const SYNC_TABLES = vm.runInNewContext(source.slice(tableStart, tableEnd + 3).replace('const SYNC_TABLES =', '(').replace(/;\s*$/, ')'));
 let handler;
 const sql = [];
 let mode = '';
@@ -37,7 +41,7 @@ vm.runInNewContext(handlerSource, {
   app, pool: { connect: async () => client },
   query: async () => ({ rowCount: 1 }),
   postFieldCollection: async () => { posted++; },
-  Set, String, Date, Object, console,
+  SYNC_TABLES, Set, String, Date, Object, console,
 });
 assert.equal(typeof handler, 'function');
 
