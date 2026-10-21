@@ -865,9 +865,12 @@ app.post('/api/v1/push', async (req, res) => {
         .filter((c) => c !== 'uuid' && c !== 'shop_id')
         .map((c) => `${c} = EXCLUDED.${c}`)
         .join(', ');
+      const immutableLedger = new Set(['account_transactions', 'cash_movements', 'stock_movements', 'party_ledger']);
+      const conflictAction = immutableLedger.has(table)
+        ? 'DO NOTHING'
+        : `DO UPDATE SET ${updateSet} WHERE ${table}.shop_id = EXCLUDED.shop_id AND ${table}.updated_at <= EXCLUDED.updated_at`;
       const sqlText = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')})
-        ON CONFLICT (uuid) DO UPDATE SET ${updateSet}
-        WHERE ${table}.shop_id = EXCLUDED.shop_id AND ${table}.updated_at <= EXCLUDED.updated_at`;
+        ON CONFLICT (uuid) ${conflictAction}`;
       try {
         const write = await client.query(sqlText, vals);
         // A UUID collision with another shop must never be acknowledged as
