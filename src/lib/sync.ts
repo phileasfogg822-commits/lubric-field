@@ -194,6 +194,15 @@ async function runSyncRound(db: any): Promise<{ pushed: number; rejected: number
           throw new Error("Sync row missing UUID");
         if (cols.some((col) => !/^[a-z][a-z0-9_]*$/i.test(col)))
           throw new Error("Invalid sync column");
+        // Reject nested objects and prototype-sensitive fields before constructing SQL.
+        // A sync response is untrusted input, even when received from a paired VPS.
+        if (cols.some((col) => col === "constructor" || col === "prototype" || col === "__proto__"))
+          throw new Error("Unsafe sync column");
+        if (cols.some((col) => {
+          const value = row[col];
+          return value !== null && typeof value === "object";
+        }))
+          throw new Error("Invalid sync value");
         const vals = cols.map((col) => row[col]);
         const placeholders = cols.map((_, i) => `$${i + 1}`);
         const updateSet = cols.filter((col) => col !== "uuid")
