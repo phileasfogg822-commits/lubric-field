@@ -43,6 +43,11 @@ export const SYNC_TABLES = [
   "warehouses", "warehouse_locations",
 ] as const;
 
+// Ledger entries are immutable: duplicate UUIDs must never overwrite a local posting.
+export const INSERT_ONLY_SYNC_TABLES = new Set<string>([
+  "account_transactions", "cash_movements", "stock_movements", "party_ledger",
+]);
+
 const OUTBOX_SCHEMA = `
 CREATE TABLE IF NOT EXISTS sync_outbox (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,7 +200,7 @@ async function runSyncRound(db: any): Promise<{ pushed: number; rejected: number
           .map((col) => `${col} = excluded.${col}`).join(", ");
         statements.push({
           sql: `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${placeholders.join(", ")})
-                ON CONFLICT(uuid) DO ${updateSet ? `UPDATE SET ${updateSet}` : "NOTHING"}`,
+                ON CONFLICT(uuid) DO ${INSERT_ONLY_SYNC_TABLES.has(table) ? "NOTHING" : updateSet ? `UPDATE SET ${updateSet}` : "NOTHING"}`,
           values: vals,
         });
       }
