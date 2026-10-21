@@ -64,7 +64,11 @@ const adapter = {
 try {
   db.exec("CREATE TABLE products (uuid TEXT PRIMARY KEY, name TEXT NOT NULL);");
   pull = { cursor: 1, changes: { products: [{ uuid: "first", name: "A" }] } };
-  assert.equal((await syncNow(adapter)).pulled, 1);
+  const firstRound = syncNow(adapter);
+  const concurrentRound = syncNow(adapter);
+  assert.equal(firstRound, concurrentRound, "Overlapping rounds must share one promise");
+  assert.equal((await firstRound).pulled, 1);
+  console.log("PASS overlapping sync calls share one round");
   assert.equal(db.prepare("SELECT value FROM sync_state WHERE key = 'pull_cursor'").get().value, "1");
   db.close();
   const reopened = new DatabaseSync(file);
