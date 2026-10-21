@@ -821,8 +821,11 @@ app.post('/api/v1/push', async (req, res) => {
     await client.query("SELECT set_config('app.shop_id', $1, true)", [String(shopId)]);
     for (const ch of changes.slice(0, 1000)) {
       const { table, uuid, op = 'insert', row, operationId } = ch || {};
-      const meta = SYNC_TABLES[table];
-      if (!meta || !uuid || typeof row !== 'object' || row === null) {
+      const meta = typeof table === 'string' && Object.prototype.hasOwnProperty.call(SYNC_TABLES, table)
+        ? SYNC_TABLES[table] : null;
+      if (!meta || typeof uuid !== 'string' || !uuid.trim() ||
+          (op !== 'insert' && op !== 'update' && op !== 'delete') ||
+          typeof row !== 'object' || row === null || Array.isArray(row)) {
         rejected.push({ table, uuid, op, operationId, reason: 'invalid change' });
         continue;
       }
