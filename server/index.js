@@ -867,9 +867,15 @@ app.post('/api/v1/push', async (req, res) => {
         .join(', ');
       const sqlText = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')})
         ON CONFLICT (uuid) DO UPDATE SET ${updateSet}
-        WHERE ${table}.updated_at <= EXCLUDED.updated_at`;
+        WHERE ${table}.shop_id = EXCLUDED.shop_id AND ${table}.updated_at <= EXCLUDED.updated_at`;
       try {
-        await client.query(sqlText, vals);
+        const write = await client.query(sqlText, vals);
+        // A UUID collision with another shop must never be acknowledged as
+        // applied, even when the database role bypasses row-level security.
+        if (write.rowCount === 0) {
+          rejected.push({ table, uuid, op, operationId, reason: 'conflict or different shop' });
+          continue;
+        }
         applied.push({ table, uuid, op, operationId });
         // A collection is not just a row: post it into the cash account and the
         // customer's Khata in the same transaction. Skipped for every other
