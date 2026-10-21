@@ -871,12 +871,27 @@ app.post('/api/v1/push', async (req, res) => {
         : `DO UPDATE SET ${updateSet} WHERE ${table}.shop_id = EXCLUDED.shop_id AND ${table}.updated_at <= EXCLUDED.updated_at`;
       const sqlText = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')})
         ON CONFLICT (uuid) ${conflictAction}`;
+      // PostgreSQL aborts a transaction after any statement error. A savepoint
+      // lets one rejected operation leave subsequent changes usable.
+      const savepoint = 'sync_change';
+      await client.query(`SAVEPOINT ${savepoint}`);
       try {
         const write = await client.query(sqlText, vals);
         // A UUID collision with another shop must never be acknowledged as
         // applied, even when the database role bypasses row-level security.
         if (write.rowCount === 0) {
-          rejected.push({ table, uuid, op, operationId, reason: 'conflict or different shop' });
+          // A same-shop immutable replay is an idempotent success, but a
+          // different-shop UUID collision or stale editable row is rejected.
+          const existing = await client.query(
+            `SELECT shop_id FROM ${table} WHERE uuid = $1`, [uuid]
+          );
+          if (immutableLedger.has(table) && existing.rows.length &&
+              String(existing.rows[0].shop_id) === String(shopId)) {
+            applied.push({ table, uuid, op, operationId });
+          } else {
+            rejected.push({ table, uuid, op, operationId, reason: 'conflict or different shop' });
+          }
+          await client.query(`RELEASE SAVEPOINT ${savepoint}`);
           continue;
         }
         applied.push({ table, uuid, op, operationId });
@@ -890,8 +905,11 @@ app.post('/api/v1/push', async (req, res) => {
           );
           if (r.rows.length) await postFieldCollection(client, r.rows[0], shopId);
         }
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
       } catch (e) {
-        rejected.push({ table, uuid, op, operationId, reason: e.message });
+        await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        rejected.push({ table, uuid, op, operationId, reason: 'change rejected' });
       }
     }
     await client.query('COMMIT');
