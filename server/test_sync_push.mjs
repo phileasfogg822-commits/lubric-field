@@ -22,7 +22,7 @@ const client = {
     }
     if (statement.startsWith('INSERT INTO')) {
       if (mode === 'statement-error') throw new Error('synthetic constraint violation');
-      if (mode === 'conflict') return { rowCount: 0 };
+      if ((mode === 'conflict' || mode === 'other-shop')) return { rowCount: 0 };
       return { rowCount: 1 };
     }
     if (statement.startsWith('SELECT shop_id FROM')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7 }] };
