@@ -148,25 +148,53 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
     const res = await fetch(`${base}/api/v1/pull?since=${cursor}`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`Pull failed: ${res.status}`);
     const data = await res.json();
+    // Validate the complete response before touching the local database.
+    const nextCursor = Number(data.cursor);
+    if (!Number.isSafeInteger(cursor) || cursor < 0 ||
+        !Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
+      throw new Error("Invalid or regressing server sync cursor");
+    }
+    if (data.changes === null || typeof data.changes !== "object" ||
+        Array.isArray(data.changes)) throw new Error("Invalid server change batch");
+    const statements: Array<{ sql: string; values: unknown[] }> = [];
     for (const [table, rows] of Object.entries(data.changes ?? {}) as [string, any[]][]) {
-      if (!(SYNC_TABLES as readonly string[]).includes(table) || !Array.isArray(rows)) continue;
+      if (!(SYNC_TABLES as readonly string[]).includes(table))
+        throw new Error(`Unexpected sync table: ${table}`);
+      if (!Array.isArray(rows)) throw new Error("Invalid sync rows");
       for (const row of rows) {
-        // Server id stays cloud-only; uuid is the local key.
-        const cols = Object.keys(row).filter((c) => c !== "id" && /^[a-z][a-z0-9_]*$/i.test(c));
-        if (!cols.includes("uuid")) throw new Error("Sync row missing UUID");
-        const vals = cols.map((c) => row[c]);
+        if (!row || typeof row !== "object" || Array.isArray(row))
+          throw new Error("Invalid sync row");
+        const cols = Object.keys(row).filter((col) => col !== "id");
+        if (!cols.includes("uuid") || typeof row.uuid !== "string" || !row.uuid)
+          throw new Error("Sync row missing UUID");
+        if (cols.some((col) => !/^[a-z][a-z0-9_]*$/i.test(col)))
+          throw new Error("Invalid sync column");
+        const vals = cols.map((col) => row[col]);
         const placeholders = cols.map((_, i) => `$${i + 1}`);
-        const updateSet = cols.filter((c) => c !== "uuid").map((c) => `${c} = excluded.${c}`).join(", ");
-        await db.execute(
-          `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${placeholders.join(", ")})
-           ON CONFLICT(uuid) DO UPDATE SET ${updateSet}`,
-          vals
-        );
-        pulled++;
+        const updateSet = cols.filter((col) => col !== "uuid")
+          .map((col) => `${col} = excluded.${col}`).join(", ");
+        statements.push({
+          sql: `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${placeholders.join(", ")})
+                ON CONFLICT(uuid) DO ${updateSet ? `UPDATE SET ${updateSet}` : "NOTHING"}`,
+          values: vals,
+        });
       }
     }
-    if (data.cursor === undefined || data.cursor === null) throw new Error("Missing server sync cursor");
-    await db.execute("UPDATE sync_state SET value = $1 WHERE key = 'pull_cursor'", [String(data.cursor)]);
+    // Record application and cursor advancement are one atomic unit.
+    // Any failed statement must leave both records and cursor unchanged.
+    await db.execute("BEGIN IMMEDIATE");
+    try {
+      for (const statement of statements) {
+        await db.execute(statement.sql, statement.values);
+        pulled++;
+      }
+      await db.execute("UPDATE sync_state SET value = $1 WHERE key = 'pull_cursor'", [String(nextCursor)]);
+      await db.execute("COMMIT");
+    } catch (error) {
+      await db.execute("ROLLBACK");
+      pulled = 0;
+      throw error;
+    }
     setStatus("idle");
   } catch (e: any) {
     setStatus("error", e?.message ?? String(e));
