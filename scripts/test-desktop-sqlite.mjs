@@ -31,18 +31,20 @@ vm.runInNewContext(code, {
 const { syncNow } = module.exports;
 // Tauri SQL accepts $1-style positional placeholders. Node node:sqlite binds
 // positional values reliably with ? placeholders; translate in the test adapter.
-function preparePositional(conn, sql, values) {
+function preparePositional(conn, sql, values = []) {
   const ordered = [];
-  const normalized = sql.replace(/\\$(\\d+)/g, (_, index) => {
-    ordered.push(values[Number(index) - 1]);
+  const normalized = sql.replace(/\$(\d+)/g, (_, index) => {
+    const position = Number(index) - 1;
+    assert.ok(position >= 0 && position < values.length, "Missing SQLite bind value");
+    ordered.push(values[position]);
     return "?";
   });
-  if (values.length && !ordered.length && !normalized.includes("?")) {
-    throw new Error("SQL test adapter found values without recognized placeholders");
-  }
-  return { statement: conn.prepare(normalized), args: ordered.length ? ordered : values };
+  assert.equal(ordered.length, values.length, "Unexpected SQLite bind values");
+  return { statement: conn.prepare(normalized), args: ordered };
 }
-assert.deepEqual(preparePositional(db, "SELECT $2, $1", ["one", "two"]).args, ["two", "one"]);
+// Verify binding translation independently of the integration test.
+const bindCheck = preparePositional(db, "SELECT $2 AS second, $1 AS first", ["A", "B"]);
+assert.deepEqual(bindCheck.statement.get(...bindCheck.args), { second: "B", first: "A" });
 console.log("PASS SQLite numbered placeholder translation");
 const adapter = {
   async select(sql, values = []) {
