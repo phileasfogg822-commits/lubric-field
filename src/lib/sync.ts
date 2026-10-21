@@ -63,6 +63,9 @@ INSERT OR IGNORE INTO sync_state (key, value) VALUES ('pull_cursor', '0');
 `;
 
 let schemaReady = new WeakMap<object, Promise<void>>();
+// Prevent overlapping sync rounds on the same database handle. An overlapping
+// pull could otherwise reuse a stale cursor or interleave outbox acknowledgments.
+const activeSyncs = new WeakMap<object, Promise<{ pushed: number; rejected: number; pulled: number }>>();
 function ensureOutbox(db: any): Promise<void> {
   const existing = schemaReady.get(db);
   if (existing) return existing;
@@ -96,7 +99,16 @@ function setStatus(s: SyncStatus, err = "") {
 }
 
 /** One sync round: push outbox → pull changes. Returns row counts. */
-export async function syncNow(db: any): Promise<{ pushed: number; rejected: number; pulled: number }> {
+export function syncNow(db: any): Promise<{ pushed: number; rejected: number; pulled: number }> {
+  const existing = activeSyncs.get(db);
+  if (existing) return existing;
+  const task = runSyncRound(db);
+  activeSyncs.set(db, task);
+  void task.finally(() => { if (activeSyncs.get(db) === task) activeSyncs.delete(db); }).catch(() => {});
+  return task;
+}
+
+async function runSyncRound(db: any): Promise<{ pushed: number; rejected: number; pulled: number }> {
   const base = getCloudBase();
   if (!base) throw new Error("Cloud URL not configured");
   if (!getDeviceToken()) throw new Error("Device pairing required before cloud sync");
