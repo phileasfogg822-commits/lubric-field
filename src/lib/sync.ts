@@ -121,7 +121,7 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       if (!data || !Array.isArray(data.applied) || !Array.isArray(data.rejected)) {
         throw new Error("Invalid synchronization acknowledgment response");
       }
-      const sentIds = new Set(changes.map((change) => change.operationId));
+      const sentIds = new Set<string>(changes.map((change: { operationId: string }) => change.operationId));
       pushed = 0;
       rejected = 0;
       // A receipt must acknowledge this exact outbox operation, not merely a
