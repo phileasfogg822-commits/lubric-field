@@ -78,3 +78,48 @@ for (const cursor of [-1, "NaN", 1.5]) {
   assert.equal(db.state.cursor, "0");
   console.log("PASS invalid cursor", cursor);
 }
+
+for (const scenario of [
+  { name: "invalid incoming table", pull: { cursor: 2, changes: { unknown_table: [{ uuid: "x" }] } } },
+  { name: "invalid incoming row", pull: { cursor: 2, changes: { products: [{ name: "no uuid" }] } } },
+  { name: "invalid incoming batch", pull: { cursor: 2, changes: [] } },
+  { name: "regressing cursor", pull: { cursor: -1, changes: {} } },
+]) {
+  response = { push: { applied: [], rejected: [] }, pull: scenario.pull };
+  const db = database([]);
+  await assert.rejects(syncNow(db));
+  assert.equal(db.state.cursor, "0", scenario.name + " must preserve cursor");
+  assert.ok(!db.state.statements.some((sql) => sql.startsWith("INSERT INTO products")), scenario.name);
+  console.log("PASS", scenario.name);
+}
+
+// Fault injection: a database failure after one applied row must issue ROLLBACK,
+// never COMMIT or a cursor advance. This is a protocol test with a test double,
+// NOT evidence of native Tauri SQLite connection-pool atomicity.
+response = {
+  push: { applied: [], rejected: [] },
+  pull: { cursor: 3, changes: { products: [{ uuid: "a", name: "A" }, { uuid: "b", name: "B" }] } },
+};
+const failedDb = database([]);
+let applied = 0;
+const originalExecute = failedDb.execute.bind(failedDb);
+failedDb.execute = async (sql, params) => {
+  if (sql.startsWith("INSERT INTO products") && ++applied === 2) {
+    throw new Error("synthetic disk failure");
+  }
+  return originalExecute(sql, params);
+};
+await assert.rejects(syncNow(failedDb), /synthetic disk failure/);
+assert.ok(failedDb.state.statements.includes("BEGIN IMMEDIATE"));
+assert.ok(failedDb.state.statements.includes("ROLLBACK"));
+assert.ok(!failedDb.state.statements.includes("COMMIT"));
+assert.equal(failedDb.state.cursor, "0");
+console.log("PASS failed incoming batch requests rollback and retains cursor");
+
+response = { push: { applied: [], rejected: [] }, pull: { cursor: 3, changes: { products: [{ uuid: "a", name: "A" }] } } };
+const retryDb = database([]);
+const retry = await syncNow(retryDb);
+assert.equal(retry.pulled, 1);
+assert.equal(retryDb.state.cursor, "3");
+assert.ok(retryDb.state.statements.includes("COMMIT"));
+console.log("PASS successful incoming retry commits cursor");
