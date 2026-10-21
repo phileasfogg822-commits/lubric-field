@@ -93,6 +93,18 @@ for (const scenario of [
   console.log("PASS", scenario.name);
 }
 
+for (const scenario of [
+  { name: "nested object sync value", pull: { cursor: 2, changes: { products: [{ uuid: "x", name: { nested: "unsafe" } }] } } },
+  { name: "nested array sync value", pull: { cursor: 2, changes: { products: [{ uuid: "x", name: ["unsafe"] }] } } },
+]) {
+  response = { push: { applied: [], rejected: [] }, pull: scenario.pull };
+  const db = database([]);
+  await assert.rejects(syncNow(db), /Invalid sync value/);
+  assert.equal(db.state.cursor, "0");
+  assert.ok(!db.state.statements.includes("BEGIN IMMEDIATE"));
+  console.log("PASS", scenario.name);
+}
+
 // Fault injection: a database failure after one applied row must issue ROLLBACK,
 // never COMMIT or a cursor advance. This is a protocol test with a test double,
 // NOT evidence of native Tauri SQLite connection-pool atomicity.
