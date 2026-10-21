@@ -6,6 +6,8 @@ on:
       - phase-12-completion
     paths:
       - "src/**"
+      - "scripts/test-desktop-sync.mjs"
+      - "scripts/test-desktop-sqlite.mjs"
       - "server/**"
       - "package.json"
       - "package-lock.json"
@@ -13,6 +15,8 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "scripts/test-desktop-sync.mjs"
+      - "scripts/test-desktop-sqlite.mjs"
       - "server/**"
       - "package.json"
       - "package-lock.json"
