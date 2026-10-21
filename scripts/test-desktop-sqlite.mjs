@@ -44,7 +44,9 @@ function preparePositional(conn, sql, values = []) {
 }
 // Verify binding translation independently of the integration test.
 const bindCheck = preparePositional(db, "SELECT $2 AS second, $1 AS first", ["A", "B"]);
-assert.deepEqual(bindCheck.statement.get(...bindCheck.args), { second: "B", first: "A" });
+const boundRow = bindCheck.statement.get(...bindCheck.args);
+assert.equal(boundRow.second, "B");
+assert.equal(boundRow.first, "A");
 console.log("PASS SQLite numbered placeholder translation");
 const adapter = {
   async select(sql, values = []) {
