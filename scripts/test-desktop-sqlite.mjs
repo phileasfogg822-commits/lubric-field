@@ -29,7 +29,17 @@ vm.runInNewContext(code, {
   fetch: async () => ({ ok: true, json: async () => pull }),
 }, { filename: "src/lib/sync.ts" });
 const { syncNow } = module.exports;
-// Tauri SQL accepts $1-style positional placeholders. Node node:sqlite binds\n// positional values reliably with ? placeholders; translate in the test adapter.\nfunction preparePositional(conn, sql, values) {\n  const ordered = [];\n  const normalized = sql.replace(/\\$(\\d+)/g, (_, index) => {\n    ordered.push(values[Number(index) - 1]);\n    return "?";\n  });\n  return { statement: conn.prepare(normalized), args: ordered.length ? ordered : values };\n}\nconst adapter = {
+// Tauri SQL accepts $1-style positional placeholders. Node node:sqlite binds
+// positional values reliably with ? placeholders; translate in the test adapter.
+function preparePositional(conn, sql, values) {
+  const ordered = [];
+  const normalized = sql.replace(/\\$(\\d+)/g, (_, index) => {
+    ordered.push(values[Number(index) - 1]);
+    return "?";
+  });
+  return { statement: conn.prepare(normalized), args: ordered.length ? ordered : values };
+}
+const adapter = {
   async select(sql, values = []) {
     return preparePositional(db, sql, values).statement.all(...preparePositional(db, sql, values).args);
   },
