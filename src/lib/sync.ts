@@ -118,22 +118,30 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       });
       if (!res.ok) throw new Error(`Push failed: ${res.status}`);
       const data = await res.json();
-      pushed = data.applied?.length ?? 0;
-      rejected = data.rejected?.length ?? 0;
+      if (!data || !Array.isArray(data.applied) || !Array.isArray(data.rejected)) {
+        throw new Error("Invalid synchronization acknowledgment response");
+      }
+      const sentIds = new Set(changes.map((change) => change.operationId));
+      pushed = 0;
+      rejected = 0;
       // A receipt must acknowledge this exact outbox operation, not merely a
       // UUID shared by several edits or tables. Legacy UUID-only receipts are
       // deliberately retained for retry instead of risking silent data loss.
       const appliedIds = new Set<string>((data.applied ?? [])
         .filter((x: any) => x.operationId !== undefined && x.operationId !== null)
-        .map((x: any) => String(x.operationId)));
+        .map((x: any) => String(x.operationId))
+        .filter((id: string) => sentIds.has(id)));
       const rejectedIds = new Set<string>((data.rejected ?? [])
         .filter((x: any) => x.operationId !== undefined && x.operationId !== null)
-        .map((x: any) => String(x.operationId)));
+        .map((x: any) => String(x.operationId))
+        .filter((id: string) => sentIds.has(id)));
       for (const r of outbox) {
         const operationId = String(r.id);
         if (appliedIds.has(operationId) && !rejectedIds.has(operationId)) {
           await db.execute("DELETE FROM sync_outbox WHERE id = $1", [r.id]);
+          pushed++;
         } else {
+          if (rejectedIds.has(operationId)) rejected++;
           await db.execute(
             "UPDATE sync_outbox SET attempts = attempts + 1, last_error = $2 WHERE id = $1",
             [r.id, rejectedIds.has(operationId) ? "rejected by server" : "missing or ambiguous operation receipt"]
