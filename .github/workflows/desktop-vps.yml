@@ -36,10 +36,6 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Validate JavaScript test syntax
-        run: |
-          node --check scripts/test-desktop-sync.mjs
-          node --check scripts/test-desktop-sqlite.mjs
       - name: Syntax-check synchronization test harnesses
         run: |
           node --check scripts/test-desktop-sync.mjs
