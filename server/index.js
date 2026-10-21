@@ -820,10 +820,10 @@ app.post('/api/v1/push', async (req, res) => {
     // security will hide the very rows the push is trying to write.
     await client.query("SELECT set_config('app.shop_id', $1, true)", [String(shopId)]);
     for (const ch of changes.slice(0, 1000)) {
-      const { table, uuid, op = 'insert', row } = ch || {};
+      const { table, uuid, op = 'insert', row, operationId } = ch || {};
       const meta = SYNC_TABLES[table];
       if (!meta || !uuid || typeof row !== 'object' || row === null) {
-        rejected.push({ uuid, reason: 'invalid change' });
+        rejected.push({ table, uuid, op, operationId, reason: 'invalid change' });
         continue;
       }
       if (op === 'delete') {
@@ -832,9 +832,9 @@ app.post('/api/v1/push', async (req, res) => {
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() WHERE uuid = $1 AND shop_id = $2`,
             [uuid, shopId]
           );
-          applied.push({ table, uuid, op });
+          applied.push({ table, uuid, op, operationId });
         } else {
-          rejected.push({ uuid, reason: 'delete not supported for ' + table });
+          rejected.push({ table, uuid, op, operationId, reason: 'delete not supported for ' + table });
         }
         continue;
       }
@@ -870,7 +870,7 @@ app.post('/api/v1/push', async (req, res) => {
         WHERE ${table}.updated_at <= EXCLUDED.updated_at`;
       try {
         await client.query(sqlText, vals);
-        applied.push({ table, uuid, op });
+        applied.push({ table, uuid, op, operationId });
         // A collection is not just a row: post it into the cash account and the
         // customer's Khata in the same transaction. Skipped for every other
         // table, which is why this is here and not in the generic insert.
@@ -882,7 +882,7 @@ app.post('/api/v1/push', async (req, res) => {
           if (r.rows.length) await postFieldCollection(client, r.rows[0], shopId);
         }
       } catch (e) {
-        rejected.push({ uuid, reason: e.message });
+        rejected.push({ table, uuid, op, operationId, reason: e.message });
       }
     }
     await client.query('COMMIT');
