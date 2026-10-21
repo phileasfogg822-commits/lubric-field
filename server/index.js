@@ -888,11 +888,27 @@ app.post('/api/v1/push', async (req, res) => {
         if (write.rowCount === 0) {
           // A same-shop immutable replay is an idempotent success, but a
           // different-shop UUID collision or stale editable row is rejected.
+          // Immutable UUID retries are successful only when the supplied
+          // business fields agree with the stored posting. Never acknowledge
+          // a conflicting amount or party as an idempotent replay.
+          const replayCols = cols.filter((c) =>
+            c !== 'uuid' && c !== 'shop_id' && c !== 'updated_at' &&
+            c !== 'taken_by_device_id' && c !== 'posted_at'
+          );
+          const replayPredicates = replayCols.map((c, i) =>
+            `${c} IS NOT DISTINCT FROM ${i + 2}`
+          );
+          const replayVals = replayCols.map((c) => vals[cols.indexOf(c)]);
           const existing = await client.query(
-            `SELECT shop_id FROM ${table} WHERE uuid = $1`, [uuid]
+            `SELECT shop_id${replayPredicates.length
+              ? ', (' + replayPredicates.join(' AND ') + ') AS replay_matches'
+              : ', TRUE AS replay_matches'}
+             FROM ${table} WHERE uuid = $1`,
+            [uuid, ...replayVals]
           );
           if (immutableLedger.has(table) && existing.rows.length &&
-              String(existing.rows[0].shop_id) === String(shopId)) {
+              String(existing.rows[0].shop_id) === String(shopId) &&
+              existing.rows[0].replay_matches === true) {
             applied.push({ table, uuid, op, operationId });
           } else {
             rejected.push({ table, uuid, op, operationId, reason: 'conflict or different shop' });
