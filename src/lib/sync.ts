@@ -109,7 +109,7 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
     const outbox = await db.select("SELECT id, table_name, row_uuid, op, payload FROM sync_outbox ORDER BY id LIMIT 200");
     if (outbox.length) {
       const changes = outbox.map((r: any) => ({
-        table: r.table_name, uuid: r.row_uuid, op: r.op, row: JSON.parse(r.payload),
+        table: r.table_name, uuid: r.row_uuid, op: r.op, operationId: String(r.id), row: JSON.parse(r.payload),
       }));
       const res = await fetch(`${base}/api/v1/push`, {
         method: "POST",
@@ -120,29 +120,23 @@ export async function syncNow(db: any): Promise<{ pushed: number; rejected: numb
       const data = await res.json();
       pushed = data.applied?.length ?? 0;
       rejected = data.rejected?.length ?? 0;
-      // Clear rows that were applied; keep rejected ones (with the error).
-      // A UUID is not an outbox operation ID: the same UUID can appear in
-      // different tables or have multiple queued edits. Never acknowledge
-      // every operation merely because the server accepted one UUID.
-      const byUuid = new Map<string, typeof outbox>();
-      for (const row of outbox) {
-        const group = byUuid.get(row.row_uuid) ?? [];
-        group.push(row);
-        byUuid.set(row.row_uuid, group);
-      }
-      const appliedUuids = new Set<string>((data.applied ?? []).map((x: any) => String(x.uuid)));
-      const rejectedUuids = new Set<string>((data.rejected ?? []).map((x: any) => String(x.uuid)));
+      // A receipt must acknowledge this exact outbox operation, not merely a
+      // UUID shared by several edits or tables. Legacy UUID-only receipts are
+      // deliberately retained for retry instead of risking silent data loss.
+      const appliedIds = new Set<string>((data.applied ?? [])
+        .filter((x: any) => x.operationId !== undefined && x.operationId !== null)
+        .map((x: any) => String(x.operationId)));
+      const rejectedIds = new Set<string>((data.rejected ?? [])
+        .filter((x: any) => x.operationId !== undefined && x.operationId !== null)
+        .map((x: any) => String(x.operationId)));
       for (const r of outbox) {
-        // The existing server receipt only identifies UUID, so a batch with
-        // repeated UUIDs cannot be acknowledged unambiguously. Retain it for
-        // a future operation-scoped protocol rather than lose pending edits.
-        const unambiguous = byUuid.get(r.row_uuid)?.length === 1;
-        if (unambiguous && appliedUuids.has(r.row_uuid) && !rejectedUuids.has(r.row_uuid)) {
+        const operationId = String(r.id);
+        if (appliedIds.has(operationId) && !rejectedIds.has(operationId)) {
           await db.execute("DELETE FROM sync_outbox WHERE id = $1", [r.id]);
         } else {
           await db.execute(
             "UPDATE sync_outbox SET attempts = attempts + 1, last_error = $2 WHERE id = $1",
-            [r.id, unambiguous ? "rejected or unacknowledged by server" : "ambiguous UUID receipt; operation identity required"]
+            [r.id, rejectedIds.has(operationId) ? "rejected by server" : "missing or ambiguous operation receipt"]
           );
         }
       }
