@@ -85,3 +85,27 @@ assert.ok(!insert.params.includes(999));
 assert.ok(insert.params.includes(5));
 assert.equal(result.posted, 1);
 console.log('PASS cash posting and attribution cannot be spoofed');
+
+for (const invalid of [
+  change('constructor', 'bad-1', { amount: 1 }),
+  change('products', 123, { amount: 1 }),
+  change('products', 'p-1', [], 'insert'),
+  change('products', 'p-1', { amount: 1 }, 'truncate'),
+]) {
+  const response = await run([invalid], '');
+  assert.equal(response.status, 200);
+  assert.equal(response.body.rejected.length, 1);
+  assert.equal(response.body.applied.length, 0);
+  assert.ok(!response.statements.some(x => x.startsWith('INSERT INTO')));
+}
+console.log('PASS malformed and inherited-table changes rejected without SQL');
+
+const batch = await run([
+  change('products', 'bad', { amount: 1 }),
+  change('party_ledger', 'good', { amount: 1 }),
+], 'statement-error');
+assert.equal(batch.body.rejected.length, 2);
+assert.equal(batch.body.applied.length, 0);
+assert.equal(batch.statements.filter(x => x.startsWith('ROLLBACK TO SAVEPOINT')).length, 2);
+assert.ok(batch.statements.includes('COMMIT'));
+console.log('PASS multiple rejected changes do not abort transaction');
