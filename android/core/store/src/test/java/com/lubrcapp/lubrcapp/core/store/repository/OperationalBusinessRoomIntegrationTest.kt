@@ -356,6 +356,64 @@ class OperationalBusinessRoomIntegrationTest {
         }
     }
 
+    @Test fun failedUploadResumesAfterBackoffElapses() = runBlocking {
+        val name = "sync-retry-resume-test"
+        context.deleteDatabase(name)
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val identity = SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId)
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .allowMainThreadQueries().build()
+        try {
+            RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db).save(
+                scope, "products", "product-resume",
+                """{"uuid":"product-resume","name":"Offline resume"}"""
+            )
+            val queue = RoomSyncQueueStore(db)
+            val operation = queue.pending(identity, 20).single()
+            queue.markRetry(identity, setOf(operation.operationId))
+            assertTrue(queue.pending(identity, 20).isEmpty())
+            val failed = db.syncQueueDao().findById(
+                identity.tenantId, identity.businessId, operation.operationId
+            )
+            assertEquals("FAILED", failed?.status)
+            // Simulate the persisted backoff having elapsed.
+            db.syncQueueDao().updateState(
+                identity.tenantId, identity.businessId, operation.operationId,
+                "FAILED", failed!!.attemptCount, failed.lastError,
+                System.currentTimeMillis() - 1, System.currentTimeMillis(),
+            )
+            val resumed = queue.pending(identity, 20)
+            assertEquals(listOf(operation.operationId), resumed.map { it.operationId })
+            val transport = object : com.lubrcapp.lubrcapp.core.sync.SyncTransport {
+                override suspend fun exchange(batch: com.lubrcapp.lubrcapp.core.sync.SyncBatch) =
+                    com.lubrcapp.lubrcapp.core.sync.SyncResponse(
+                        listOf(
+                            com.lubrcapp.lubrcapp.core.sync.SyncReceipt(
+                                operation.operationId,
+                                com.lubrcapp.lubrcapp.core.sync.SyncOutcome.ACCEPTED,
+                            )
+                        ),
+                        emptyList(),
+                        "0",
+                    )
+            }
+            val result = com.lubrcapp.lubrcapp.core.sync.SyncEngine(queue, transport)
+                .run(com.lubrcapp.lubrcapp.core.sync.StorageMode.CLOUD_SYNC, identity)
+            assertEquals(1, result.uploaded)
+            assertEquals(0, result.retryable)
+            assertEquals(
+                "SYNCED",
+                db.syncQueueDao().findById(
+                    identity.tenantId, identity.businessId, operation.operationId
+                )?.status,
+            )
+            assertTrue(queue.pending(identity, 20).isEmpty())
+        } finally {
+            db.close()
+            context.deleteDatabase(name)
+        }
+    }
+
     @Test fun incomingRecordAndCursorAreCommittedTogether() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries().build()
