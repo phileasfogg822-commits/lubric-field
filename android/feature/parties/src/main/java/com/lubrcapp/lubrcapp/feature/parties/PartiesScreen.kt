@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,9 +41,11 @@ fun PartiesScreen(
     var description by remember(scope) { mutableStateOf("") }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
+    var deletingId by remember(scope) { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.parties_error)
+    val deleteError = stringResource(R.string.parties_delete_error)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -92,7 +96,37 @@ fun PartiesScreen(
                 Button(onClick = { editingId = record.id; description = displayName }, enabled = !saving) {
                     Text(stringResource(R.string.parties_edit, displayName))
                 }
+                Button(onClick = { deletingId = record.id }, enabled = !saving) {
+                    Text(stringResource(R.string.parties_delete, displayName))
+                }
             }
         }
+    }
+    deletingId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { if (!saving) deletingId = null },
+            title = { Text(stringResource(R.string.parties_delete_confirm)) },
+            text = { Text(stringResource(R.string.parties_delete_warning)) },
+            confirmButton = {
+                TextButton(enabled = !saving, onClick = {
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            viewModel.delete(scope, id)
+                            if (editingId == id) { editingId = null; description = "" }
+                            deletingId = null
+                            error = null
+                        } catch (_: Exception) {
+                            error = deleteError
+                        } finally { saving = false }
+                    }
+                }) { Text(stringResource(R.string.parties_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(enabled = !saving, onClick = { deletingId = null }) {
+                    Text(stringResource(R.string.parties_cancel))
+                }
+            },
+        )
     }
 }

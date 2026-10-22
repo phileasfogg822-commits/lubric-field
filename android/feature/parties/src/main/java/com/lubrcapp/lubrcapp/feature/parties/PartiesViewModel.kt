@@ -19,6 +19,9 @@ class PartiesViewModel @Inject constructor(
     suspend fun load(scope: OperationalScope): List<OperationalRecord> =
         repository.list(scope, "customers")
 
+    /** Customers are nonfinancial master data: the repository soft-deletes with a tombstone and queues the DELETE. */
+    suspend fun delete(scope: OperationalScope, id: String) = repository.delete(scope, "customers", id)
+
     suspend fun save(scope: OperationalScope, id: String, payloadJson: String, revision: Long = 0) =
         repository.save(scope, "customers", id, payloadJson, revision)
 }

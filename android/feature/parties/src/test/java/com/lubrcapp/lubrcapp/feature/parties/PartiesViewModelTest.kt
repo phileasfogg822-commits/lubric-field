@@ -28,11 +28,21 @@ class PartiesViewModelTest {
                 assertEquals("device-a", scope.deviceId)
                 calls.add("save:" + table + ":" + id + ":" + revision)
             }
+            override suspend fun delete(scope: OperationalScope, table: String, id: String) {
+                assertEquals("tenant-a", scope.tenantId)
+                assertEquals("business-a", scope.businessId)
+                assertEquals("device-a", scope.deviceId)
+                calls.add("delete:" + table + ":" + id)
+            }
         }
         val vm = PartiesViewModel(fake)
         vm.save(scope, "record-1", "{}", 7)
         assertEquals(1, vm.load(scope).size)
         vm.observe(scope)
-        assertEquals(listOf("save:customers:record-1:7", "list:customers", "observe:customers"), calls)
+        vm.delete(scope, "record-1")
+        assertEquals(
+            listOf("save:customers:record-1:7", "list:customers", "observe:customers", "delete:customers:record-1"),
+            calls,
+        )
     }
 }

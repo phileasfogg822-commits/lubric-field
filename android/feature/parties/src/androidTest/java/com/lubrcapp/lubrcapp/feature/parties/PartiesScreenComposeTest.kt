@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.feature.parties
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -23,12 +24,17 @@ class PartiesScreenComposeTest {
 
     private class FakeRepository : OperationalBusinessRepository {
         val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
+        val deleted = mutableListOf<String>()
         var saves = 0
         override fun observe(scope: OperationalScope, table: String) = records
         override suspend fun list(scope: OperationalScope, table: String) = records.value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
             saves++
             records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
+        }
+        override suspend fun delete(scope: OperationalScope, table: String, id: String) {
+            deleted.add(id)
+            records.value = records.value.filterNot { it.id == id }
         }
     }
 
@@ -54,5 +60,19 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Save customer").performClick()
         compose.waitUntil(5000) { fake.saves == 2 }
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+    }
+
+    @Test fun createAndConfirmDelete() {
+        val fake = FakeRepository()
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        compose.onNodeWithText("Customer").performTextInput("Sample")
+        compose.onNodeWithText("Save customer").performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Delete Sample").performClick()
+        compose.runOnIdle { assertEquals(0, fake.deleted.size) }
+        compose.onNodeWithText("Delete Sample").performClick()
+        compose.onAllNodesWithText("Delete customer?")[1].performClick()
+        compose.waitUntil(5000) { fake.deleted.size == 1 }
+        compose.runOnIdle { assertEquals(0, fake.records.value.size) }
     }
 }
