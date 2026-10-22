@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
@@ -63,6 +64,22 @@ class ItemsScreenComposeTest {
         compose.onAllNodesWithText("Delete item?")[1].performClick()
         compose.waitUntil(5000) { fake.deleted.size == 1 }
         compose.runOnIdle { assertEquals(0, fake.records.value.size) }
+    }
+
+    @Test fun editSaveUpdatesExistingRecord() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Item name").performTextInput("Test item")
+        compose.onNodeWithText("Save item offline").performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Edit Test item").performClick()
+        compose.onNodeWithText("Item name").performTextReplacement("Test item v2")
+        compose.onNodeWithText("Update item offline").performClick()
+        compose.waitUntil(5000) {
+            fake.records.value.singleOrNull()?.json?.contains("Test item v2") == true
+        }
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+        compose.onNodeWithText("Edit Test item v2").assertIsDisplayed()
     }
 
     @Test fun emptyStateIsShownWhenNoRecords() {

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class AccountsViewModelTest {
@@ -35,4 +36,22 @@ class AccountsViewModelTest {
         vm.observe(scope)
         assertEquals(listOf("save:accounts:record-1:7", "list:accounts", "observe:accounts"), calls)
     }
+
+    @Test fun saveFailurePropagatesToCaller() {
+        val scope = OperationalScope("tenant-a", "business-a", "device-a")
+        val fake = object : OperationalBusinessRepository {
+            override fun observe(scope: OperationalScope, table: String): Flow<List<OperationalRecord>> =
+                flowOf(emptyList())
+            override suspend fun list(scope: OperationalScope, table: String): List<OperationalRecord> = emptyList()
+            override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
+                throw IllegalStateException("storage unavailable")
+            }
+        }
+        val vm = AccountsViewModel(fake)
+        val thrown = assertThrows(IllegalStateException::class.java) {
+            runBlocking { vm.save(scope, "record-1", "{}") }
+        }
+        assertEquals("storage unavailable", thrown.message)
+    }
 }
+
