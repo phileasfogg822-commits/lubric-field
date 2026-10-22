@@ -609,3 +609,119 @@ parameter is exercised by ~20 direct three-argument store call sites in
 core:store tests — Kotlin inherits the interface default through the
 override, and if that assumption failed anywhere it would surface as a
 compile error in those test files, not as a behavior change.
+
+## 2026-10-23 Package 10 (12B flow acceptance + 12B-10 Room CRUD/isolation) — PENDING CI
+
+Prepared locally; **not accepted** until this package is pushed and all four
+workflows are green on the resulting head. No production code changes and no
+defect found: every new test pins behavior the production code already
+implements. The audit first established what the tree already proves, module
+by module, so this package adds only the missing legs instead of duplicating
+coverage.
+
+### What already existed (cited, not rewritten)
+
+- **Compose create/edit round trip, all six modules** (androidTest):
+  `createAndEditRecordOffline` in the Inventory, Parties, Sales, Purchases
+  and Accounts screen tests — create, enter edit, cancel edit (asserts no
+  extra save), re-enter edit, save (asserts exactly 2 saves and still 1
+  record). Items had the same legs split across `createEditAndConfirmDelete`,
+  which entered edit mode but never completed the edit-save (closed below).
+  Empty-state and save-error legs per module are Package 5 (12B-08 accepted).
+- **ViewModel delegation, all six modules**: each `*ViewModelTest` proves
+  save/list/observe hit the scoped repository with the module's own table
+  (products, stock_movements, customers, orders, purchase_orders, accounts)
+  and the exact scope. Parties also proves delete delegation (12B-04).
+- **Room create/edit persistence**: `OperationalBusinessRoomIntegrationTest`
+  — `offlineWriteSurvivesDatabaseRestartAndQueuesUpload` (create + CREATE
+  op + restart + per-device queue isolation),
+  `offlineItemEditPreservesFieldsAndQueuesUpdateAcrossRestart` (edit keeps
+  untouched fields, queues CREATE then UPDATE, survives restart),
+  `allOperationalModulesPersistOfflineEditsAcrossRestart` (all six module
+  tables create+edit across restart, business isolation, 6 CREATE + 6
+  UPDATE ops), `operationalTablesRemainIsolatedAcrossTenantsAndBusinesses`
+  (same id in three scopes stays separate, per-scope queues),
+  `localDeletePersistsTombstoneAndQueueAcrossRestart` (tombstone hides the
+  record, survives restart, CREATE+DELETE queued; accounts delete sampled
+  for the reversal rejection).
+
+### Per-task verdicts
+
+| Task | Module / scope | Already covered by | New in this package | Residual |
+| --- | --- | --- | --- | --- |
+| 12B-02 | Items (products) | Compose create + edit-entry + delete confirm; VM delegation; Room create/edit/restart | Compose `editSaveUpdatesExistingRecord` completes the edit-save (renames the record, still 1 record); VM `deleteUsesScopedProductsRepository` (delete delegation was untested for Items); VM `saveFailurePropagatesToCaller` | None known |
+| 12B-03 | Inventory (stock_movements) | Compose `createAndEditRecordOffline`; VM delegation; Room six-module create/edit | VM `saveFailurePropagatesToCaller`; Room: stock_movements included in the all-financial delete-rejection sweep and append-only semantics pinned | None known |
+| 12B-05 | Sales (orders) | Compose `createAndEditRecordOffline`; VM delegation; Room six-module create/edit | VM `saveFailurePropagatesToCaller`; Room: orders in the delete-rejection sweep | None known |
+| 12B-06 | Purchases (purchase_orders) | Compose `createAndEditRecordOffline`; VM delegation; Room six-module create/edit | VM `saveFailurePropagatesToCaller`; Room: purchase_orders in the delete-rejection sweep | None known |
+| 12B-07 | Accounts (accounts) | Compose `createAndEditRecordOffline`; VM delegation; Room six-module create/edit; accounts delete sampled for reversal rejection | VM `saveFailurePropagatesToCaller`; Room `financialCorrectionIsACompensatingEntryNotADelete` (correction = second compensating CREATE referencing the original; both entries stay listed; no DELETE ever queued) | None known |
+| 12B-10 | Room CRUD + tenant/business isolation (all tables) | Integration tests cited above (create/edit/restart/isolation/tombstone) | New `OperationalCrudGuardRoomTest` (7 tests): observe Flow reflects create/edit/delete and stays scope-empty for another business; save guards reject uuid mismatch, tombstone payloads, unsupported tables, blank tenant and negative revision while staging nothing (no record, no queued op); delete rejection swept across orders/purchase_orders/accounts/stock_movements with records kept; delete requires an existing record in the caller's scope (missing id and cross-scope id both fail, nothing queued); delete in one scope leaves the same id in another scope listed with its own queue untouched; compensating-entry reversal; save-after-delete restores the record and queues CREATE, DELETE, UPDATE in order (pinned as the current semantics of re-creating a deleted master record) | None known |
+
+### Notes
+
+- The save-failure ViewModel tests pin a contract the screens rely on: the
+  ViewModel must not swallow a repository failure, because the screen's
+  error state (Package 5) is driven by the exception reaching its catch
+  block. Previously only the screen-level catch was tested, with the fake
+  below the ViewModel.
+- Delete remains intentionally absent from the four financial/inventory
+  tables at every level: the ViewModels for Inventory, Sales, Purchases
+  and Accounts expose no delete at all, and the repository rejects it with
+  "Financial and inventory history requires a reversal, not deletion".
+  This package asserts that contract per table instead of sampling only
+  accounts.
+- Escaped-quote check: 0 occurrences of the sequence in all seven new or
+  modified Kotlin files.
+
+### Local evidence (this preparation run, 2026-10-23)
+
+Node suites unchanged and green — `server/test_sync_push.mjs` 14/14,
+`scripts/test-desktop-sync.mjs` 30/30, `scripts/test-desktop-sqlite.mjs`
+7/7. Android cannot compile or run locally (no SDK in this environment),
+so the new tests are verified only when CI runs them (feature-module unit
+tests and core:store tests via Native Android CI step 15.3 and the
+Segmented jobs; the Items Compose test via the Compose UI Emulator
+workflow and instrumentation compilation).
+
+## 2026-10-23 Packages 8 + 9 verification (head `dfa5d11d`) — 12C-05 + 12C-08 accepted; both defects fixed
+
+**All four workflows green** — Native Android CI (39843729713), Phase 12
+Segmented Verification (39843729651), Compose UI Emulator (39843729654),
+Desktop/VPS (39843729604). The road: `726737c9` stored the five Package 8
+test files base64-encoded (write-route content error, since corrected —
+all routes take raw content, verified by probe and read-back); `08705b6f`
+then failed compilation on four `.entityId` mappings over
+`OperationalRecord` (whose property is `id`); `dfa5d11d` fixed those and
+everything ran green.
+
+- **12C-05 ACCEPTED.** The two-device simulation runs end-to-end in CI:
+  the push-settlement defect (own echo tripping the conflict guard) is
+  FIXED by the same-response-ack exemption in `SyncEngine` /
+  `RoomSyncQueueStore`; a rejected push still conflicts (regression pin);
+  delete rounds settle and hide the record on both devices. The (b) policy
+  matrix is fully pinned: pending edit refuses remote; already-synced
+  editable record is overwritten on arrival (arrival-order-wins);
+  already-synced insert-only posting keeps local. Whether
+  arrival-order-wins is the intended policy for synced editable records
+  remains an explicit OWNER DECISION recorded here and in issue #19; the
+  behavior is pinned by tests either way.
+- **12C-08 ACCEPTED.** Cross-scope run isolation and switch-then-operate
+  are proven in CI; no JVM-provable residual remains.
+- **12C-06 PARTIAL.** Proven in CI: corrupt credential bytes fail safe
+  (isPaired false, scope stays LOCAL_ONLY, worker run fails at the
+  credential check with consent on); the 401 path stops before pull; the
+  token appears on exactly one surface (the Authorization header) across
+  success/401/missing-token/consent-revoked exchanges. Residuals needing a
+  production seam or an instrumented test: the `isPaired` device-mismatch
+  true-branch and re-pair-cancels-previous-scope (the pairing manager
+  constructs its credential store internally and Robolectric has no
+  AndroidKeyStore provider).
+- **Tombstone visibility defect FIXED** (found in Package 8, fixed in
+  Package 9): pulled soft-delete rows are converted to staged tombstones
+  in `RoomSyncQueueStore`, so records deleted on another device no longer
+  stay visible in `list()`/`observe()` — proven by
+  `PulledTombstoneVisibilityTest` in CI.
+
+Accepted total is now **10 of 22**: 12B-04, 12B-08, 12B-11, 12C-01,
+12C-02, 12C-03, 12C-05, 12C-07, 12C-08, 12C-10. Partial: 12B-09
+(emulator wiring), 12C-04 (process-kill residual), 12C-06 (Keystore-seam
+residuals), 12C-09 (Tauri on-device residual).
