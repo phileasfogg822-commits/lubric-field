@@ -7,11 +7,17 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.AuthorizationSnapshot
 import com.lubrcapp.lubrcapp.core.repository.BusinessBootstrap
 import com.lubrcapp.lubrcapp.core.repository.BusinessChoice
+import com.lubrcapp.lubrcapp.core.repository.BusinessMember
+import com.lubrcapp.lubrcapp.core.repository.BusinessRole
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessSwitchResult
 import com.lubrcapp.lubrcapp.core.repository.BusinessSwitcher
+import com.lubrcapp.lubrcapp.core.repository.CreateBusinessRoleRequest
+import com.lubrcapp.lubrcapp.core.repository.CreateBusinessUserRequest
 import com.lubrcapp.lubrcapp.core.repository.CreateInitialBusinessRequest
 import com.lubrcapp.lubrcapp.core.repository.CurrentBusinessProvider
 import com.lubrcapp.lubrcapp.core.repository.DeviceIdentityProvider
@@ -25,8 +31,12 @@ import com.lubrcapp.lubrcapp.core.repository.usecase.SwitchBusinessUseCase
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.RoleId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
+import com.lubrcapp.lubrcapp.domain.common.UserBusinessId
 import com.lubrcapp.lubrcapp.domain.common.UserId
+import com.lubrcapp.lubrcapp.domain.user.Capabilities
+import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
 import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagKeys
@@ -37,6 +47,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -136,6 +147,81 @@ class MainNavigationComposeTest {
         override fun getAllFeatureKeys(): Set<String> = FeatureFlagKeys.ALL
     }
 
+    /**
+     * The current user is an active member of the context's business;
+     * [grants] decides which capabilities the snapshot carries. The
+     * default in [showNavigation] grants everything, mirroring the
+     * owner's seeded role.
+     */
+    private class FakeAccessControl(
+        private val grants: Flow<Set<CapabilityKey>>,
+    ) : AccessControlRepository {
+        override fun observeAuthorization(
+            context: TenantContext,
+        ): Flow<AuthorizationSnapshot> =
+            grants.map { granted ->
+                AuthorizationSnapshot(
+                    context = context,
+                    membershipId = UserBusinessId("membership-1"),
+                    roleIds = setOf(RoleId("role-owner")),
+                    capabilities = granted,
+                )
+            }
+
+        override suspend fun authorization(
+            context: TenantContext,
+        ): AuthorizationSnapshot = observeAuthorization(context).first()
+
+        override suspend fun ensureOwnerAccess(
+            tenantId: TenantId,
+            businessId: BusinessId,
+        ) = Unit
+
+        override fun observeMembers(
+            tenantId: TenantId,
+            businessId: BusinessId,
+        ): Flow<List<BusinessMember>> = flowOf(emptyList())
+
+        override fun observeRoles(
+            tenantId: TenantId,
+            businessId: BusinessId,
+        ): Flow<List<BusinessRole>> = flowOf(emptyList())
+
+        override suspend fun createBusinessUser(
+            actor: TenantContext,
+            request: CreateBusinessUserRequest,
+        ): BusinessMember = error("not used in navigation tests")
+
+        override suspend fun setMembershipActive(
+            actor: TenantContext,
+            membershipId: UserBusinessId,
+            active: Boolean,
+        ): Unit = error("not used in navigation tests")
+
+        override suspend fun createRole(
+            actor: TenantContext,
+            request: CreateBusinessRoleRequest,
+        ): BusinessRole = error("not used in navigation tests")
+
+        override suspend fun setRoleActive(
+            actor: TenantContext,
+            roleId: RoleId,
+            active: Boolean,
+        ): Unit = error("not used in navigation tests")
+
+        override suspend fun setRoleCapabilities(
+            actor: TenantContext,
+            roleId: RoleId,
+            capabilities: Set<CapabilityKey>,
+        ): Unit = error("not used in navigation tests")
+
+        override suspend fun assignRoles(
+            actor: TenantContext,
+            membershipId: UserBusinessId,
+            roleIds: Set<RoleId>,
+        ): Unit = error("not used in navigation tests")
+    }
+
     private fun setupViewModel(flow: Flow<BusinessBootstrap?>): BusinessSetupViewModel {
         val repository = FakeSetupRepository(flow)
         return BusinessSetupViewModel(
@@ -156,6 +242,7 @@ class MainNavigationComposeTest {
         setup: BusinessSetupViewModel,
         context: FakeBusinessContext = FakeBusinessContext(),
         enabledKeys: Flow<Set<String>> = flowOf(shippedEnabledKeys),
+        grants: Flow<Set<CapabilityKey>> = flowOf(Capabilities.ALL),
     ) {
         // Construct view models outside the composable lambda: lint treats a
         // direct ViewModel constructor call inside setContent as an error
@@ -163,6 +250,7 @@ class MainNavigationComposeTest {
         val dashboard = dashboardViewModel(context)
         val scope = OperationalScopeViewModel(FakeDeviceIdentity())
         val shellConfig = ShellConfigViewModel(FakeFeatureFlags(enabledKeys))
+        val shellAccess = ShellAccessViewModel(FakeAccessControl(grants))
         compose.setContent {
             MainNavigation(
                 appName = "Lubric",
@@ -170,6 +258,7 @@ class MainNavigationComposeTest {
                 dashboardViewModel = dashboard,
                 scopeViewModel = scope,
                 shellConfigViewModel = shellConfig,
+                shellAccessViewModel = shellAccess,
             )
         }
     }
@@ -251,5 +340,32 @@ class MainNavigationComposeTest {
             .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
         awaitNoText("Purchases")
         awaitNoText("Cloud sync")
+    }
+
+    @Test fun readyBootstrapHidesModulesDeniedByCapability() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // The configuration enables everything (the harness default),
+        // but the current user's grants exclude purchases.view: only the
+        // Purchases button leaves the shell list.
+        val grants = flowOf(Capabilities.ALL - Capabilities.PURCHASES_VIEW)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Items")
+        listOf("Inventory", "Customers", "Sales", "Accounts", "Cloud sync")
+            .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
+        awaitNoText("Purchases")
+    }
+
+    @Test fun capabilityRevocationHidesModuleLive() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // Grants change under the running shell (a role edit in Access
+        // Control, a sync applying new permissions): the module list
+        // follows without a restart or a business switch.
+        val grants = MutableStateFlow(Capabilities.ALL)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Purchases")
+        grants.value = Capabilities.ALL - Capabilities.PURCHASES_VIEW
+        awaitNoText("Purchases")
     }
 }

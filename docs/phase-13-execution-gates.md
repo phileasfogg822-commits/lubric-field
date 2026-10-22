@@ -190,7 +190,9 @@ locally: 14/14, 30/30, 7/7.)
   registry's visibility), the first package that changes what the shell
   shows, with its own acceptance evidence.
 
-## Package 13.2 — live configuration gating of the shell — PENDING CI
+## Package 13.2 — live configuration gating of the shell — VERIFIED
+
+**Verified 2026-10-23 on head `53a27b5a` — all three workflows green:** Native Android CI 39856769786, Phase 12 Segmented Verification 39856769719, Compose UI Emulator 39856770030. The shell now honors the resolved deployment+business module configuration; bootstrap/no-business behavior is unchanged (all modules visible). Accepted.
 
 First behavior-changing Phase 13 package: the shell now consumes the
 configuration engine it previously ignored (gap 2). Which module buttons
@@ -322,3 +324,148 @@ CI risks on first run:
   file's existing import and constructor patterns (view models are
   built outside `setContent` in tests); a lint finding in the new
   files remains the most likely first-round failure, as with 13.1.
+
+## Package 13.3 — capability-gated navigation — PENDING CI
+
+What was wired:
+
+- **New** `android/app/src/main/java/com/lubrcapp/lubrcapp/ShellAccessViewModel.kt`
+  — a `@HiltViewModel` exposing
+  `grantedCapabilities(context: TenantContext): Flow<Set<CapabilityKey>>`:
+  it forwards the production `AccessControlRepository`'s authorization
+  snapshot for the context, reduced to the granted capability set. It
+  mirrors `ShellConfigViewModel`'s shape (13.2) but not its failure
+  semantics — see the deny-by-default decision below.
+- **Modified** `android/app/src/main/java/com/lubrcapp/lubrcapp/shell/AppModuleRegistry.kt`
+  — `visibleModules` gains a second gate parameter
+  (`grantedCapabilities: Set<CapabilityKey>? = null`) and delegates to a
+  new public predicate `isVisible(module, enabledConfigKeys,
+  grantedCapabilities)`: a module passes only when the configuration gate
+  passes it (13.2 semantics unchanged) AND the capability gate passes it
+  (its `viewCapability` is null, or the caller supplied no grant set, or
+  the grant set contains the capability). Registry defaults keep every
+  13.1/13.2 call site and test behaving identically.
+- **Modified** `android/app/src/main/java/com/lubrcapp/lubrcapp/MainNavigation.kt`
+  — new trailing parameter
+  `shellAccessViewModel: ShellAccessViewModel = hiltViewModel()`; in the
+  Ready state a `produceState` keyed on the current `TenantContext` (the
+  same pattern as scope resolution and 13.2's configuration state)
+  collects the grant set; the shell computes ONE composed
+  `visibleModules(enabledModuleKeys, grantedCapabilities)` list used by
+  both the button list and feature dispatch. Dispatch now renders a
+  selected module's surface only when `isVisible` passes for it, so a
+  module hidden by either gate — including one left open while its grant
+  was revoked live — renders no surface and falls back to the existing
+  empty-surface-plus-Back behavior. The only production caller,
+  `MainActivity`, passes just `appName`, so the signature change is
+  source-compatible. Bootstrap states, business switching (which already
+  reset `selectedFeature`), and the Access Control screen path are
+  untouched.
+
+Capability source (production, not newly invented):
+
+- `AccessControlRepository` (core:repository), Hilt-bound in
+  core:store's `RepositoryModule` to `RoomAccessControlRepository` —
+  the same source the settings Access Control screen already consumes
+  through `AuthorizationService`. Its `observeAuthorization` combines
+  the membership, role, and permission flows for the context; a user
+  with no active membership in the business resolves to a denied
+  snapshot (null membership, no roles, no capabilities). The owner's
+  role is seeded and repaired to `Capabilities.ALL` by
+  `ensureOwnerAccess`, which the view model runs before observing —
+  the exact read pattern `AuthorizationService.snapshot()` established.
+  No parallel permission system was built, and no business-data access
+  changes: this package gates navigation visibility only; the feature
+  screens' own guards are untouched.
+
+Deny-by-default decision and its basis:
+
+- Access control's existing contract is deny-by-default:
+  `AuthorizationSnapshot.allows` is false without an active membership,
+  the repository emits a denied snapshot rather than "unknown" for
+  non-members, and the settings screen treats a missing snapshot as not
+  allowed (`snapshot?.allows(...) == true`). The shell follows that
+  contract rather than 13.2's fail-open configuration behavior:
+  - the shell's grant state starts as the empty set and resets to it on
+    every context change, so until the snapshot for the newly selected
+    business resolves, capability-gated modules do not show — and the
+    previous business's grants are never carried across a switch;
+  - a resolved snapshot with no active membership emits the empty set
+    (the view model re-checks `membershipId` itself, encoding `allows`
+    semantics rather than trusting the capability list alone);
+  - a resolution failure emits the empty set (the flow's `catch` emits
+    empty), so an authorization error hides gated modules instead of
+    showing them.
+- Deliberate asymmetry, documented rather than hidden: configuration
+  gating (13.2) fails OPEN because configuration is a white-label
+  concern — a broken config must not brick the shell; capability gating
+  fails CLOSED because it is an authorization boundary, matching every
+  existing access-control consumer in the tree.
+- Consequence worth naming: unlike configuration, capabilities CAN hide
+  items and parties — they declare no `configKey` but do declare
+  `items.view` / `parties.view`. With an empty grant set every
+  selectable module is hidden (all seven declare a view capability);
+  in practice the Ready state is only reachable with a validated
+  membership (`CurrentBusinessProvider.ensureCurrent` /
+  `BusinessSwitchResult.AccessDenied`), and the owner holds all grants,
+  so the default shell is unchanged.
+
+Tests:
+
+- **New** `android/app/src/test/java/com/lubrcapp/lubrcapp/shell/CapabilityGatedVisibilityTest.kt`
+  (8 plain-JUnit tests, real registry): full config + full grants show
+  everything; config-visible but capability-denied hides exactly that
+  module; full grants cannot resurrect a config-hidden module; the two
+  gates compose per module; an empty grant set hides every selectable
+  module; a null grant set leaves the capability gate inert (13.2
+  behavior preserved); a module with no view capability (the dashboard)
+  is never capability-hidden; the dispatch predicate (`isVisible`)
+  rejects capability-hidden and config-hidden modules.
+- **New** `android/app/src/test/java/com/lubrcapp/lubrcapp/ShellAccessViewModelTest.kt`
+  (5 plain-JUnit tests over a fake `AccessControlRepository`): grants
+  forwarded for exactly the requested tenant/business (two businesses
+  resolve differently, owner-access and observation calls recorded);
+  a snapshot without membership yields no grants even if it names
+  capabilities; live authorization updates pass through in order;
+  resolution failure falls back to the empty set; the view model's
+  grants composed with the real registry hide the right modules.
+- **Modified** `android/app/src/androidTest/java/com/lubrcapp/lubrcapp/MainNavigationComposeTest.kt`
+  — the harness takes a fake `AccessControlRepository` (default grants:
+  `Capabilities.ALL`, the owner's set) behind a real
+  `ShellAccessViewModel`; the five pre-existing tests keep identical
+  expectations. New tests:
+  `readyBootstrapHidesModulesDeniedByCapability` (grants exclude
+  `purchases.view` → no Purchases button, the other six remain) and
+  `capabilityRevocationHidesModuleLive` (grants change under the running
+  shell → the Purchases button disappears without a restart or switch).
+
+Local evidence:
+
+- Node suites untouched and green: `server/test_sync_push.mjs` 14/14,
+  `scripts/test-desktop-sync.mjs` 30/30,
+  `scripts/test-desktop-sqlite.mjs` 7/7 (PASS counts re-verified, 0
+  FAIL).
+- New/modified Kotlin files carry no escaped-quote literals
+  (`grep -c '\\"'` = 0 on all six).
+- Android cannot compile locally (no SDK in this environment); first
+  verification is CI (app unit tests + lint via Native Android CI, the
+  Segmented matrix, and the Compose UI emulator workflow for
+  `MainNavigationComposeTest`).
+
+CI risks on first run:
+
+- `MainNavigationComposeTest` executes on the emulator workflow only
+  when `:app` connected tests are wired (the standing 12B-09 workflow
+  note); if it still does not execute there, the unit tests above carry
+  the package's proof in Native/Segmented either way.
+- Deny-by-default changes the shell's first frame: until the
+  authorization snapshot resolves, the module list is empty where 13.2
+  briefly showed every module. The Compose harness's await-presence /
+  await-absence helpers absorb this in tests, and on device the Room
+  flows resolve from the local database; a lint or timing surprise here
+  is the most likely first-round failure, as with 13.1/13.2.
+- The dispatch guard shares the composed predicate with the list (one
+  code path, pinned by `CapabilityGatedVisibilityTest`), but no Compose
+  test clicks through into a feature surface — that still needs the
+  Hilt-graph harness noted under 12B-09, so the guard's UI-level proof
+  lands with that wiring while its predicate proof is in unit tests now.

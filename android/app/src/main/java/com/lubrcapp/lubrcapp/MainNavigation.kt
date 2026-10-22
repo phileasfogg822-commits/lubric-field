@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
+import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
 import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
@@ -49,7 +50,11 @@ import kotlinx.coroutines.flow.collect
  * hardcoded table. Phase 13.2 gates that list live: the resolved
  * white-label configuration for the current business (via
  * [ShellConfigViewModel]) decides which gated modules are visible, while
- * an unresolved configuration keeps every module visible.
+ * an unresolved configuration keeps every module visible. Phase 13.3
+ * composes the second gate: the current user's granted capabilities (via
+ * [ShellAccessViewModel]) hide modules the user may not view, and the
+ * same composed visibility guards feature dispatch, so a module hidden
+ * by either gate never renders its surface.
  */
 @Composable
 fun MainNavigation(
@@ -58,6 +63,7 @@ fun MainNavigation(
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     scopeViewModel: OperationalScopeViewModel = hiltViewModel(),
     shellConfigViewModel: ShellConfigViewModel = hiltViewModel(),
+    shellAccessViewModel: ShellAccessViewModel = hiltViewModel(),
 ) {
     val setupState by businessSetupViewModel.state.collectAsState()
     val dashboardState by dashboardViewModel.state.collectAsState()
@@ -159,6 +165,29 @@ fun MainNavigation(
                     }
                 }
             }
+            // Live capability gating: re-resolves whenever the current
+            // business (and therefore the current user's membership in
+            // it) changes. Access control is deny-by-default, so the
+            // state starts empty — until the authorization snapshot for
+            // this business resolves, no capability-gated module shows;
+            // a resolved denial keeps it that way. The previous
+            // business's grants are never carried across a switch.
+            val grantedCapabilities by produceState<Set<CapabilityKey>>(
+                initialValue = emptySet(),
+                key1 = currentContext,
+            ) {
+                value = emptySet()
+                if (currentContext != null) {
+                    shellAccessViewModel.grantedCapabilities(currentContext)
+                        .collect { grants ->
+                            value = grants
+                        }
+                }
+            }
+            // The one composed visibility the shell renders and dispatches
+            // by: configuration gate AND capability gate.
+            val visibleModules =
+                AppModuleRegistry.visibleModules(enabledModuleKeys, grantedCapabilities)
             if (showAccessControl && currentContext != null) {
                 AccessControlScreen(
                     context = currentContext,
@@ -172,7 +201,21 @@ fun MainNavigation(
                     }
                 } else {
                     val back = { selectedFeature = null }
-                    val content = AppModuleRegistry.module(selectedFeature)?.content
+                    // Dispatch honors the same composed visibility as the
+                    // module list: a selection whose module is hidden by
+                    // configuration or by capability — including one left
+                    // open while its grant was revoked — renders no
+                    // surface, exactly like an unknown id below.
+                    val selectedModule = AppModuleRegistry.module(selectedFeature)
+                    val content = selectedModule
+                        ?.takeIf {
+                            AppModuleRegistry.isVisible(
+                                it,
+                                enabledModuleKeys,
+                                grantedCapabilities,
+                            )
+                        }
+                        ?.content
                     if (content != null) {
                         content(scope, back)
                     } else {
@@ -198,7 +241,7 @@ fun MainNavigation(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (currentContext != null) {
-                        AppModuleRegistry.visibleModules(enabledModuleKeys).forEach { module ->
+                        visibleModules.forEach { module ->
                             Button(
                                 onClick = { selectedFeature = module.id },
                                 modifier = Modifier.padding(horizontal = 16.dp),

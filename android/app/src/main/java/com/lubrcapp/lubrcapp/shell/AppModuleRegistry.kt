@@ -48,15 +48,21 @@ class AppModule(
  * configuration-driven, built as Enabled Modules -> Feature Flags ->
  * Permissions, not fixed screens wired to fixed functions).
  *
- * Visibility is data, computed by [visibleModules]. The shell currently
- * passes no configuration, so every selectable module is visible in
- * registry order — identical to the pre-registry shell. A later Phase 13
- * package can pass the resolved white-label configuration's enabled-module
- * set: entries whose [AppModule.configKey] is absent from that set are
- * hidden, while entries with a null config key stay visible because the
- * configuration engine cannot address them (mirroring
- * WhiteLabelConfigResolver, where business overrides can only disable
- * keys the deployment included).
+ * Visibility is data, computed by [visibleModules] from two independent
+ * gates. The configuration gate (Phase 13.2) consumes the resolved
+ * white-label configuration's enabled-module set: entries whose
+ * [AppModule.configKey] is absent from that set are hidden, while entries
+ * with a null config key stay visible because the configuration engine
+ * cannot address them (mirroring WhiteLabelConfigResolver, where business
+ * overrides can only disable keys the deployment included). The
+ * capability gate (Phase 13.3) consumes the current user's granted
+ * capabilities: entries whose [AppModule.viewCapability] is not granted
+ * are hidden, while entries with a null view capability stay visible
+ * because no capability guards them. Either gate may hide a module; a
+ * module is visible only when both pass it. Passing null for a gate
+ * disables that gate — the registry itself is policy-free, and the shell
+ * decides what to supply (for capabilities it always supplies a set,
+ * empty until authorization resolves: deny-by-default).
  */
 object AppModuleRegistry {
 
@@ -150,14 +156,40 @@ object AppModuleRegistry {
     fun navigationModules(): List<AppModule> = modules.filter { it.selectable }
 
     /**
-     * Selectable modules visible under [enabledConfigKeys]. A null set
-     * means no configuration was supplied and every selectable module is
-     * visible. Otherwise a module is hidden only when it declares a
-     * [AppModule.configKey] that the set does not contain.
+     * Whether [module] passes both visibility gates. [enabledConfigKeys]
+     * is the resolved configuration's enabled-module set; a null set
+     * disables the configuration gate, and otherwise a module is hidden
+     * only when it declares a [AppModule.configKey] the set does not
+     * contain. [grantedCapabilities] is the current user's granted
+     * capability set; a null set disables the capability gate, and
+     * otherwise a module is hidden only when it declares a
+     * [AppModule.viewCapability] the set does not contain.
      */
-    fun visibleModules(enabledConfigKeys: Set<String>? = null): List<AppModule> =
+    fun isVisible(
+        module: AppModule,
+        enabledConfigKeys: Set<String>? = null,
+        grantedCapabilities: Set<CapabilityKey>? = null,
+    ): Boolean {
+        val configKey = module.configKey
+        val configVisible =
+            enabledConfigKeys == null || configKey == null || configKey in enabledConfigKeys
+        val viewCapability = module.viewCapability
+        val capabilityVisible =
+            grantedCapabilities == null ||
+                viewCapability == null ||
+                viewCapability in grantedCapabilities
+        return configVisible && capabilityVisible
+    }
+
+    /**
+     * Selectable modules visible under [enabledConfigKeys] and
+     * [grantedCapabilities] — see [isVisible] for the gate semantics.
+     */
+    fun visibleModules(
+        enabledConfigKeys: Set<String>? = null,
+        grantedCapabilities: Set<CapabilityKey>? = null,
+    ): List<AppModule> =
         navigationModules().filter { module ->
-            val key = module.configKey
-            enabledConfigKeys == null || key == null || key in enabledConfigKeys
+            isVisible(module, enabledConfigKeys, grantedCapabilities)
         }
 }
