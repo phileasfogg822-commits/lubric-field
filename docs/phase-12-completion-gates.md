@@ -752,3 +752,179 @@ Partial: 12B-09, 12C-04, 12C-06, 12C-09 (residuals as recorded). Open:
 report/artifact inspection, and reconciliation of these gates — followed
 by the §12.7 release gate (12.7.3 is the owner's alone; PR #12 stays
 draft).
+
+## Phase 12 close-out — 12C-11 evidence sweep, §12.7.1 review, §12.7.2 acceptance report and known limitations
+
+This section reconciles the whole Phase 12 queue (issue #19, 22 tasks)
+against the evidence recorded in the sections above. State at close-out:
+**17 of 22 accepted, 4 partial with named residuals (12B-09, 12C-04,
+12C-06, 12C-09), and 12C-11 — this close-out itself — which completes
+when the final candidate head below is green.**
+
+**Final candidate head (12C-11):** `5f7c0e007bacea5cf0f737897b719b081fe13e46`
+(the last implementation-bearing head; subsequent heads are documentation
+of this verification) — Native Android CI `39846525506`, Phase 12
+Segmented Verification `39846525945`, Compose UI Emulator `39846525910`,
+Desktop/VPS `39846525835` — all four success.
+
+### Evidence map (all 22 tasks)
+
+| Task | Status | Evidence package(s) | Carrying tests / artifacts | Verifying green head(s) |
+| --- | --- | --- | --- | --- |
+| 12B-01 | Accepted (pre-series) | Source reconciliation, 2026-10-20 | Screen/navigation source audit, commit `f2e74362` (recorded in issue #19) | Issue #19 records Native 39299778282 + Segmented 39299778299 green on `f2e74362`; see the evidence-gap note below |
+| 12B-02 | Accepted | Package 10 (on pre-existing Compose/Room coverage) | Items Compose tests (`editSaveUpdatesExistingRecord` new; `createEditAndConfirmDelete` pre-existing), `ItemsViewModelTest` (`deleteUsesScopedProductsRepository`, `saveFailurePropagatesToCaller`), Room integration suite | `5f7c0e00` (39846525506, 39846525945, 39846525910, 39846525835) |
+| 12B-03 | Accepted | Package 10 | Inventory `createAndEditRecordOffline`, ViewModel `saveFailurePropagatesToCaller`, `OperationalCrudGuardRoomTest` delete-rejection sweep (incl. `stock_movements`) | `5f7c0e00` (same runs) |
+| 12B-04 | Accepted | Packages 1–2 (commit `510723b2`) | Parties tombstone delete (ViewModel, confirm dialog, strings) with ViewModel + Compose tests | `17e77f4c` (39757736679, 39757736743, 39757736547, 39757736799) |
+| 12B-05 | Accepted | Package 10 | Sales `createAndEditRecordOffline`, ViewModel `saveFailurePropagatesToCaller`, Room delete-rejection sweep (orders) | `5f7c0e00` (same runs) |
+| 12B-06 | Accepted | Package 10 | Purchases `createAndEditRecordOffline`, ViewModel `saveFailurePropagatesToCaller`, Room delete-rejection sweep (purchase_orders) | `5f7c0e00` (same runs) |
+| 12B-07 | Accepted | Package 10 | Accounts `createAndEditRecordOffline`, ViewModel `saveFailurePropagatesToCaller`, `OperationalCrudGuardRoomTest.financialCorrectionIsACompensatingEntryNotADelete` | `5f7c0e00` (same runs) |
+| 12B-08 | Accepted (design note: loading shares the empty surface — no separate spinner exists in this Flow design) | Package 5 (`eb2fef6c`, fix `19a94dea`) | Per-module Compose empty-state and save-error tests on the emulator | `19a94dea` — workflows named in the Package 5 section; numeric run IDs not recorded there (see gap note) |
+| 12B-09 | **Partial** | Package 5b | `MainNavigationComposeTest` (app module's first instrumented tests; four bootstrap states) — compiles and lints green; emulator execution not wired | `6d24c644` (39825932381, 39825932360, 39825932347, 39825932345) |
+| 12B-10 | Accepted | Package 10 | `OperationalCrudGuardRoomTest` (7 tests) + `OperationalBusinessRoomIntegrationTest` | `5f7c0e00` (same runs) |
+| 12B-11 | Accepted | Packages 1–2 | Native CI steps 15.1–19 on one SHA: Room regressions, all unit tests, lint, debug + release APKs, migration compile, white-label APK, artifact evidence uploaded | `17e77f4c` (same runs as 12B-04) |
+| 12C-01 | Accepted | Package 6 | `sync-contract/sync-contract.json` parity pinned by `SyncContractFixtureTest` (Android), `server/test_sync_push.mjs`, `scripts/test-desktop-sync.mjs` — identical 28-table set and insert-only set across Android, server, desktop | `6d24c644` (same runs as 12B-09 row) |
+| 12C-02 | Accepted | Packages 1–2 | `SyncEngineTest` receipt coverage (missing, unknown, duplicate, partial receipts; idempotent acknowledgment) | `17e77f4c` (same runs) |
+| 12C-03 | Accepted | Packages 1–2 | Persisted FAILED/backoff state across restart (pre-existing) + elapsed-backoff resumption round to SYNCED | `17e77f4c` (same runs) |
+| 12C-04 | **Partial** | Packages 1–2 (store level), 4 (transport validation), 7 (composed round) | `ComposedSyncEngineRoomTest` (3 tests: mid-batch rollback through the engine, redelivery advances cursor exactly once, ack-then-interrupt replays the exact operation ID) | `5bc5b5cc` (39832265269, 39832265468, 39832265235, 39832265278) |
+| 12C-05 | Accepted (policy pinned; intent is an open owner decision — see limitations) | Package 3 (insert-only parity + server stale-update scenario), Package 8 (two-device simulation + policy matrix), Package 9 (defect fix) | `TwoDeviceSyncSimulationTest` (incl. `pushRoundSettlesWhenPullEchoesOwnChange` and the rejected-push regression), `RemoteConflictPolicyTest`, `PulledTombstoneVisibilityTest` | `dfa5d11d` (39843729713, 39843729651, 39843729654, 39843729604); parity leg on `13f831f3` (39760866892, 39760866900, 39760866903, 39760866966) |
+| 12C-06 | **Partial** | Packages 1–2 (pairing lifecycle), Package 8 (corrupt token, expiry path, redaction) | `DevicePairingManager` lifecycle tests; `CorruptPairingTokenTest`; `TransportTokenRedactionTest` | `17e77f4c` (lifecycle); `dfa5d11d` (Package 8 tests) |
+| 12C-07 | Accepted | Packages 1–2 + Package 4 (seam `73dc31e8`, fix `afeeb768`) | `AuthenticatedVpsTransportExchangeTest` (mid-exchange consent revocation stops before pull; cursor/table validation) + scheduler/worker zero-network tests | `afeeb768` — workflows named in the Package 4 section; numeric run IDs not recorded there (see gap note) |
+| 12C-08 | Accepted | Package 3 (ack/retry device isolation, per-identity scheduling), Package 8 (run isolation, switch-then-operate) | `CrossScopeSyncIsolationTest`; `queueAcknowledgementAndRetryIgnoreOtherDevices`; `cancellingOneIdentityLeavesAnotherIdentityScheduled` | `dfa5d11d` (final); Package 3 legs on `13f831f3` (same runs as 12C-05 parity leg) |
+| 12C-09 | **Partial** | Package 6 | `scripts/test-desktop-sqlite.mjs` (7/7: durable commit, real rollback, insert-only replay, retry) tied to the shared fixture | `6d24c644` (Desktop/VPS 39825932345) |
+| 12C-10 | Accepted | Package 6 | The single canonical fixture consumed by all three clients: production handler acknowledges the canonical push; six receipt scenarios against production desktop `syncNow`; pull legs against desktop and the Room store | `6d24c644` (same runs) |
+| 12C-11 | Close-out (this section) | Packages 1–10 cumulative + this sweep | Full four-workflow CI on every package head above; this evidence map; issue #19 checklist reconciliation | Candidate head `5f7c0e00` (runs listed above) |
+
+### §12.7.1 Review — implementation against requirements; duplicate implementation
+
+The implementation was reviewed package by package against the 22 task
+definitions in issue #19 and the gate list at the top of this document,
+with acceptance granted only on green four-workflow CI for the head
+carrying the evidence (the one exception by construction is 12B-01,
+accepted in the 2026-10-20 reconciliation before this package series).
+
+**No duplicate implementation was found.** Specifically: there is
+exactly one sync engine (`SyncEngine`, core:sync) and one production
+queue store (`RoomSyncQueueStore`, core:store) — Package 9 verified the
+only other `SyncQueueStore` implementations in the tree are test fakes
+in `SyncEngineTest`. The wire contract is implemented once per platform
+(Android, VPS server, desktop) because the clients are separate
+codebases; since Package 6 those three implementations are pinned to a
+single canonical fixture (`sync-contract/sync-contract.json`) that each
+client's suite asserts against, so the parity is contractual and tested
+rather than three divergent definitions. The fixture's byte-identical
+copy in Android test resources is a verified copy (identity asserted by
+`SyncContractFixtureTest`), not a second source of truth. The
+`InMemoryVpsServer` in the two-device simulation is a test double whose
+semantics are themselves verified against the production handler
+(`serverDoubleMirrorsProductionHandlerSemantics`); it is not a parallel
+production path. Package 9 — the only production-code change since
+Package 4 — modified the single engine/store path; it added no
+alternative path.
+
+**What this review did NOT cover:** it is an evidence review, not a
+fresh line-by-line audit of code the packages never touched (VPS server
+internals beyond its test suite, the desktop Tauri/Rust side beyond the
+Node adapter tests, feature-module UI code beyond the Compose and
+ViewModel tests cited). No physical-device or manual testing was
+performed (none is required for the CI-based verification per PR #12,
+and none is claimed). Performance, large-catalog behavior, and battery
+impact are untested. Removal of any legacy CircleCI configuration is
+not evidenced here; GitHub Actions has been the sole active CI provider
+since the 2026-10-20 reconciliation recorded in this document.
+
+### §12.7.2 Acceptance report and known limitations
+
+Phase 12's queue is substantively complete: all six operational modules
+have scoped offline CRUD flows with UI, ViewModel and Room evidence;
+the sync contract (tables, receipts, cursor, insert-only ledgers) is
+pinned by one cross-client fixture; interruption, replay, cross-device
+and cross-scope behavior is proven against the real engine and the real
+Room store; and consent, pairing and credential handling are tested at
+every layer the JVM can reach. The limitations below are the complete
+list of what is NOT proven or NOT decided; nothing else is knowingly
+outstanding.
+
+1. **12B-09 (partial) — emulator execution of the app-module tests.**
+   `MainNavigationComposeTest` compiles and passes lint, but
+   `:app:connectedDebugAndroidTest` is not in
+   `compose-ui-emulator.yml`, and adding it is blocked on the GitHub
+   App's missing Workflows permission (owner action: enable Workflows
+   read/write for the Meta Muse AI app). Residual beyond the wiring:
+   feature click-through is not covered, because feature screens resolve
+   their own Hilt ViewModels and a full click-through needs the Hilt
+   graph.
+2. **12C-04 (partial) — literal process death mid-apply.** Killing the
+   process between statements inside the store's apply transaction
+   cannot be simulated in a JVM/Robolectric test. What is proven is the
+   mechanism that makes it safe — records, inbox and cursor commit in
+   one Room transaction with no non-transactional engine side effect
+   before that commit — plus the ack-then-crash recovery round
+   (Package 7, test 3).
+3. **12C-06 (partial) — pairing true-branches.** The `isPaired`
+   device-mismatch case and re-pair-cancels-previous-scope are
+   unreachable in JVM tests: `DevicePairingManager` constructs its
+   `SecureDeviceCredentials` internally (no injection seam) and
+   Robolectric provides no AndroidKeyStore, so `token()` can never
+   return a value under test. Every false-branch consequence is proven
+   (corrupt bytes fail safe, scope stays LOCAL_ONLY, the worker run
+   fails at the credential check). Closing this needs a production
+   credential-store seam or an instrumented/on-device test. Related
+   design fact, proven rather than assumed: there is no client-side
+   token expiry — an expired token surfaces only as a server 401, and
+   that path stops before the pull with no token in the error text.
+4. **12C-09 (partial) — Tauri connection-pool atomicity.** Desktop
+   SQLite parity is proven against real on-disk SQLite through a
+   single-connection Node adapter; the native Tauri plugin-sql pool's
+   atomicity under concurrent connections cannot be proven in CI and
+   needs on-device verification.
+5. **Open owner decision — arrival-order-wins for already-synced
+   editable records.** The Android receiving path performs no
+   `updated_at` comparison: once a local edit has been acknowledged, a
+   pulled change for the same record overwrites it on arrival, even if
+   strictly older. The full matrix is pinned by
+   `RemoteConflictPolicyTest`, so the behavior is locked and visible
+   either way; whether it is the intended policy is the owner's call —
+   today its correctness rests entirely on the server's push-side
+   last-writer-wins and pull ordering.
+6. **Two production defects this test program found and fixed** — the
+   strongest evidence the verification was real, recorded here so the
+   close-out does not read as a rubber stamp:
+   - *Push-settlement defect* (found by Package 8's two-device
+     simulation; fixed in Package 9). Composing three individually
+     correct behaviors — the server pull echoes a device's own
+     just-pushed change (no origin exclusion, handler-stamped
+     `updated_at`), the engine applies incoming changes before
+     acknowledging outgoing ones (deliberate crash-safety ordering),
+     and the store refuses incoming changes for entities with a PENDING
+     operation — meant a device's own push round could never settle:
+     the just-acknowledged operation was still PENDING when its echo
+     arrived, the round threw, the operation stayed PENDING forever,
+     and the cursor never advanced while the server already held the
+     row. Every earlier package's scripted transport had missed it
+     because none reproduced the echo. Fix: the engine passes the
+     operations acknowledged in the same response into the apply call
+     and the guard exempts exactly those. Pinned in both directions —
+     an acknowledged push now settles and device B converges; a
+     REJECTED push still conflicts and rolls back.
+   - *Pulled-tombstone visibility defect* (flagged as an adjacent
+     observation in Package 8; confirmed link-by-link and fixed in
+     Package 9). Server soft-deletes reach Android as UPDATE changes
+     carrying `deleted_at` (the transport never emits DELETE), the
+     store staged them verbatim, and `list()`/`observe()` filter only
+     on `_deleted` — so records deleted on another device stayed
+     visible in the app. Fix: conversion to the canonical `_deleted`
+     tombstone form at the single staging point in
+     `applyRemoteAndSaveCursor`, proven by
+     `PulledTombstoneVisibilityTest`; the conversion also hides pulled
+     `expenses` tombstones, which the DELETE path's deletable-table set
+     would have excluded.
+   The pipeline also caught its own test-authoring defects before any
+   acceptance was granted (escaped-quote literals in Package 5, a
+   suspend-call compile break in Package 6, base64-stored files and an
+   `entityId`/`id` mapping break in Packages 8/9) — each failed CI,
+   was fixed, and was re-verified on a new green head, as the
+   verification sections above record.
+7. **§12.7.3 is the owner's alone.** Marking PR #12 ready and merging
+   happens only when all gates above pass **and the owner authorizes
+   the release**. This close-out does not mark the PR ready; PR #12
+   stays draft and unmerged.
