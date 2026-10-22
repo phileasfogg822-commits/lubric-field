@@ -33,6 +33,7 @@ import com.lubrcapp.lubrcapp.feature.parties.PartiesScreen
 import com.lubrcapp.lubrcapp.feature.sales.SalesScreen
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasesScreen
 import com.lubrcapp.lubrcapp.feature.accounts.AccountsScreen
+import com.lubrcapp.lubrcapp.feature.syncstatus.CloudSyncScreen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -160,6 +161,7 @@ fun MainNavigation(
                         "sales" -> SalesScreen(scope, back)
                         "purchases" -> PurchasesScreen(scope, back)
                         "accounts" -> AccountsScreen(scope, back)
+                        "cloudsync" -> CloudSyncScreen(scope, back)
                     }
                 }
             } else {
@@ -184,6 +186,7 @@ fun MainNavigation(
                             "sales" to stringResource(R.string.feature_sales),
                             "purchases" to stringResource(R.string.feature_purchases),
                             "accounts" to stringResource(R.string.feature_accounts),
+                            "cloudsync" to stringResource(R.string.feature_cloud_sync),
                         ).forEach { (key, label) ->
                             Button(
                                 onClick = { selectedFeature = key },
