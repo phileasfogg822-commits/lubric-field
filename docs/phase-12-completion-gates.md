@@ -472,3 +472,140 @@ catch (the corrupt-token tests depend on it — if a future Robolectric
 shipped a keystore shadow, those tests would need the seam instead), and
 `TestListenableWorkerBuilder` behavior for `CloudSyncWorker`, which the
 Package-era scheduler tests already exercise for the consent-off path.
+
+## 2026-10-22 Package 9 (12C-05 push-settlement fix; pulled-tombstone normalization) — PENDING CI
+
+Prepared locally; **not accepted** until this package is pushed and all four
+workflows are green on the resulting head. This package contains the first
+production-code changes since Package 4: the fix for the defect Package 8
+pinned, plus the tombstone normalization Package 8 flagged as an adjacent
+observation. Chosen seam: the smallest one from the Package 8 list — the
+store's guard exempts operations acknowledged in the same response. The
+transport, the server, and the engine's persistence ordering are untouched.
+
+### The fix (same-response-ack exemption)
+
+- **Interface** (`core/sync/SyncEngine.kt`): `SyncQueueStore
+  .applyRemoteAndSaveCursor` gains a fourth parameter,
+  `acknowledgedOperationIds: Set<String> = emptySet()`, documented as the
+  IDs the server accepted in the same exchange that produced the incoming
+  changes. The default keeps every out-of-exchange caller (state-seeding
+  test calls) on the unmodified guard.
+- **Engine** (`SyncEngine.run`): passes the `accepted` set it already
+  computes from this response's receipts (ACCEPTED or DUPLICATE) into the
+  apply call. Nothing else in the engine changes — in particular the
+  ordering does not move: incoming changes and the cursor are still
+  persisted BEFORE `markAccepted`, so the ack-then-crash window pinned by
+  Package 7 keeps its exact semantics (a process death between apply and
+  markAccepted re-presents the exact operation ID next round and settles
+  on the server's DUPLICATE receipt; proven by
+  `ComposedSyncEngineRoomTest.pushAckedButCleanupInterruptedReplaysExactOperationIdNextRound`,
+  whose scripted rounds never echo the pushed entity, so the exemption
+  cannot mask its failure path).
+- **Store** (`RoomSyncQueueStore.applyRemoteAndSaveCursor`): the conflict
+  guard's pending scan now also requires `it.id !in
+  acknowledgedOperationIds`. An operation the server acknowledged in this
+  response is still PENDING at apply time, but it is no longer an
+  unsynchronized local edit: the incoming change for its entity is applied
+  normally — it is either the operation's own pull echo or a newer server
+  state, both safe to apply once the server accepted the operation.
+  Operations NOT acknowledged in this response (rejected, conflicted, or
+  simply not sent) keep the guard exactly as before.
+- **Blast radius**: implementations updated — `RoomSyncQueueStore`
+  (production) and all five fakes in `SyncEngineTest` (the `Store` class
+  plus four anonymous objects). No other `SyncQueueStore` implementation
+  exists in the tree. All direct store call sites in core:store tests use
+  the default empty set, which is semantically exact for them (they apply
+  outside an engine exchange, where no operation was just acknowledged).
+
+### Test changes
+
+- `TwoDeviceSyncSimulationTest.pushRoundCannotSettleBecausePullEchoesOwnChange`
+  is **inverted** to `pushRoundSettlesWhenPullEchoesOwnChange`: the push
+  round now settles (operation SYNCED, cursor advances, the echo is
+  applied — not dropped — and counted as downloaded), a second round is a
+  clean no-op, and device B receives the row through its own engine round.
+  That is the end-to-end two-device settlement 12C-05(a) was missing; the
+  test's doc comment preserves the full defect history.
+- New regression, same class:
+  `rejectedPushStillConflictsWithPulledChangeForSameEntity` — a push the
+  server REJECTS (stale by last-writer-wins) earns no exemption: the same
+  exchange's pulled change for the same entity is still refused with
+  "Remote change conflicts with unsynchronized local edit", the batch
+  rolls back, and the operation stays PENDING with its original attempt
+  count. The pre-existing store-level guard test
+  (`incomingRemoteChangeCannotOverwritePendingLocalEdit`) is untouched.
+- New engine-level pins in `SyncEngineTest`:
+  `acceptedOperationIdsArePassedToRemoteApply` (the apply call receives
+  exactly this response's accepted set, still before markAccepted) and
+  `unacknowledgedOperationsAreNotPassedToRemoteApplyAsExempt` (a CONFLICT
+  receipt yields an empty exemption set and the operation stays
+  retryable). All 12C-02 receipt tests are unchanged in behavior.
+- New end-to-end delete leg, same simulation class:
+  `ownDeleteEchoSettlesAndHidesRecordOnBothDevices` — A's delete round
+  settles against its own echoed server tombstone, and B's list hides the
+  record after its next round.
+
+### Tombstone outcome: defect confirmed in code, fixed by conversion
+
+Package 8's adjacent observation is a real defect, confirmed link by
+link: the server pull returns raw rows for its soft-delete tables
+(products, services, customers, vehicles, vendors, expenses), including
+rows deleted after the device cursor, with `deleted_at` set and no
+`_deleted` key; `AuthenticatedVpsTransport` maps every pulled row to an
+UPDATE change with the raw row as payload (it never emits DELETE); the
+store staged that payload verbatim; and
+`RoomVpsBusinessRepository.list`/`observe` filter only on `_deleted` —
+so **a pulled tombstone left the record visible in the replica list**.
+
+Fix (conversion at the single staging point, in
+`RoomSyncQueueStore.applyRemoteAndSaveCursor`): after the existing
+payload validation, a non-DELETE change whose payload carries a non-null
+`deleted_at` is staged with `_deleted: true` added — the canonical
+tombstone form local deletes already write — in both the staged record
+and the inbox value. Nothing else changes: live rows carry `deleted_at`
+as JSON null and are not touched, the DELETE-op path and its
+approved-table validation are untouched, and no read-path code changes.
+Proof: new `PulledTombstoneVisibilityTest` — a server-shaped live row is
+listed, its server-shaped tombstone (UPDATE, `deleted_at` set) hides it
+from `RoomVpsBusinessRepository.list` while a control row stays visible,
+the staged record keeps both `deleted_at` and `_deleted`, and a live row
+with `deleted_at: null` is never mistaken for a tombstone. One scope
+note: the store's DELETE path also requires the table to be in the
+Android deletable set, which excludes `expenses`; the conversion does
+not go through that path, so pulled expenses tombstones (the server does
+soft-delete expenses) now hide correctly too — Android's local
+user-initiated delete guard for expenses is unchanged.
+
+### Semantics preserved / not preserved
+
+- Preserved: apply-before-ack ordering and the ack-then-crash replay
+  window; exact operation-ID receipts and validation; the guard for every
+  unacknowledged operation; insert-only replay parity; cursor monotonicity
+  and batch atomicity (all inside the same Room transaction as before).
+- Changed (the fix itself): an incoming change for an entity whose
+  operation was acknowledged in the same response is now applied instead
+  of refused. This is precisely the defect scenario; no other input
+  combination changes behavior.
+- 12C-05 status after this package (pending CI): (a) the two-device
+  end-to-end settlement is proven by the inverted test plus the
+  propagation legs — the segment's remaining item is the (b) policy
+  question, which stays an explicit OWNER DECISION as recorded in
+  Package 8 (arrival-order-wins for already-synced editable records). The
+  fix does not touch that policy: it only exempts the guard for
+  operations acknowledged in the same response.
+
+### Local evidence (this preparation run, 2026-10-22)
+
+Node suites unchanged and green — `server/test_sync_push.mjs` 14/14,
+`scripts/test-desktop-sync.mjs` 30/30, `scripts/test-desktop-sqlite.mjs`
+7/7. Escaped-quote check: 0 occurrences of the sequence in all five
+new/modified Kotlin files. Android cannot compile or run locally (no SDK
+in this environment), so the production changes and new tests are
+verified only when CI runs them (`:core:sync:testDebugUnitTest` and
+`:core:store:testDebugUnitTest` via Native Android CI step 15.3 and the
+Segmented jobs). CI risk to watch on first run: the interface default
+parameter is exercised by ~20 direct three-argument store call sites in
+core:store tests — Kotlin inherits the interface default through the
+override, and if that assumption failed anywhere it would surface as a
+compile error in those test files, not as a behavior change.

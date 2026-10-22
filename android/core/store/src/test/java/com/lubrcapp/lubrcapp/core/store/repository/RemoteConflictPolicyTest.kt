@@ -1,1 +1,155 @@
-cGFja2FnZSBjb20ubHVicmNhcHAubHVicmNhcHAuY29yZS5zdG9yZS5yZXBvc2l0b3J5CgppbXBvcnQgYW5kcm9pZC5jb250ZW50LkNvbnRleHQKaW1wb3J0IGFuZHJvaWR4LnJvb20uUm9vbQppbXBvcnQgYW5kcm9pZHgudGVzdC5jb3JlLmFwcC5BcHBsaWNhdGlvblByb3ZpZGVyCmltcG9ydCBjb20ubHVicmNhcHAubHVicmNhcHAuY29yZS5yZXBvc2l0b3J5Lk9wZXJhdGlvbmFsU2NvcGUKaW1wb3J0IGNvbS5sdWJyY2FwcC5sdWJyY2FwcC5jb3JlLnN0b3JlLmRiLkFwcERhdGFiYXNlCmltcG9ydCBjb20ubHVicmNhcHAubHVicmNhcHAuY29yZS5zdG9yZS5kYi5lbnRpdHkuQnVzaW5lc3NFbnRpdHkKaW1wb3J0IGNvbS5sdWJyY2FwcC5sdWJyY2FwcC5jb3JlLnN0b3JlLmRiLmVudGl0eS5UZW5hbnRFbnRpdHkKaW1wb3J0IGNvbS5sdWJyY2FwcC5sdWJyY2FwcC5jb3JlLnN5bmMuT3BlcmF0aW9uVHlwZQppbXBvcnQgY29tLmx1YnJjYXBwLmx1YnJjYXBwLmNvcmUuc3luYy5TeW5jQ2hhbmdlCmltcG9ydCBjb20ubHVicmNhcHAubHVicmNhcHAuY29yZS5zeW5jLlN5bmNJZGVudGl0eQppbXBvcnQga290bGlueC5jb3JvdXRpbmVzLnJ1bkJsb2NraW5nCmltcG9ydCBvcmcuanNvbi5KU09OT2JqZWN0CmltcG9ydCBvcmcuanVuaXQuQXNzZXJ0LmFzc2VydEVxdWFscwppbXBvcnQgb3JnLmp1bml0LkFzc2VydC5hc3NlcnROb3ROdWxsCmltcG9ydCBvcmcuanVuaXQuQXNzZXJ0LmFzc2VydFRydWUKaW1wb3J0IG9yZy5qdW5pdC5UZXN0CmltcG9ydCBvcmcuanVuaXQucnVubmVyLlJ1bldpdGgKaW1wb3J0IG9yZy5yb2JvbGVjdHJpYy5Sb2JvbGVjdHJpY1Rlc3RSdW5uZXIKaW1wb3J0IG9yZy5yb2JvbGVjdHJpYy5hbm5vdGF0aW9uLkNvbmZpZwoKLyoqCiAqIDEyQy0wNShiKTogdGhlIHJlbW90ZS1jaGFuZ2UtdnMtbG9jYWwtZWRpdCBwb2xpY3kgb2YgdGhlIEFuZHJvaWQKICogcmVjZWl2aW5nIHBhdGgsIHBpbm5lZCBhcyBleGVjdXRhYmxlIGJlaGF2aW9yLgogKgogKiBUaGUgZnVsbCBtYXRyaXggYWNyb3NzIHRoZSBzZWdtZW50J3MgdGVzdHM6CiAqIC0gbG9jYWwgZWRpdCBzdGlsbCBQRU5ESU5HL0ZBSUxFRCAtPiB0aGUgcmVtb3RlIGNoYW5nZSBpcyByZWZ1c2VkIGFuZAogKiAgIHRoZSB3aG9sZSBwdWxsIGJhdGNoIHJvbGxzIGJhY2sgKHByb3ZlbiBieQogKiAgIE9wZXJhdGlvbmFsQnVzaW5lc3NSb29tSW50ZWdyYXRpb25UZXN0LmluY29taW5nUmVtb3RlQ2hhbmdlQ2Fubm90T3ZlcndyaXRlUGVuZGluZ0xvY2FsRWRpdCkuCiAqIC0gbG9jYWwgZWRpdCBBTFJFQURZIFNZTkNFRCAoYWNrbm93bGVkZ2VkLCBubyBsb25nZXIgcGVuZGluZyksIGVkaXRhYmxlCiAqICAgdGFibGUgLT4gdGhlIHJlbW90ZSBjaGFuZ2UgT1ZFUldSSVRFUyB0aGUgbG9jYWwgc3RhZ2VkIHJlY29yZCBvbgogKiAgIGFycml2YWwsIGV2ZW4gd2hlbiB0aGUgcmVtb3RlIHJvdydzIHVwZGF0ZWRfYXQgaXMgc3RyaWN0bHkgT0xERVIgdGhhbgogKiAgIHRoZSBsb2NhbCBlZGl0J3MuIFJvb21TeW5jUXVldWVTdG9yZS5hcHBseVJlbW90ZUFuZFNhdmVDdXJzb3IgcGVyZm9ybXMKICogICBubyB1cGRhdGVkX2F0IGNvbXBhcmlzb24gYW55d2hlcmU7IGFycml2YWwgb3JkZXIgZGVjaWRlcy4gKFRoaXMgY2xhc3MuKQogKiAtIGxvY2FsIHBvc3RpbmcgQUxSRUFEWSBTWU5DRUQsIGluc2VydC1vbmx5IGxlZGdlciB0YWJsZSAtPiB0aGUgbG9jYWwKICogICBwb3N0aW5nIHdpbnMgYW5kIHRoZSBjb25mbGljdGluZyByZW1vdGUgcm93IGlzIHNraXBwZWQgd2hpbGUgdGhlCiAqICAgY3Vyc29yIHN0aWxsIGFkdmFuY2VzICh0aGlzIGNsYXNzOyB0aGUgc2tpcCBtZWNoYW5pc20gaXRzZWxmIHdhcwogKiAgIHByb3ZlbiBpbiBQYWNrYWdlIDMgZm9yIHB1bGwgcmVwbGF5cykuCiAqCiAqIFdoZXRoZXIgYXJyaXZhbC1vcmRlci13aW5zIGlzIHRoZSBJTlRFTkRFRCBwb2xpY3kgZm9yIGFscmVhZHktc3luY2VkCiAqIGVkaXRhYmxlIHJlY29yZHMgaXMgYW4gb3duZXIgZGVjaXNpb24sIGZsYWdnZWQgaW4gdGhlIFBhY2thZ2UgOCBnYXRlcwogKiBzZWN0aW9uOiBjb3JyZWN0bmVzcyB0b2RheSByZXN0cyBlbnRpcmVseSBvbiB0aGUgc2VydmVyJ3MgcHVzaC1zaWRlCiAqIExXVyBhbmQgcHVsbCBvcmRlcmluZywgYmVjYXVzZSB0aGUgcmVjZWl2aW5nIHNpZGUgaGFzIG5vIGd1YXJkIG9mIGl0cwogKiBvd24gb25jZSB0aGUgbG9jYWwgZWRpdCBoYXMgYmVlbiBhY2tub3dsZWRnZWQuCiAqLwpAUnVuV2l0aChSb2JvbGVjdHJpY1Rlc3RSdW5uZXI6OmNsYXNzKQpAQ29uZmlnKHNkayA9IFsyOF0pCmNsYXNzIFJlbW90ZUNvbmZsaWN0UG9saWN5VGVzdCB7CiAgICBwcml2YXRlIHZhbCBjb250ZXh0IGdldCgpID0gQXBwbGljYXRpb25Qcm92aWRlci5nZXRBcHBsaWNhdGlvbkNvbnRleHQ8Q29udGV4dD4oKQogICAgcHJpdmF0ZSB2YWwgc2NvcGUgPSBPcGVyYXRpb25hbFNjb3BlKCJ0ZW5hbnQtYSIsICJidXNpbmVzcy1hIiwgImRldmljZS1hIikKICAgIHByaXZhdGUgdmFsIGlkZW50aXR5ID0gU3luY0lkZW50aXR5KCJ0ZW5hbnQtYSIsICJidXNpbmVzcy1hIiwgImRldmljZS1hIikKCiAgICBwcml2YXRlIGZ1biBvcGVuRGF0YWJhc2UoKTogQXBwRGF0YWJhc2UgPQogICAgICAgIFJvb20uaW5NZW1vcnlEYXRhYmFzZUJ1aWxkZXIoY29udGV4dCwgQXBwRGF0YWJhc2U6OmNsYXNzLmphdmEpCiAgICAgICAgICAgIC5hbGxvd01haW5UaHJlYWRRdWVyaWVzKCkuYnVpbGQoKQoKICAgIHByaXZhdGUgZnVuIHNlZWRQYXJlbnRzKGRhdGFiYXNlOiBBcHBEYXRhYmFzZSkgewogICAgICAgIHJ1bkJsb2NraW5nIHsKICAgICAgICAgICAgdmFsIG5vdyA9IFN5c3RlbS5jdXJyZW50VGltZU1pbGxpcygpCiAgICAgICAgICAgIGRhdGFiYXNlLnRlbmFudERhbygpLnVwc2VydChUZW5hbnRFbnRpdHkoCiAgICAgICAgICAgICAgICBpZCA9IGlkZW50aXR5LnRlbmFudElkLCBuYW1lID0gIlRlc3QgdGVuYW50IiwKICAgICAgICAgICAgICAgIGNyZWF0ZWRBdCA9IG5vdywgdXBkYXRlZEF0ID0gbm93LCBkZXZpY2VJZCA9IGlkZW50aXR5LmRldmljZUlkLAogICAgICAgICAgICAgICAgc3luY1N0YXR1cyA9ICJMT0NBTCIsCiAgICAgICAgICAgICkpCiAgICAgICAgICAgIGRhdGFiYXNlLmJ1c2luZXNzRGFvKCkudXBzZXJ0KEJ1c2luZXNzRW50aXR5KAogICAgICAgICAgICAgICAgaWQgPSBpZGVudGl0eS5idXNpbmVzc0lkLCB0ZW5hbnRJZCA9IGlkZW50aXR5LnRlbmFudElkLAogICAgICAgICAgICAgICAgbmFtZSA9ICJUZXN0IGJ1c2luZXNzIiwgYnVzaW5lc3NUeXBlID0gIlJFVEFJTCIsCiAgICAgICAgICAgICAgICBjdXJyZW5jeUNvZGUgPSAiVVNEIiwgdGltZXpvbmVJZCA9ICJVVEMiLAogICAgICAgICAgICAgICAgY3JlYXRlZEF0ID0gbm93LCB1cGRhdGVkQXQgPSBub3csIGRldmljZUlkID0gaWRlbnRpdHkuZGV2aWNlSWQsCiAgICAgICAgICAgICAgICBzeW5jU3RhdHVzID0gIkxPQ0FMIiwKICAgICAgICAgICAgKSkKICAgICAgICB9CiAgICB9CgogICAgLyoqCiAgICAgKiBTYXZlcyBhIGxvY2FsIGVkaXQgdGhyb3VnaCB0aGUgcHJvZHVjdGlvbiByZXBvc2l0b3J5IGFuZCBzZXR0bGVzIGl0CiAgICAgKiBhcyBhY2tub3dsZWRnZWQsIHJldHVybmluZyBpdHMgb3BlcmF0aW9uIElEOiB0aGUgZXhhY3Qgc3RhdGUgb2YgYW4KICAgICAqIGVkaXQgdGhhdCBoYXMgYWxyZWFkeSBiZWVuIHN5bmNlZCB3aGVuIGEgY29uZmxpY3RpbmcgcmVtb3RlIGNoYW5nZQogICAgICogbGF0ZXIgYXJyaXZlcy4KICAgICAqLwogICAgcHJpdmF0ZSBmdW4gc2F2ZUFuZEFja25vd2xlZGdlKAogICAgICAgIGRhdGFiYXNlOiBBcHBEYXRhYmFzZSwKICAgICAgICBxdWV1ZTogUm9vbVN5bmNRdWV1ZVN0b3JlLAogICAgICAgIHRhYmxlOiBTdHJpbmcsCiAgICAgICAgZW50aXR5SWQ6IFN0cmluZywKICAgICAgICBwYXlsb2FkSnNvbjogU3RyaW5nLAogICAgKTogU3RyaW5nID0gcnVuQmxvY2tpbmcgewogICAgICAgIHZhbCByZXBvc2l0b3J5ID0gUm9vbVZwc0J1c2luZXNzUmVwb3NpdG9yeShkYXRhYmFzZS52cHNCdXNpbmVzc1JlY29yZERhbygpLCBkYXRhYmFzZSkKICAgICAgICByZXBvc2l0b3J5LnNhdmUoc2NvcGUsIHRhYmxlLCBlbnRpdHlJZCwgcGF5bG9hZEpzb24pCiAgICAgICAgdmFsIG9wZXJhdGlvbklkID0gcXVldWUucGVuZGluZyhpZGVudGl0eSwgMjApLnNpbmdsZSgpLm9wZXJhdGlvbklkCiAgICAgICAgcXVldWUubWFya0FjY2VwdGVkKGlkZW50aXR5LCBzZXRPZihvcGVyYXRpb25JZCkpCiAgICAgICAgYXNzZXJ0VHJ1ZShxdWV1ZS5wZW5kaW5nKGlkZW50aXR5LCAyMCkuaXNFbXB0eSgpKQogICAgICAgIG9wZXJhdGlvbklkCiAgICB9CgogICAgQFRlc3QgZnVuIGFscmVhZHlTeW5jZWRMb2NhbEVkaXRJc092ZXJ3cml0dGVuQnlPbGRlclJlbW90ZUNoYW5nZSgpID0gcnVuQmxvY2tpbmcgewogICAgICAgIHZhbCBkYXRhYmFzZSA9IG9wZW5EYXRhYmFzZSgpCiAgICAgICAgdHJ5IHsKICAgICAgICAgICAgc2VlZFBhcmVudHMoZGF0YWJhc2UpCiAgICAgICAgICAgIHZhbCBxdWV1ZSA9IFJvb21TeW5jUXVldWVTdG9yZShkYXRhYmFzZSkKICAgICAgICAgICAgdmFsIG9wZXJhdGlvbklkID0gc2F2ZUFuZEFja25vd2xlZGdlKAogICAgICAgICAgICAgICAgZGF0YWJhc2UsIHF1ZXVlLCAicHJvZHVjdHMiLCAicHJvZHVjdC0xIiwKICAgICAgICAgICAgICAgICIiInsidXVpZCI6InByb2R1Y3QtMSIsIm5hbWUiOiJMb2NhbCBhY2tlZCBlZGl0IiwidXBkYXRlZF9hdCI6NTAwMH0iIiIsCiAgICAgICAgICAgICkKICAgICAgICAgICAgLy8gQSBjb25mbGljdGluZyByZW1vdGUgY2hhbmdlIGFycml2ZXMgd2hvc2UgdXBkYXRlZF9hdCBpcwogICAgICAgICAgICAvLyBzdHJpY3RseSBvbGRlciB0aGFuIHRoZSBhY2tub3dsZWRnZWQgbG9jYWwgZWRpdCdzLgogICAgICAgICAgICBxdWV1ZS5hcHBseVJlbW90ZUFuZFNhdmVDdXJzb3IoaWRlbnRpdHksIGxpc3RPZihTeW5jQ2hhbmdlKAogICAgICAgICAgICAgICAgIm9wLXJlbW90ZS1zdGFsZSIsICJwcm9kdWN0cyIsICJwcm9kdWN0LTEiLCBPcGVyYXRpb25UeXBlLlVQREFURSwgOSwKICAgICAgICAgICAgICAgICIiInsidXVpZCI6InByb2R1Y3QtMSIsIm5hbWUiOiJPbGRlciByZW1vdGUgZWRpdCIsInVwZGF0ZWRfYXQiOjEwMDB9IiIiLCA5MDBMLAogICAgICAgICAgICApKSwgIjQiKQogICAgICAgICAgICAvLyBQSU5ORUQgUE9MSUNZOiB0aGUgcmVtb3RlIHJvdyB3aW5zIG9uIGFycml2YWwuIFRoZXJlIGlzIG5vCiAgICAgICAgICAgIC8vIHVwZGF0ZWRfYXQgY29tcGFyaXNvbiBvbiB0aGlzIHBhdGgsIHNvIHRoZSBvbGRlciByZW1vdGUgZWRpdAogICAgICAgICAgICAvLyBzaWxlbnRseSByZXBsYWNlcyB0aGUgbmV3ZXIgYWNrbm93bGVkZ2VkIGxvY2FsIGVkaXQgaW4gdGhlCiAgICAgICAgICAgIC8vIHN0YWdlZCByZXBsaWNhIHJlY29yZC4KICAgICAgICAgICAgdmFsIHN0b3JlZCA9IGRhdGFiYXNlLnZwc0J1c2luZXNzUmVjb3JkRGFvKCkuZ2V0KAogICAgICAgICAgICAgICAgInRlbmFudC1hIiwgImJ1c2luZXNzLWEiLCAicHJvZHVjdHMiLCAicHJvZHVjdC0xIikKICAgICAgICAgICAgYXNzZXJ0Tm90TnVsbChzdG9yZWQpCiAgICAgICAgICAgIGFzc2VydEVxdWFscygiT2xkZXIgcmVtb3RlIGVkaXQiLCBKU09OT2JqZWN0KHN0b3JlZCEhLnBheWxvYWRKc29uKS5nZXRTdHJpbmcoIm5hbWUiKSkKICAgICAgICAgICAgLy8gVGhlIGFja25vd2xlZGdlZCBxdWV1ZSByb3cgaXMgdW50b3VjaGVkIGFuZCB0aGUgY3Vyc29yIGFkdmFuY2VkLgogICAgICAgICAgICBhc3NlcnRFcXVhbHMoIlNZTkNFRCIsIGRhdGFiYXNlLnN5bmNRdWV1ZURhbygpLmZpbmRCeUlkKAogICAgICAgICAgICAgICAgInRlbmFudC1hIiwgImJ1c2luZXNzLWEiLCBvcGVyYXRpb25JZCk/LnN0YXR1cykKICAgICAgICAgICAgYXNzZXJ0RXF1YWxzKCI0IiwgcXVldWUuY3Vyc29yKGlkZW50aXR5KSkKICAgICAgICB9IGZpbmFsbHkgeyBkYXRhYmFzZS5jbG9zZSgpIH0KICAgIH0KCiAgICBAVGVzdCBmdW4gYWxyZWFkeVN5bmNlZExlZGdlclBvc3RpbmdJc05vdE92ZXJ3cml0dGVuQnlSZW1vdGVDaGFuZ2UoKSA9IHJ1bkJsb2NraW5nIHsKICAgICAgICB2YWwgZGF0YWJhc2UgPSBvcGVuRGF0YWJhc2UoKQogICAgICAgIHRyeSB7CiAgICAgICAgICAgIHNlZWRQYXJlbnRzKGRhdGFiYXNlKQogICAgICAgICAgICB2YWwgcXVldWUgPSBSb29tU3luY1F1ZXVlU3RvcmUoZGF0YWJhc2UpCiAgICAgICAgICAgIHZhbCBvcGVyYXRpb25JZCA9IHNhdmVBbmRBY2tub3dsZWRnZSgKICAgICAgICAgICAgICAgIGRhdGFiYXNlLCBxdWV1ZSwgInN0b2NrX21vdmVtZW50cyIsICJtb3ZlLTEiLAogICAgICAgICAgICAgICAgIiIieyJ1dWlkIjoibW92ZS0xIiwiZGVzY3JpcHRpb24iOiJMb2NhbCBhY2tlZCBwb3N0aW5nIiwicmVmZXJlbmNlIjoiUkVGLTEifSIiIiwKICAgICAgICAgICAgKQogICAgICAgICAgICBxdWV1ZS5hcHBseVJlbW90ZUFuZFNhdmVDdXJzb3IoaWRlbnRpdHksIGxpc3RPZihTeW5jQ2hhbmdlKAogICAgICAgICAgICAgICAgIm9wLXJlbW90ZS1jb25mbGljdCIsICJzdG9ja19tb3ZlbWVudHMiLCAibW92ZS0xIiwgT3BlcmF0aW9uVHlwZS5DUkVBVEUsIDEsCiAgICAgICAgICAgICAgICAiIiJ7InV1aWQiOiJtb3ZlLTEiLCJkZXNjcmlwdGlvbiI6IlJlbW90ZSBvdmVyd3JpdGUgYXR0ZW1wdCIsInJlZmVyZW5jZSI6IlJFRi05In0iIiIsCiAgICAgICAgICAgICAgICA5MDBMLAogICAgICAgICAgICApKSwgIjQiKQogICAgICAgICAgICAvLyBJbnNlcnQtb25seSBwYXJpdHk6IHRoZSBsb2NhbCBwb3N0aW5nIHdpbnM7IHRoZSBjb25mbGljdGluZwogICAgICAgICAgICAvLyByZW1vdGUgcm93IGlzIHNraXBwZWQsIG5vdCBhcHBsaWVkIGFuZCBub3QgYW4gZXJyb3IsIGFuZCB0aGUKICAgICAgICAgICAgLy8gY3Vyc29yIHN0aWxsIGFkdmFuY2VzIHBhc3QgaXQuCiAgICAgICAgICAgIHZhbCBzdG9yZWQgPSBkYXRhYmFzZS52cHNCdXNpbmVzc1JlY29yZERhbygpLmdldCgKICAgICAgICAgICAgICAgICJ0ZW5hbnQtYSIsICJidXNpbmVzcy1hIiwgInN0b2NrX21vdmVtZW50cyIsICJtb3ZlLTEiKQogICAgICAgICAgICBhc3NlcnROb3ROdWxsKHN0b3JlZCkKICAgICAgICAgICAgYXNzZXJ0RXF1YWxzKCJMb2NhbCBhY2tlZCBwb3N0aW5nIiwKICAgICAgICAgICAgICAgIEpTT05PYmplY3Qoc3RvcmVkISEucGF5bG9hZEpzb24pLmdldFN0cmluZygiZGVzY3JpcHRpb24iKSkKICAgICAgICAgICAgYXNzZXJ0RXF1YWxzKCJSRUYtMSIsIEpTT05PYmplY3Qoc3RvcmVkLnBheWxvYWRKc29uKS5nZXRTdHJpbmcoInJlZmVyZW5jZSIpKQogICAgICAgICAgICBhc3NlcnRFcXVhbHMoIlNZTkNFRCIsIGRhdGFiYXNlLnN5bmNRdWV1ZURhbygpLmZpbmRCeUlkKAogICAgICAgICAgICAgICAgInRlbmFudC1hIiwgImJ1c2luZXNzLWEiLCBvcGVyYXRpb25JZCk/LnN0YXR1cykKICAgICAgICAgICAgYXNzZXJ0RXF1YWxzKCI0IiwgcXVldWUuY3Vyc29yKGlkZW50aXR5KSkKICAgICAgICB9IGZpbmFsbHkgeyBkYXRhYmFzZS5jbG9zZSgpIH0KICAgIH0KfQo=
+package com.lubrcapp.lubrcapp.core.store.repository
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
+import com.lubrcapp.lubrcapp.core.store.db.entity.BusinessEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
+import com.lubrcapp.lubrcapp.core.sync.OperationType
+import com.lubrcapp.lubrcapp.core.sync.SyncChange
+import com.lubrcapp.lubrcapp.core.sync.SyncIdentity
+import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * 12C-05(b): the remote-change-vs-local-edit policy of the Android
+ * receiving path, pinned as executable behavior.
+ *
+ * The full matrix across the segment's tests:
+ * - local edit still PENDING/FAILED -> the remote change is refused and
+ *   the whole pull batch rolls back (proven by
+ *   OperationalBusinessRoomIntegrationTest.incomingRemoteChangeCannotOverwritePendingLocalEdit).
+ * - local edit ALREADY SYNCED (acknowledged, no longer pending), editable
+ *   table -> the remote change OVERWRITES the local staged record on
+ *   arrival, even when the remote row's updated_at is strictly OLDER than
+ *   the local edit's. RoomSyncQueueStore.applyRemoteAndSaveCursor performs
+ *   no updated_at comparison anywhere; arrival order decides. (This class.)
+ * - local posting ALREADY SYNCED, insert-only ledger table -> the local
+ *   posting wins and the conflicting remote row is skipped while the
+ *   cursor still advances (this class; the skip mechanism itself was
+ *   proven in Package 3 for pull replays).
+ *
+ * Whether arrival-order-wins is the INTENDED policy for already-synced
+ * editable records is an owner decision, flagged in the Package 8 gates
+ * section: correctness today rests entirely on the server's push-side
+ * LWW and pull ordering, because the receiving side has no guard of its
+ * own once the local edit has been acknowledged.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
+class RemoteConflictPolicyTest {
+    private val context get() = ApplicationProvider.getApplicationContext<Context>()
+    private val scope = OperationalScope("tenant-a", "business-a", "device-a")
+    private val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+
+    private fun openDatabase(): AppDatabase =
+        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+
+    private fun seedParents(database: AppDatabase) {
+        runBlocking {
+            val now = System.currentTimeMillis()
+            database.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL",
+            ))
+            database.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL",
+            ))
+        }
+    }
+
+    /**
+     * Saves a local edit through the production repository and settles it
+     * as acknowledged, returning its operation ID: the exact state of an
+     * edit that has already been synced when a conflicting remote change
+     * later arrives.
+     */
+    private fun saveAndAcknowledge(
+        database: AppDatabase,
+        queue: RoomSyncQueueStore,
+        table: String,
+        entityId: String,
+        payloadJson: String,
+    ): String = runBlocking {
+        val repository = RoomVpsBusinessRepository(database.vpsBusinessRecordDao(), database)
+        repository.save(scope, table, entityId, payloadJson)
+        val operationId = queue.pending(identity, 20).single().operationId
+        queue.markAccepted(identity, setOf(operationId))
+        assertTrue(queue.pending(identity, 20).isEmpty())
+        operationId
+    }
+
+    @Test fun alreadySyncedLocalEditIsOverwrittenByOlderRemoteChange() = runBlocking {
+        val database = openDatabase()
+        try {
+            seedParents(database)
+            val queue = RoomSyncQueueStore(database)
+            val operationId = saveAndAcknowledge(
+                database, queue, "products", "product-1",
+                """{"uuid":"product-1","name":"Local acked edit","updated_at":5000}""",
+            )
+            // A conflicting remote change arrives whose updated_at is
+            // strictly older than the acknowledged local edit's.
+            queue.applyRemoteAndSaveCursor(identity, listOf(SyncChange(
+                "op-remote-stale", "products", "product-1", OperationType.UPDATE, 9,
+                """{"uuid":"product-1","name":"Older remote edit","updated_at":1000}""", 900L,
+            )), "4")
+            // PINNED POLICY: the remote row wins on arrival. There is no
+            // updated_at comparison on this path, so the older remote edit
+            // silently replaces the newer acknowledged local edit in the
+            // staged replica record.
+            val stored = database.vpsBusinessRecordDao().get(
+                "tenant-a", "business-a", "products", "product-1")
+            assertNotNull(stored)
+            assertEquals("Older remote edit", JSONObject(stored!!.payloadJson).getString("name"))
+            // The acknowledged queue row is untouched and the cursor advanced.
+            assertEquals("SYNCED", database.syncQueueDao().findById(
+                "tenant-a", "business-a", operationId)?.status)
+            assertEquals("4", queue.cursor(identity))
+        } finally { database.close() }
+    }
+
+    @Test fun alreadySyncedLedgerPostingIsNotOverwrittenByRemoteChange() = runBlocking {
+        val database = openDatabase()
+        try {
+            seedParents(database)
+            val queue = RoomSyncQueueStore(database)
+            val operationId = saveAndAcknowledge(
+                database, queue, "stock_movements", "move-1",
+                """{"uuid":"move-1","description":"Local acked posting","reference":"REF-1"}""",
+            )
+            queue.applyRemoteAndSaveCursor(identity, listOf(SyncChange(
+                "op-remote-conflict", "stock_movements", "move-1", OperationType.CREATE, 1,
+                """{"uuid":"move-1","description":"Remote overwrite attempt","reference":"REF-9"}""",
+                900L,
+            )), "4")
+            // Insert-only parity: the local posting wins; the conflicting
+            // remote row is skipped, not applied and not an error, and the
+            // cursor still advances past it.
+            val stored = database.vpsBusinessRecordDao().get(
+                "tenant-a", "business-a", "stock_movements", "move-1")
+            assertNotNull(stored)
+            assertEquals("Local acked posting",
+                JSONObject(stored!!.payloadJson).getString("description"))
+            assertEquals("REF-1", JSONObject(stored.payloadJson).getString("reference"))
+            assertEquals("SYNCED", database.syncQueueDao().findById(
+                "tenant-a", "business-a", operationId)?.status)
+            assertEquals("4", queue.cursor(identity))
+        } finally { database.close() }
+    }
+}

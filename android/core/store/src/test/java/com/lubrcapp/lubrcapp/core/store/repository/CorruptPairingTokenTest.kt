@@ -1,1 +1,121 @@
-cGFja2FnZSBjb20ubHVicmNhcHAubHVicmNhcHAuY29yZS5zdG9yZS5yZXBvc2l0b3J5CgppbXBvcnQgYW5kcm9pZC5jb250ZW50LkNvbnRleHQKaW1wb3J0IGFuZHJvaWR4LnRlc3QuY29yZS5hcHAuQXBwbGljYXRpb25Qcm92aWRlcgppbXBvcnQgYW5kcm9pZHgud29yay5Db25maWd1cmF0aW9uCmltcG9ydCBhbmRyb2lkeC53b3JrLkRhdGEKaW1wb3J0IGFuZHJvaWR4LndvcmsuTGlzdGVuYWJsZVdvcmtlcgppbXBvcnQgYW5kcm9pZHgud29yay5Xb3JrSW5mbwppbXBvcnQgYW5kcm9pZHgud29yay5Xb3JrTWFuYWdlcgppbXBvcnQgYW5kcm9pZHgud29yay50ZXN0aW5nLlRlc3RMaXN0ZW5hYmxlV29ya2VyQnVpbGRlcgppbXBvcnQgYW5kcm9pZHgud29yay50ZXN0aW5nLldvcmtNYW5hZ2VyVGVzdEluaXRIZWxwZXIKaW1wb3J0IGNvbS5sdWJyY2FwcC5sdWJyY2FwcC5jb3JlLnJlcG9zaXRvcnkuT3BlcmF0aW9uYWxTY29wZQppbXBvcnQgY29tLmx1YnJjYXBwLmx1YnJjYXBwLmNvcmUuc3luYy5TeW5jSWRlbnRpdHkKaW1wb3J0IGtvdGxpbnguY29yb3V0aW5lcy5ydW5CbG9ja2luZwppbXBvcnQgb3JnLmp1bml0LkFzc2VydC5hc3NlcnRGYWxzZQppbXBvcnQgb3JnLmp1bml0LkFzc2VydC5hc3NlcnROb3ROdWxsCmltcG9ydCBvcmcuanVuaXQuQXNzZXJ0LmFzc2VydFRydWUKaW1wb3J0IG9yZy5qdW5pdC5CZWZvcmUKaW1wb3J0IG9yZy5qdW5pdC5UZXN0CmltcG9ydCBvcmcuanVuaXQucnVubmVyLlJ1bldpdGgKaW1wb3J0IG9yZy5yb2JvbGVjdHJpYy5Sb2JvbGVjdHJpY1Rlc3RSdW5uZXIKaW1wb3J0IG9yZy5yb2JvbGVjdHJpYy5hbm5vdGF0aW9uLkNvbmZpZwoKLyoqCiAqIDEyQy0wNiByZXNpZHVhbDogY29ycnVwdCBzdG9yZWQgY3JlZGVudGlhbCBiZWhhdmlvciBhdCB0aGUgbGF5ZXJzIHRoYXQKICogYXJlIHRlc3RhYmxlIHdpdGhvdXQgYSByZWFsIEFuZHJvaWQgS2V5c3RvcmUuCiAqCiAqIFNlY3VyZURldmljZUNyZWRlbnRpYWxzLnRva2VuKCkgZmFpbHMgc2FmZSB0byBudWxsIG9uIGFueSBzdG9yYWdlIG9yCiAqIGRlY3J5cHRpb24gcHJvYmxlbSAobWlzc2luZyBrZXksIGludmFsaWRhdGVkIGtleSwgY29ycnVwdCBjaXBoZXJ0ZXh0KS4KICogVGhhdCBzaW5nbGUgY29udHJhY3QgZHJpdmVzIGV2ZXJ5dGhpbmcgYXNzZXJ0ZWQgaGVyZTogYSBwcmVzZW50LWJ1dC0KICogY29ycnVwdCB0b2tlbiBtdXN0IGJlaGF2ZSBleGFjdGx5IGxpa2Ugbm8gdG9rZW4g4oCUIHRoZSBkZXZpY2UgcmVwb3J0cwogKiB1bnBhaXJlZCwgcmVzdG9yZSBrZWVwcyB0aGUgc2NvcGUgTE9DQUxfT05MWSwgYW5kIHRoZSBzeW5jIHdvcmtlciBmYWlscwogKiBpdHMgcnVuIHdpdGhvdXQgdG91Y2hpbmcgYnVzaW5lc3MgZGF0YS4gKFRoZSBLZXlzdG9yZSBjcnlwdG8gcm91bmQtdHJpcAogKiBpdHNlbGYgbmVlZHMgYSBkZXZpY2U7IHVuZGVyIFJvYm9sZWN0cmljIHRoZSBBbmRyb2lkS2V5U3RvcmUgcHJvdmlkZXIKICogaXMgYWJzZW50LCB3aGljaCBsYW5kcyBpbiB0aGUgc2FtZSBmYWlsLXNhZmUgcGF0aCBwcm9kdWN0aW9uIHRha2VzIG9uCiAqIGNvcnJ1cHRpb24sIHNvIHRoZSBvYnNlcnZhYmxlIGNvbnRyYWN0IGlzIHdoYXQgaXMgcGlubmVkLikKICoKICogVGhlcmUgaXMgbm8gY2xpZW50LXNpZGUgdG9rZW4gZXhwaXJ5IGluIHRoaXMgZGVzaWduOiBhbiBleHBpcmVkIHRva2VuCiAqIGlzIGluZGlzdGluZ3Vpc2hhYmxlIGZyb20gYSB2YWxpZCBvbmUgdW50aWwgdGhlIFZQUyByZWplY3RzIGl0LCB3aGljaAogKiBzdXJmYWNlcyBhcyB0aGUgdHJhbnNwb3J0J3MgSFRUUCA0MDEgZXJyb3Ig4oCUIGNvdmVyZWQgaW4gY29yZTpzeW5jIGJ5CiAqIFRyYW5zcG9ydFRva2VuUmVkYWN0aW9uVGVzdC5leHBpcmVkVG9rZW5GYWlsc1dpdGhSZWRhY3RlZEVycm9yLgogKi8KQFJ1bldpdGgoUm9ib2xlY3RyaWNUZXN0UnVubmVyOjpjbGFzcykKQENvbmZpZyhzZGsgPSBbMjhdKQpjbGFzcyBDb3JydXB0UGFpcmluZ1Rva2VuVGVzdCB7CiAgICBwcml2YXRlIHZhbCBjb250ZXh0IGdldCgpID0gQXBwbGljYXRpb25Qcm92aWRlci5nZXRBcHBsaWNhdGlvbkNvbnRleHQ8Q29udGV4dD4oKQogICAgcHJpdmF0ZSB2YWwgc2NvcGUgPSBPcGVyYXRpb25hbFNjb3BlKCJ0ZW5hbnQtYSIsICJidXNpbmVzcy1hIiwgImRldmljZS1hIikKICAgIHByaXZhdGUgdmFsIGlkZW50aXR5ID0gU3luY0lkZW50aXR5KCJ0ZW5hbnQtYSIsICJidXNpbmVzcy1hIiwgImRldmljZS1hIikKICAgIHByaXZhdGUgdmFsIGpvYk5hbWUgPSAibHVicmljLXZwcy1zeW5jOnRlbmFudC1hOmJ1c2luZXNzLWE6ZGV2aWNlLWEiCiAgICBwcml2YXRlIHZhbCBtYW5hZ2VyIGdldCgpID0gRGV2aWNlUGFpcmluZ01hbmFnZXIoY29udGV4dCkKCiAgICBAQmVmb3JlIGZ1biBzZXRVcCgpIHsKICAgICAgICBXb3JrTWFuYWdlclRlc3RJbml0SGVscGVyLmluaXRpYWxpemVUZXN0V29ya01hbmFnZXIoCiAgICAgICAgICAgIGNvbnRleHQsIENvbmZpZ3VyYXRpb24uQnVpbGRlcigpLmJ1aWxkKCkKICAgICAgICApCiAgICAgICAgY29udGV4dC5nZXRTaGFyZWRQcmVmZXJlbmNlcygibHVicmljX2Nsb3VkX3BhaXJpbmciLCBDb250ZXh0Lk1PREVfUFJJVkFURSkKICAgICAgICAgICAgLmVkaXQoKS5jbGVhcigpLmNvbW1pdCgpCiAgICAgICAgY29udGV4dC5nZXRTaGFyZWRQcmVmZXJlbmNlcygibHVicmljX3NlY3VyZV9wYWlyaW5nIiwgQ29udGV4dC5NT0RFX1BSSVZBVEUpCiAgICAgICAgICAgIC5lZGl0KCkuY2xlYXIoKS5jb21taXQoKQogICAgICAgIGNvbnRleHQuZ2V0U2hhcmVkUHJlZmVyZW5jZXMoImx1YnJpY19jbG91ZF9zeW5jIiwgQ29udGV4dC5NT0RFX1BSSVZBVEUpCiAgICAgICAgICAgIC5lZGl0KCkuY2xlYXIoKS5jb21taXQoKQogICAgfQoKICAgIC8qKiBBIHZhbGlkIHBhaXJpbmcgcmVjb3JkIHdob3NlIHN0b3JlZCBjcmVkZW50aWFsIGJ5dGVzIGFyZSBnYXJiYWdlLiAqLwogICAgcHJpdmF0ZSBmdW4gc2VlZFJlY29yZFdpdGhDb3JydXB0Q3JlZGVudGlhbCgpIHsKICAgICAgICBjb250ZXh0LmdldFNoYXJlZFByZWZlcmVuY2VzKCJsdWJyaWNfY2xvdWRfcGFpcmluZyIsIENvbnRleHQuTU9ERV9QUklWQVRFKQogICAgICAgICAgICAuZWRpdCgpCiAgICAgICAgICAgIC5wdXRTdHJpbmcoImVuZHBvaW50IiwgImh0dHBzOi8vdnBzLmV4YW1wbGUiKQogICAgICAgICAgICAucHV0U3RyaW5nKCJ0ZW5hbnQiLCAidGVuYW50LWEiKQogICAgICAgICAgICAucHV0U3RyaW5nKCJidXNpbmVzcyIsICJidXNpbmVzcy1hIikKICAgICAgICAgICAgLnB1dFN0cmluZygiZGV2aWNlIiwgImRldmljZS1hIikKICAgICAgICAgICAgLmNvbW1pdCgpCiAgICAgICAgY29udGV4dC5nZXRTaGFyZWRQcmVmZXJlbmNlcygibHVicmljX3NlY3VyZV9wYWlyaW5nIiwgQ29udGV4dC5NT0RFX1BSSVZBVEUpCiAgICAgICAgICAgIC5lZGl0KCkKICAgICAgICAgICAgLnB1dFN0cmluZygiaXYiLCAiISEhbm90LXZhbGlkLWJhc2U2NCEhISIpCiAgICAgICAgICAgIC5wdXRTdHJpbmcoInRva2VuIiwgImNvcnJ1cHQtY2lwaGVydGV4dC1ub3QtcHJvZHVjZWQtYnkta2V5c3RvcmUiKQogICAgICAgICAgICAuY29tbWl0KCkKICAgIH0KCiAgICBAVGVzdCBmdW4gY29ycnVwdFN0b3JlZFRva2VuRmFpbHNTYWZlVG9VbnBhaXJlZEFuZFJlc3RvcmVLZWVwc0xvY2FsT25seSgpID0gcnVuQmxvY2tpbmcgewogICAgICAgIHNlZWRSZWNvcmRXaXRoQ29ycnVwdENyZWRlbnRpYWwoKQogICAgICAgIC8vIFRoZSBwYWlyaW5nIFJFQ09SRCBpcyBpbnRhY3Q7IG9ubHkgdGhlIGNyZWRlbnRpYWwgaXMgdW51c2FibGUuCiAgICAgICAgYXNzZXJ0Tm90TnVsbChtYW5hZ2VyLnJlY29yZCgpKQogICAgICAgIC8vIEZhaWwtc2FmZTogY29ycnVwdCB0b2tlbiByZWFkcyBhcyBubyB0b2tlbiwgc28gdGhlIHNjb3BlIGlzIG5vdAogICAgICAgIC8vIHBhaXJlZCBldmVuIHRob3VnaCBpdHMgcmVjb3JkIG1hdGNoZXMgZXhhY3RseS4KICAgICAgICBhc3NlcnRGYWxzZShtYW5hZ2VyLmlzUGFpcmVkKHNjb3BlKSkKICAgICAgICAvLyBTdGFydHVwIHJlc3RvcmUgbXVzdCB0aGVyZWZvcmUga2VlcCB0aGUgc2NvcGUgaW4gTE9DQUxfT05MWToKICAgICAgICAvLyBjbG91ZCBjb25zZW50IHN0YXlzIGRpc2FibGVkIGFuZCBubyBjbG91ZCBqb2IgaXMgZW5xdWV1ZWQuCiAgICAgICAgbWFuYWdlci5yZXN0b3JlUGVyc2lzdGVkKCkKICAgICAgICBhc3NlcnRGYWxzZShDbG91ZFN5bmNDb25zZW50LmlzRW5hYmxlZChjb250ZXh0LCBpZGVudGl0eSkpCiAgICAgICAgdmFsIGluZm9zID0gV29ya01hbmFnZXIuZ2V0SW5zdGFuY2UoY29udGV4dCkKICAgICAgICAgICAgLmdldFdvcmtJbmZvc0ZvclVuaXF1ZVdvcmsoam9iTmFtZSkuZ2V0KCkKICAgICAgICBhc3NlcnRUcnVlKGluZm9zLm5vbmUgeyBpdC5zdGF0ZSA9PSBXb3JrSW5mby5TdGF0ZS5FTlFVRVVFRCB9KQogICAgfQoKICAgIEBUZXN0IGZ1biB3b3JrZXJGYWlsc1J1bldoZW5TdG9yZWRUb2tlbklzQ29ycnVwdCgpID0gcnVuQmxvY2tpbmcgewogICAgICAgIHNlZWRSZWNvcmRXaXRoQ29ycnVwdENyZWRlbnRpYWwoKQogICAgICAgIC8vIENvbnNlbnQgaXMgT04gZm9yIHRoaXMgaWRlbnRpdHksIHNvIHRoZSB3b3JrZXIgcHJvY2VlZHMgcGFzdCB0aGUKICAgICAgICAvLyBjb25zZW50IGdhdGUgYW5kIHJlYWNoZXMgdGhlIGNyZWRlbnRpYWwgY2hlY2suCiAgICAgICAgY29udGV4dC5nZXRTaGFyZWRQcmVmZXJlbmNlcygibHVicmljX2Nsb3VkX3N5bmMiLCBDb250ZXh0Lk1PREVfUFJJVkFURSkKICAgICAgICAgICAgLmVkaXQoKQogICAgICAgICAgICAucHV0Qm9vbGVhbigiZW5hYmxlZDp0ZW5hbnQtYTpidXNpbmVzcy1hOmRldmljZS1hIiwgdHJ1ZSkKICAgICAgICAgICAgLmNvbW1pdCgpCiAgICAgICAgdmFsIHdvcmtlciA9IFRlc3RMaXN0ZW5hYmxlV29ya2VyQnVpbGRlcjxDbG91ZFN5bmNXb3JrZXI+KGNvbnRleHQpCiAgICAgICAgICAgIC5zZXRJbnB1dERhdGEoCiAgICAgICAgICAgICAgICBEYXRhLkJ1aWxkZXIoKQogICAgICAgICAgICAgICAgICAgIC5wdXRTdHJpbmcoInRlbmFudCIsIGlkZW50aXR5LnRlbmFudElkKQogICAgICAgICAgICAgICAgICAgIC5wdXRTdHJpbmcoImJ1c2luZXNzIiwgaWRlbnRpdHkuYnVzaW5lc3NJZCkKICAgICAgICAgICAgICAgICAgICAucHV0U3RyaW5nKCJkZXZpY2UiLCBpZGVudGl0eS5kZXZpY2VJZCkKICAgICAgICAgICAgICAgICAgICAucHV0U3RyaW5nKCJlbmRwb2ludCIsICJodHRwczovL3Zwcy5leGFtcGxlIikKICAgICAgICAgICAgICAgICAgICAucHV0U3RyaW5nQXJyYXkoInRhYmxlcyIsIGFycmF5T2YoInByb2R1Y3RzIikpCiAgICAgICAgICAgICAgICAgICAgLmJ1aWxkKCkKICAgICAgICAgICAgKQogICAgICAgICAgICAuYnVpbGQoKQogICAgICAgIC8vIEEgY29ycnVwdCB0b2tlbiBmYWlscyB0aGUgcnVuIGNsZWFubHkgKFdvcmtNYW5hZ2VyIHdpbGwgcmV0cnkKICAgICAgICAvLyBwZXIgYmFja29mZiBhZnRlciByZS1wYWlyaW5nKTsgaXQgbXVzdCBub3QgcmVwb3J0IHN1Y2Nlc3MgYW5kCiAgICAgICAgLy8gbXVzdCBub3QgZmFsbCB0aHJvdWdoIHRvIGEgZGF0YWJhc2Ugb3IgbmV0d29yayBhdHRlbXB0IHdpdGggYQogICAgICAgIC8vIGdhcmJhZ2UgY3JlZGVudGlhbC4KICAgICAgICBhc3NlcnRUcnVlKHdvcmtlci5kb1dvcmsoKSBpcyBMaXN0ZW5hYmxlV29ya2VyLlJlc3VsdC5GYWlsdXJlKQogICAgfQp9Cg==
+package com.lubrcapp.lubrcapp.core.store.repository
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.work.Configuration
+import androidx.work.Data
+import androidx.work.ListenableWorker
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.testing.TestListenableWorkerBuilder
+import androidx.work.testing.WorkManagerTestInitHelper
+import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.core.sync.SyncIdentity
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * 12C-06 residual: corrupt stored credential behavior at the layers that
+ * are testable without a real Android Keystore.
+ *
+ * SecureDeviceCredentials.token() fails safe to null on any storage or
+ * decryption problem (missing key, invalidated key, corrupt ciphertext).
+ * That single contract drives everything asserted here: a present-but-
+ * corrupt token must behave exactly like no token — the device reports
+ * unpaired, restore keeps the scope LOCAL_ONLY, and the sync worker fails
+ * its run without touching business data. (The Keystore crypto round-trip
+ * itself needs a device; under Robolectric the AndroidKeyStore provider
+ * is absent, which lands in the same fail-safe path production takes on
+ * corruption, so the observable contract is what is pinned.)
+ *
+ * There is no client-side token expiry in this design: an expired token
+ * is indistinguishable from a valid one until the VPS rejects it, which
+ * surfaces as the transport's HTTP 401 error — covered in core:sync by
+ * TransportTokenRedactionTest.expiredTokenFailsWithRedactedError.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
+class CorruptPairingTokenTest {
+    private val context get() = ApplicationProvider.getApplicationContext<Context>()
+    private val scope = OperationalScope("tenant-a", "business-a", "device-a")
+    private val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+    private val jobName = "lubric-vps-sync:tenant-a:business-a:device-a"
+    private val manager get() = DevicePairingManager(context)
+
+    @Before fun setUp() {
+        WorkManagerTestInitHelper.initializeTestWorkManager(
+            context, Configuration.Builder().build()
+        )
+        context.getSharedPreferences("lubric_cloud_pairing", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+        context.getSharedPreferences("lubric_secure_pairing", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+        context.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
+            .edit().clear().commit()
+    }
+
+    /** A valid pairing record whose stored credential bytes are garbage. */
+    private fun seedRecordWithCorruptCredential() {
+        context.getSharedPreferences("lubric_cloud_pairing", Context.MODE_PRIVATE)
+            .edit()
+            .putString("endpoint", "https://vps.example")
+            .putString("tenant", "tenant-a")
+            .putString("business", "business-a")
+            .putString("device", "device-a")
+            .commit()
+        context.getSharedPreferences("lubric_secure_pairing", Context.MODE_PRIVATE)
+            .edit()
+            .putString("iv", "!!!not-valid-base64!!!")
+            .putString("token", "corrupt-ciphertext-not-produced-by-keystore")
+            .commit()
+    }
+
+    @Test fun corruptStoredTokenFailsSafeToUnpairedAndRestoreKeepsLocalOnly() = runBlocking {
+        seedRecordWithCorruptCredential()
+        // The pairing RECORD is intact; only the credential is unusable.
+        assertNotNull(manager.record())
+        // Fail-safe: corrupt token reads as no token, so the scope is not
+        // paired even though its record matches exactly.
+        assertFalse(manager.isPaired(scope))
+        // Startup restore must therefore keep the scope in LOCAL_ONLY:
+        // cloud consent stays disabled and no cloud job is enqueued.
+        manager.restorePersisted()
+        assertFalse(CloudSyncConsent.isEnabled(context, identity))
+        val infos = WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWork(jobName).get()
+        assertTrue(infos.none { it.state == WorkInfo.State.ENQUEUED })
+    }
+
+    @Test fun workerFailsRunWhenStoredTokenIsCorrupt() = runBlocking {
+        seedRecordWithCorruptCredential()
+        // Consent is ON for this identity, so the worker proceeds past the
+        // consent gate and reaches the credential check.
+        context.getSharedPreferences("lubric_cloud_sync", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("enabled:tenant-a:business-a:device-a", true)
+            .commit()
+        val worker = TestListenableWorkerBuilder<CloudSyncWorker>(context)
+            .setInputData(
+                Data.Builder()
+                    .putString("tenant", identity.tenantId)
+                    .putString("business", identity.businessId)
+                    .putString("device", identity.deviceId)
+                    .putString("endpoint", "https://vps.example")
+                    .putStringArray("tables", arrayOf("products"))
+                    .build()
+            )
+            .build()
+        // A corrupt token fails the run cleanly (WorkManager will retry
+        // per backoff after re-pairing); it must not report success and
+        // must not fall through to a database or network attempt with a
+        // garbage credential.
+        assertTrue(worker.doWork() is ListenableWorker.Result.Failure)
+    }
+}
