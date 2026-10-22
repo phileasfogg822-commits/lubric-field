@@ -87,6 +87,7 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
         identity: SyncIdentity,
         changes: List<SyncChange>,
         nextCursor: String?,
+        acknowledgedOperationIds: Set<String>,
     ) {
         require(nextCursor != null && nextCursor.toLongOrNull()?.let { it >= 0 } == true) {
             "Remote cursor is required and must be a non-negative integer"
@@ -111,10 +112,32 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                 } else {
                     require(!json.optBoolean("_deleted", false)) { "Tombstone must use DELETE operation" }
                 }
+                // The VPS pull returns raw rows and the production transport
+                // maps every one of them to UPDATE — a server tombstone
+                // therefore arrives as an UPDATE whose payload carries a
+                // non-null deleted_at, never as a DELETE change. Stage it in
+                // the canonical tombstone form (the same _deleted form local
+                // deletes write) so replica reads filter it exactly like a
+                // local tombstone; without this the row stays visible in
+                // RoomVpsBusinessRepository.list after a remote delete.
+                val serverTombstone = change.operation != OperationType.DELETE &&
+                    json.has("deleted_at") && !json.isNull("deleted_at")
+                if (serverTombstone) json.put("_deleted", true)
+                // Conflict guard: a pending local edit for the same entity
+                // refuses the incoming change — EXCEPT an operation the
+                // server acknowledged in this same response. That operation
+                // is still PENDING here (the engine persists incoming state
+                // before marking outgoing rows accepted), but it is no
+                // longer unsynchronized: the incoming change is its own
+                // pull echo or a newer server state, and applying it is
+                // what lets the device's own push round settle (12C-05).
                 val pendingLocal = database.syncQueueDao().nextBatch(
                     identity.tenantId, identity.businessId,
                     listOf("PENDING", "FAILED"), Long.MAX_VALUE, 200
-                ).any { it.entityType == change.entityType && it.entityId == change.entityId }
+                ).any {
+                    it.entityType == change.entityType && it.entityId == change.entityId &&
+                        it.id !in acknowledgedOperationIds
+                }
                 require(!pendingLocal) { "Remote change conflicts with unsynchronized local edit" }
                 // Insert-only parity: a replayed ledger posting that is already
                 // stored locally is an idempotent no-op, never an overwrite —
@@ -140,7 +163,10 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                         tenantId = identity.tenantId,
                         businessId = identity.businessId,
                         settingKey = key,
-                        value = requireNotNull(change.payload),
+                        // Stage the normalized form for server tombstones so
+                        // the inbox agrees with the staged record above.
+                        value = if (serverTombstone) json.toString()
+                            else requireNotNull(change.payload),
                         createdAt = previous?.createdAt ?: now,
                         updatedAt = now,
                         deviceId = identity.deviceId,
