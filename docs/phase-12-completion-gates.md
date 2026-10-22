@@ -236,7 +236,7 @@ above verification.
   Workflows permission. Feature click-through (Hilt graph) residual stands
   as recorded in the Package 5 section.
 
-## 2026-10-22 Package 7 (12C-04 composed interruption round) — PENDING CI
+## 2026-10-22 Package 7 (12C-04 composed interruption round) — VERIFIED (see below)
 
 Prepared locally; **not accepted** until this package is pushed and all four
 workflows are green on the resulting head. No production code changes — one
@@ -299,3 +299,176 @@ new test file:
   locally (no SDK in this environment), so the new tests are verified only
   when CI runs them (`:core:store:testDebugUnitTest` via Native Android CI
   step 15.3 and the Segmented core:store jobs).
+
+## 2026-10-22 Package 7 verification (head `5bc5b5cc`) — 12C-04 composed round proven
+
+**All four workflows green on the first CI run of this head** — Native
+Android CI (39832265269), Phase 12 Segmented Verification (39832265468),
+Compose UI Emulator (39832265235), Desktop/VPS (39832265278). No fix round
+was needed. `ComposedSyncEngineRoomTest` (real `SyncEngine` + real
+`RoomSyncQueueStore`) proves: a pull rejected mid-batch rolls records and
+cursor back through the composed path; a clean redelivery applies the full
+batch and advances the cursor exactly once (third redelivery idempotent);
+a push acked by the server but interrupted before local cleanup replays the
+exact operation ID next round and settles SYNCED via the DUPLICATE receipt.
+
+**12C-04 remains PARTIAL** on one named residual only: a literal process
+kill between statements inside the apply transaction cannot be simulated in
+a JVM/Robolectric test. What is now proven is the mechanism that makes it
+safe — records, inbox, and cursor commit in one Room transaction with no
+non-transactional engine side effect before that commit — exercised through
+the real engine and the real store, in addition to the store-level
+(Package 2) and engine-level rounds already in the tree.
+
+## 2026-10-22 Package 8 (12C-05 / 12C-06 / 12C-08 residuals) — PENDING CI
+
+Prepared locally; **not accepted** until this package is pushed and all four
+workflows are green on the resulting head. No production code changes and no
+build-file changes — five new test files:
+
+- `core/store/.../TwoDeviceSyncSimulationTest.kt` (12C-05a + a defect pin)
+- `core/store/.../RemoteConflictPolicyTest.kt` (12C-05b)
+- `core/store/.../CrossScopeSyncIsolationTest.kt` (12C-08)
+- `core/store/.../CorruptPairingTokenTest.kt` (12C-06)
+- `core/sync/.../TransportTokenRedactionTest.kt` (12C-06)
+
+### 12C-05 — a production defect found, and the policy pinned
+
+- **DEFECT (owner decision required): a device's own push round cannot
+  settle against the production protocol composition.** Each link verified
+  in production code: (1) the VPS pull returns every shop row written after
+  the device cursor with no origin-device exclusion, and the push handler
+  stamps `updated_at` at push time (Android payloads carry none), so the
+  pull inside the very exchange that pushes a change echoes that change
+  back; (2) `AuthenticatedVpsTransport` maps the echo to a remote change;
+  (3) `SyncEngine` applies remote changes before acknowledging outgoing
+  ones (deliberate ordering, pinned by Package 7); (4)
+  `RoomSyncQueueStore` refuses any incoming change for an entity with a
+  PENDING/FAILED local operation — and the just-acked operation is still
+  PENDING at that moment. The round throws "Remote change conflicts with
+  unsynchronized local edit", the operation stays PENDING with its original
+  attempt count, the cursor never advances, and every retry replays the
+  identical failure while the server already holds the row.
+  `pushRoundCannotSettleBecausePullEchoesOwnChange` pins this behavior as
+  executable evidence (two consecutive rounds, server-side state probed
+  from the second device's view). Candidate fix seams, in increasing blast
+  radius: the store's guard ignores an entity whose pending operation was
+  acknowledged in the same response (needs an engine/store contract
+  change); the transport or server excludes the origin device's rows from
+  pull; the engine acknowledges outgoing changes before applying incoming
+  ones (re-opens the ack-loss window Package 7 test 3 pinned — the cursor
+  would still protect redelivery, but the ordering was chosen
+  deliberately); the store recognizes a self-echo by payload equality and
+  applies it idempotently. Choosing among these is an architecture
+  decision, not a test decision, so no fix is bundled into this package.
+- **Two-device propagation (the legs that work today) is proven.** The
+  in-test `InMemoryVpsServer` double mirrors the production handler's
+  semantics at the SyncTransport seam — exact operation-ID receipts,
+  LWW-by-updated_at stale rejection, insert-only replay rules
+  (identical = idempotent accept with no new pull visibility, differing =
+  rejected), soft-delete-only deletes, per-shop state, monotonic cursor,
+  origin-inclusive pull — and is itself verified directly
+  (`serverDoubleMirrorsProductionHandlerSemantics`) so the device tests
+  rest on a checked oracle. With changes settled at the server seam, both
+  directions propagate through the other device's real engine + Room
+  store, per-device cursors stay independent, and a third scope in a
+  different business pulls nothing from the shop
+  (`settledChangesPropagateBetweenDevicesInBothDirections`). What remains
+  of 12C-05(a): the sending device's local settlement, blocked by the
+  defect above — the end-to-end two-device proof completes when the
+  defect is fixed, and the pinned defect test is the regression test
+  that must then be inverted.
+- **12C-05(b) policy — pinned, and flagged as an OWNER DECISION.** The
+  receiving-side matrix is now fully executable: local edit still pending
+  → remote change refused, batch rolls back (Package 1–3 era test);
+  local edit already SYNCED, editable table → the remote change
+  overwrites the staged record on arrival **even when its updated_at is
+  strictly older** — `RoomSyncQueueStore.applyRemoteAndSaveCursor`
+  performs no updated_at comparison anywhere, so arrival order decides
+  (`alreadySyncedLocalEditIsOverwrittenByOlderRemoteChange`); local
+  posting already SYNCED, insert-only table → the local posting wins and
+  the cursor still advances
+  (`alreadySyncedLedgerPostingIsNotOverwrittenByRemoteChange`). Whether
+  arrival-order-wins is the intended policy for already-synced editable
+  records is an owner decision: today its correctness rests entirely on
+  the server's push-side LWW and pull ordering, because the receiving
+  side has no guard of its own once a local edit has been acknowledged.
+  No behavior was invented or changed by this package.
+- Adjacent observation (not a segment item): a server tombstone reaches
+  the Android store through the real transport as an UPDATE carrying
+  `deleted_at` (the transport never emits DELETE), so the store's DELETE
+  tombstone path is only reachable from transports that emit DELETE
+  changes; the staged record keeps the row with `deleted_at` set rather
+  than the `_deleted` form `RoomVpsBusinessRepository.list` filters on.
+
+### 12C-06 — corrupt/expired token behavior and redaction, at testable layers
+
+- **Corrupt stored token fails safe at every testable layer**
+  (`CorruptPairingTokenTest`): with a valid pairing record but garbage
+  credential bytes, `SecureDeviceCredentials.token()` fails safe to null
+  → `isPaired` is false (the record itself is intact — corruption is
+  credential-scoped), startup restore keeps the scope LOCAL_ONLY (no
+  consent, no enqueued cloud job), and `CloudSyncWorker` with consent ON
+  fails its run at the credential check instead of proceeding.
+- **Expired token**: there is no client-side expiry in this design; an
+  expired token is indistinguishable from a valid one until the VPS
+  rejects it. That path is proven in `TransportTokenRedactionTest`: a 401
+  push response fails the exchange with "VPS synchronization failed
+  (HTTP 401)", stops before the pull, and the error text carries no
+  token. A missing/blank token fails before any connection is opened.
+- **Log/credential redaction** (`TransportTokenRedactionTest`): the sync
+  code contains no logging statements at all, so the leak surfaces are
+  the request line, headers, body and error text. Across success, 401,
+  missing-token and consent-revoked exchanges, the token appears in
+  exactly one place — the `Authorization` header — and in no URL, other
+  header, request body, returned receipt/change/cursor, or thrown error
+  message. Scheduler WorkManager input likewise carries only
+  tenant/business/device/endpoint/tables (by construction in
+  `CloudSyncScheduler.configure`/`syncNow`; asserted indirectly by the
+  scheduler tests' job inspection).
+- **Still not coverable, with the precise reason**: the `isPaired`
+  device-mismatch case and the re-pair-cancels-previous-scope case.
+  `DevicePairingManager` constructs its `SecureDeviceCredentials`
+  internally (no injection seam), and under JVM/Robolectric there is no
+  AndroidKeyStore provider, so `token()` can never return a value and
+  `isPaired`'s true branch — and `pair()` past its validation, which
+  calls `saveToken` — are unreachable in tests. The identity-match leg is
+  covered via `pairedEndpoint` (`pairedEndpointRequiresMatchingScope`),
+  and every false-branch consequence (LOCAL_ONLY restore, worker
+  failure) is covered above. Closing this residual needs either a
+  credential-store seam in `DevicePairingManager` (production change) or
+  an on-device/instrumented test; neither is bundled here.
+
+### 12C-08 — sync-run scope isolation and switch-then-operate proven
+
+- `syncRunForOneScopeLeavesOtherScopeUntouched`: one database, two
+  scopes with pre-state (B: staged record + cursor at 4 + a pending op).
+  A's composed run uploads only A's operation under A's identity, stages
+  A's remote record and advances A's cursor to 9; B's op stays PENDING,
+  B's cursor stays at 4, B's record is intact, and A's record does not
+  exist under B's scope keys. The reverse run then settles B and leaves
+  A byte-identical.
+- `switchThenOperateMovesOnlyNewScopeData`: both scopes scheduled
+  CLOUD_SYNC; after the switch, `syncNow` enqueues only the new scope's
+  one-time job and cancels nothing of the old scope's schedule; the
+  composed run under the new scope settles only its operation and
+  cursor, leaving the previous scope's operation PENDING and its cursor
+  unmoved.
+- 12C-08 therefore has no remaining JVM-provable residual; WorkManager
+  behavior is asserted through the test driver, as in the earlier
+  scheduler packages.
+
+### Local evidence (this preparation run, 2026-10-22)
+
+Node suites unchanged and green — `server/test_sync_push.mjs` 14/14,
+`scripts/test-desktop-sync.mjs` 30/30, `scripts/test-desktop-sqlite.mjs`
+7/7. Escaped-quote check: 0 occurrences of the sequence in all five new
+files. Android cannot compile or run locally (no SDK in this
+environment), so the new tests are verified only when CI runs them
+(core:store and core:sync unit tests via Native Android CI step 15.3 and
+the Segmented core jobs). Known CI risks to watch on first run: the
+Robolectric AndroidKeyStore absence landing in `token()`'s fail-safe
+catch (the corrupt-token tests depend on it — if a future Robolectric
+shipped a keystore shadow, those tests would need the seam instead), and
+`TestListenableWorkerBuilder` behavior for `CloudSyncWorker`, which the
+Package-era scheduler tests already exercise for the consent-off path.
