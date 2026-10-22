@@ -1,8 +1,27 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
 import androidx.lifecycle.ViewModel
+import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
+import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
+import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 
-class PartiesViewModel : ViewModel() {
-    // Parties (customers/suppliers) state management
-    // TODO: Implement parties business logic
+/** Offline-first parties feature: observes Room and queues writes without network access. */
+@HiltViewModel
+class PartiesViewModel @Inject constructor(
+    private val repository: OperationalBusinessRepository,
+) : ViewModel() {
+    fun observe(scope: OperationalScope): Flow<List<OperationalRecord>> =
+        repository.observe(scope, "customers")
+
+    suspend fun load(scope: OperationalScope): List<OperationalRecord> =
+        repository.list(scope, "customers")
+
+    /** Customers are nonfinancial master data: the repository soft-deletes with a tombstone and queues the DELETE. */
+    suspend fun delete(scope: OperationalScope, id: String) = repository.delete(scope, "customers", id)
+
+    suspend fun save(scope: OperationalScope, id: String, payloadJson: String, revision: Long = 0) =
+        repository.save(scope, "customers", id, payloadJson, revision)
 }

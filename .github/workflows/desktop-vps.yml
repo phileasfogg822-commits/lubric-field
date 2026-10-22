@@ -1,0 +1,63 @@
+name: Desktop and VPS Verification
+
+on:
+  push:
+    branches:
+      - phase-12-completion
+    paths:
+      - "src/**"
+      - "scripts/test-desktop-sync.mjs"
+      - "scripts/test-desktop-sqlite.mjs"
+      - "server/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/desktop-vps.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "scripts/test-desktop-sync.mjs"
+      - "scripts/test-desktop-sqlite.mjs"
+      - "server/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/desktop-vps.yml"
+  workflow_dispatch:
+
+jobs:
+  desktop:
+    name: Desktop TypeScript and Web Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Syntax-check synchronization test harnesses
+        run: |
+          node --check scripts/test-desktop-sync.mjs
+          node --check scripts/test-desktop-sqlite.mjs
+      - name: Type-check and build desktop/web
+        run: npm run build
+  vps:
+    name: VPS Syntax and Contract Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check server syntax
+        run: node --check index.js
+      - name: Check all server JavaScript syntax
+        run: |
+          find . -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check
+      - name: Test production push handler security contracts
+        run: node test_sync_push.mjs

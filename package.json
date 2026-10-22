@@ -9,11 +9,13 @@
     "docker:logs": "docker compose logs -f",
     "docker:build": "docker compose build",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run test:desktop-sync && npm run test:desktop-sqlite && tsc && vite build",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
     "tauri:build": "npm run icon && tauri build",
-    "icon": "node scripts/gen-icon.mjs"
+    "icon": "node scripts/gen-icon.mjs",
+    "test:desktop-sync": "node scripts/test-desktop-sync.mjs",
+    "test:desktop-sqlite": "node --disable-warning=ExperimentalWarning scripts/test-desktop-sqlite.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",

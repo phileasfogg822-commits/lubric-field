@@ -271,13 +271,28 @@ jobs:
             exit 1
           fi
 
-      - name: Unit tests lint debug and release APKs
-        run: ./gradlew clean test lint :app:assembleDebug :app:assembleRelease --no-daemon
+      - name: "15.1 Room incoming sync and rollback regression"
+        run: ./gradlew :core:store:testDebugUnitTest --tests "*OperationalBusinessRoomIntegrationTest" --stacktrace --no-daemon
 
-      - name: Compile Room migration instrumentation tests
+      - name: "15.2 Full Room store unit tests"
+        run: ./gradlew :core:store:testDebugUnitTest --stacktrace --no-daemon
+
+      - name: "15.3 All Android unit tests"
+        run: ./gradlew test --stacktrace --no-daemon
+
+      - name: "15.4 Android lint"
+        run: ./gradlew lint --stacktrace --no-daemon
+
+      - name: "15.5 Debug APK"
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: "15.6 Release APK"
+        run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
+
+      - name: "16. Room migration instrumentation-test compilation"
         run: ./gradlew :core:store:assembleDebugAndroidTest --no-daemon
 
-      - name: Build alternate white-label deployment
+      - name: "17. Alternate white-label APK build"
         run: |
           ./gradlew :app:assembleDebug --no-daemon \
             -Pwl.appName="ABC Pharmacy" \
@@ -293,3 +308,35 @@ jobs:
             -Pwl.design.defaultTextScale=1.20 \
             -Pwl.design.defaultLargeTouchTargets=true \
             -Pwl.paymentMethods=cash:Cash,insurance:Insurance
+
+      - name: "17.1 Compile Compose UI instrumentation tests"
+        run: ./gradlew :feature:items:assembleDebugAndroidTest --stacktrace --no-daemon
+
+      - name: "18. Inspect and record APK artifact evidence"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance-evidence
+          find app/build/outputs/apk -type f -name '*.apk' -print | sort | tee acceptance-evidence/apk-files.txt
+          test -s acceptance-evidence/apk-files.txt
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk
+          while IFS= read -r apk; do
+            test -s "$apk"
+            sha256sum "$apk" >> acceptance-evidence/apk-sha256.txt
+          done < acceptance-evidence/apk-files.txt
+          cat acceptance-evidence/apk-sha256.txt
+          echo "Verified APK paths and SHA-256 hashes for commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "19. Upload APK and acceptance evidence"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-and-acceptance-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/**/*.apk
+            android/acceptance-evidence/**
+            android/**/build/test-results/**/*.xml
+            android/**/build/reports/lint-results*.html
+          if-no-files-found: warn
+          retention-days: 14

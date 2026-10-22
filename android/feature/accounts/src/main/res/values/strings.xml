@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accounts_back">Back</string>
+    <string name="accounts_title">Accounts</string>
+    <string name="accounts_entry_label">Account entry</string>
+    <string name="accounts_saving">Saving…</string>
+    <string name="accounts_save">Save account entry</string>
+    <string name="accounts_save_error">Unable to save account entry locally</string>
+    <string name="accounts_edit">Edit %1$s</string>
+    <string name="accounts_cancel_edit">Cancel edit</string>
+    <string name="accounts_empty">No account entries yet</string>
+</resources>

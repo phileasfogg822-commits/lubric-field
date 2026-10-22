@@ -820,21 +820,25 @@ app.post('/api/v1/push', async (req, res) => {
     // security will hide the very rows the push is trying to write.
     await client.query("SELECT set_config('app.shop_id', $1, true)", [String(shopId)]);
     for (const ch of changes.slice(0, 1000)) {
-      const { table, uuid, op = 'insert', row } = ch || {};
-      const meta = SYNC_TABLES[table];
-      if (!meta || !uuid || typeof row !== 'object' || row === null) {
-        rejected.push({ uuid, reason: 'invalid change' });
+      const { table, uuid, op = 'insert', row, operationId } = ch || {};
+      const meta = typeof table === 'string' && Object.prototype.hasOwnProperty.call(SYNC_TABLES, table)
+        ? SYNC_TABLES[table] : null;
+      if (!meta || typeof uuid !== 'string' || !uuid.trim() ||
+          (op !== 'insert' && op !== 'update' && op !== 'delete') ||
+          typeof row !== 'object' || row === null || Array.isArray(row)) {
+        rejected.push({ table, uuid, op, operationId, reason: 'invalid change' });
         continue;
       }
       if (op === 'delete') {
         if (meta.softDelete) {
-          await client.query(
+          const deleted = await client.query(
             `UPDATE ${table} SET deleted_at = NOW(), updated_at = NOW() WHERE uuid = $1 AND shop_id = $2`,
             [uuid, shopId]
           );
-          applied.push({ table, uuid, op });
+          if (deleted.rowCount > 0) applied.push({ table, uuid, op, operationId });
+          else rejected.push({ table, uuid, op, operationId, reason: 'record not found in device shop' });
         } else {
-          rejected.push({ uuid, reason: 'delete not supported for ' + table });
+          rejected.push({ table, uuid, op, operationId, reason: 'delete not supported for ' + table });
         }
         continue;
       }
@@ -846,7 +850,9 @@ app.post('/api/v1/push', async (req, res) => {
       const cols = ['uuid', 'shop_id'];
       const vals = [uuid, shopId];
       for (const [k, v] of Object.entries(row)) {
-        if (k === 'id' || k === 'uuid' || k === 'shop_id' || !valid.has(k)) continue;
+        if (k === 'id' || k === 'uuid' || k === 'shop_id' ||
+            (table === 'cash_movements' && (k === 'posted_at' || k === 'taken_by_device_id')) ||
+            !valid.has(k)) continue;
         cols.push(k);
         vals.push(v);
       }
@@ -865,12 +871,52 @@ app.post('/api/v1/push', async (req, res) => {
         .filter((c) => c !== 'uuid' && c !== 'shop_id')
         .map((c) => `${c} = EXCLUDED.${c}`)
         .join(', ');
+      const immutableLedger = new Set(['account_transactions', 'cash_movements', 'stock_movements', 'party_ledger']);
+      const conflictAction = immutableLedger.has(table)
+        ? 'DO NOTHING'
+        : `DO UPDATE SET ${updateSet} WHERE ${table}.shop_id = EXCLUDED.shop_id AND ${table}.updated_at <= EXCLUDED.updated_at`;
       const sqlText = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')})
-        ON CONFLICT (uuid) DO UPDATE SET ${updateSet}
-        WHERE ${table}.updated_at <= EXCLUDED.updated_at`;
+        ON CONFLICT (uuid) ${conflictAction}`;
+      // PostgreSQL aborts a transaction after any statement error. A savepoint
+      // lets one rejected operation leave subsequent changes usable.
+      const savepoint = 'sync_change';
+      await client.query(`SAVEPOINT ${savepoint}`);
       try {
-        await client.query(sqlText, vals);
-        applied.push({ table, uuid, op });
+        const write = await client.query(sqlText, vals);
+        // A UUID collision with another shop must never be acknowledged as
+        // applied, even when the database role bypasses row-level security.
+        if (write.rowCount === 0) {
+          // A same-shop immutable replay is an idempotent success, but a
+          // different-shop UUID collision or stale editable row is rejected.
+          // Immutable UUID retries are successful only when the supplied
+          // business fields agree with the stored posting. Never acknowledge
+          // a conflicting amount or party as an idempotent replay.
+          const replayCols = cols.filter((c) =>
+            c !== 'uuid' && c !== 'shop_id' && c !== 'updated_at' &&
+            c !== 'taken_by_device_id' && c !== 'posted_at'
+          );
+          const replayPredicates = replayCols.map((c, i) =>
+            `${c} IS NOT DISTINCT FROM ${i + 2}`
+          );
+          const replayVals = replayCols.map((c) => vals[cols.indexOf(c)]);
+          const existing = await client.query(
+            `SELECT shop_id${replayPredicates.length
+              ? ', (' + replayPredicates.join(' AND ') + ') AS replay_matches'
+              : ', TRUE AS replay_matches'}
+             FROM ${table} WHERE uuid = $1`,
+            [uuid, ...replayVals]
+          );
+          if (immutableLedger.has(table) && existing.rows.length &&
+              String(existing.rows[0].shop_id) === String(shopId) &&
+              existing.rows[0].replay_matches === true) {
+            applied.push({ table, uuid, op, operationId });
+          } else {
+            rejected.push({ table, uuid, op, operationId, reason: 'conflict or different shop' });
+          }
+          await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+          continue;
+        }
+        applied.push({ table, uuid, op, operationId });
         // A collection is not just a row: post it into the cash account and the
         // customer's Khata in the same transaction. Skipped for every other
         // table, which is why this is here and not in the generic insert.
@@ -881,8 +927,11 @@ app.post('/api/v1/push', async (req, res) => {
           );
           if (r.rows.length) await postFieldCollection(client, r.rows[0], shopId);
         }
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
       } catch (e) {
-        rejected.push({ uuid, reason: e.message });
+        await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        rejected.push({ table, uuid, op, operationId, reason: 'change rejected' });
       }
     }
     await client.query('COMMIT');

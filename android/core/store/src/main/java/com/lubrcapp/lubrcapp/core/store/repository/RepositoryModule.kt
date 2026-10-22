@@ -1,6 +1,10 @@
 package com.lubrcapp.lubrcapp.core.store.repository
 
+import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
+import com.lubrcapp.lubrcapp.core.store.db.dao.VpsBusinessRecordDao
+import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.CloudPairingGateway
 import com.lubrcapp.lubrcapp.core.repository.AuditRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessSwitcher
@@ -36,6 +40,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class LocalDataSourceModule {
     @Binds @Singleton
+    abstract fun bindOperationalBusinessRepository(impl: RoomVpsBusinessRepository): OperationalBusinessRepository
+    @Binds @Singleton
     abstract fun bindAccessControlRepository(
         impl: RoomAccessControlRepository,
     ): AccessControlRepository
@@ -66,6 +72,11 @@ abstract class LocalDataSourceModule {
     ): DeviceIdentityProvider
 
     @Binds @Singleton
+    abstract fun bindCloudPairingGateway(
+        impl: DevicePairingManager,
+    ): CloudPairingGateway
+
+    @Binds @Singleton
     abstract fun bindBusinessLocal(impl: RoomBusinessLocalDataSource): BusinessLocalDataSource
 
     @Binds @Singleton
@@ -86,6 +97,8 @@ abstract class LocalDataSourceModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+    @Provides
+    fun provideVpsBusinessRecordDao(database: AppDatabase): VpsBusinessRecordDao = database.vpsBusinessRecordDao()
     @Provides
     @Singleton
     fun provideBusinessRepository(

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="purchases_back">Back</string>
+    <string name="purchases_title">Purchases</string>
+    <string name="purchases_label">Purchase</string>
+    <string name="purchases_saving">Saving…</string>
+    <string name="purchases_save">Save purchase</string>
+    <string name="purchases_error">Unable to save purchase locally</string>
+    <string name="purchases_edit">Edit %1$s</string>
+    <string name="purchases_cancel_edit">Cancel edit</string>
+    <string name="purchases_empty">No purchases yet</string>
+</resources>
