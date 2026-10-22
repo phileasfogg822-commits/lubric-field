@@ -76,19 +76,23 @@ class SyncContractFixtureTest {
     }
 
     private fun seed(database: AppDatabase) {
-        val now = System.currentTimeMillis()
-        database.tenantDao().upsert(TenantEntity(
-            id = identity.tenantId, name = "Test tenant",
-            createdAt = now, updatedAt = now, deviceId = identity.deviceId,
-            syncStatus = "LOCAL",
-        ))
-        database.businessDao().upsert(BusinessEntity(
-            id = identity.businessId, tenantId = identity.tenantId,
-            name = "Test business", businessType = "RETAIL",
-            currencyCode = "USD", timezoneId = "UTC",
-            createdAt = now, updatedAt = now, deviceId = identity.deviceId,
-            syncStatus = "LOCAL",
-        ))
+        // The DAO upserts are suspend functions; seed() is called from both
+        // coroutine and plain test bodies, so it provides its own scope.
+        runBlocking {
+            val now = System.currentTimeMillis()
+            database.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL",
+            ))
+            database.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL",
+            ))
+        }
     }
 
     private fun changesOf(response: JSONObject): List<SyncChange> {
