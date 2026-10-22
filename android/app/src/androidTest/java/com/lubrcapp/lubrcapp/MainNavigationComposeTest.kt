@@ -7,6 +7,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
 import com.lubrcapp.lubrcapp.core.repository.AuthorizationSnapshot
 import com.lubrcapp.lubrcapp.core.repository.BusinessBootstrap
@@ -252,15 +255,34 @@ class MainNavigationComposeTest {
         val shellConfig = ShellConfigViewModel(FakeFeatureFlags(enabledKeys))
         val shellAccess = ShellAccessViewModel(FakeAccessControl(grants))
         compose.setContent {
-            MainNavigation(
-                appName = "Lubric",
-                businessSetupViewModel = setup,
-                dashboardViewModel = dashboard,
-                scopeViewModel = scope,
-                shellConfigViewModel = shellConfig,
-                shellAccessViewModel = shellAccess,
-            )
+            // MainActivity hosts MainNavigation inside LubrcappTheme, which
+            // provides LocalDesignTokens; without it any screen reading
+            // LubrcTheme.tokens crashes. Mirror the production host here.
+            LubrcappTheme(config = testDesignSystemConfig) {
+                MainNavigation(
+                    appName = "Lubric",
+                    businessSetupViewModel = setup,
+                    dashboardViewModel = dashboard,
+                    scopeViewModel = scope,
+                    shellConfigViewModel = shellConfig,
+                    shellAccessViewModel = shellAccess,
+                )
+            }
         }
+    }
+
+    private companion object {
+        /** Neutral design-system config for tests (mirrors ThemeModelsTest). */
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF112233.toInt(),
+                secondary = 0xFF223344.toInt(),
+                accent = 0xFF334455.toInt(),
+                success = 0xFF006600.toInt(),
+                warning = 0xFFFFAA00.toInt(),
+                error = 0xFFAA0000.toInt(),
+            ),
+        )
     }
 
     private fun awaitText(text: String) {
