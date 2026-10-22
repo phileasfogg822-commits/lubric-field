@@ -121,3 +121,57 @@ assert.equal(result.body.applied.length, 0);
 assert.equal(result.body.rejected.length, 1);
 assert.equal(result.body.rejected[0].operationId, 'op-1');
 console.log('PASS stale editable update from a second device is rejected, not applied');
+
+// ─── 12C-01 / 12C-10: shared cross-client contract fixture ───────────────
+// sync-contract/sync-contract.json is the single source the desktop agent
+// and the Android store tests also assert against. Pin it to this handler's
+// production table configuration, pin the desktop agent's sets to it too,
+// then drive the fixture's canonical push through the production handler.
+const fixture = JSON.parse(fs.readFileSync(new URL('../sync-contract/sync-contract.json', import.meta.url), 'utf8'));
+assert.equal(fixture.contract, 'lubric-field-sync');
+assert.equal(new Set(fixture.supportedTables).size, fixture.supportedTables.length);
+assert.deepEqual([...fixture.supportedTables].sort(), Object.keys(SYNC_TABLES).sort());
+console.log('PASS contract fixture supported tables match production SYNC_TABLES (12C-01)');
+
+const immutableMatch = source.match(/immutableLedger = new Set\(\[([^\]]+)\]\)/);
+assert.ok(immutableMatch, 'production immutable ledger set located');
+const immutableTables = [...immutableMatch[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+assert.deepEqual([...fixture.insertOnlyTables].sort(), immutableTables.sort());
+assert.ok(fixture.insertOnlyTables.every((table) => fixture.supportedTables.includes(table)));
+console.log('PASS contract fixture insert-only tables match production immutable ledger set');
+
+const desktopSource = fs.readFileSync(new URL('../src/lib/sync.ts', import.meta.url), 'utf8');
+const desktopTablesMatch = desktopSource.match(/export const SYNC_TABLES = \[([\s\S]*?)\] as const;/);
+assert.ok(desktopTablesMatch, 'desktop sync table list located');
+const desktopTables = [...desktopTablesMatch[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+assert.deepEqual([...fixture.supportedTables].sort(), desktopTables.sort());
+const desktopInsertMatch = desktopSource.match(/INSERT_ONLY_SYNC_TABLES = new Set<string>\(\[([\s\S]*?)\]\)/);
+assert.ok(desktopInsertMatch, 'desktop insert-only set located');
+const desktopInsertOnly = [...desktopInsertMatch[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+assert.deepEqual([...fixture.insertOnlyTables].sort(), desktopInsertOnly.sort());
+console.log('PASS contract fixture matches desktop agent table sets (12C-01 three-way parity)');
+
+const outboxIds = new Set(fixture.receiptOutbox.map((entry) => entry.id));
+for (const scenario of fixture.receiptScenarios) {
+  assert.ok(scenario.expect.deletedIds.every((id) => outboxIds.has(id)), scenario.name);
+  assert.ok(!scenario.expect.deletedIds.some((id) => scenario.expect.retriedIds.includes(id)), scenario.name);
+  assert.deepEqual(
+    [...scenario.expect.deletedIds, ...scenario.expect.retriedIds].sort((a, b) => a - b),
+    [...outboxIds].sort((a, b) => a - b),
+    scenario.name + ' must account for every outbox operation exactly once',
+  );
+}
+console.log('PASS contract fixture receipt scenarios account for every operation exactly once');
+
+for (const fixtureChange of fixture.pushExchange.request.changes) {
+  assert.ok(fixture.supportedTables.includes(fixtureChange.table), 'fixture push table supported: ' + fixtureChange.table);
+}
+result = await run(fixture.pushExchange.request.changes, '');
+assert.deepEqual(
+  // Array.from: the handler runs in a vm realm, and strict deepEqual
+  // rejects cross-realm arrays even with identical contents.
+  Array.from(result.body.applied, (entry) => entry.operationId),
+  fixture.pushExchange.response.applied.map((entry) => entry.operationId),
+);
+assert.equal(result.body.rejected.length, 0);
+console.log('PASS contract fixture canonical push is fully acknowledged by production handler');
