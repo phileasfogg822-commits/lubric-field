@@ -32,6 +32,7 @@ val moduleVersions: Map<String, String> = mapOf(
     "androidx.datastore:datastore-preferences" to "1.2.1",
     "androidx.datastore:datastore-preferences-core" to "1.2.1",
     "androidx.work:work-runtime-ktx" to "2.12.0",
+    "androidx.work:work-testing" to "2.12.0",
     "org.jetbrains.kotlinx:kotlinx-coroutines-core" to "1.11.0",
     "org.jetbrains.kotlinx:kotlinx-coroutines-android" to "1.11.0",
 )
