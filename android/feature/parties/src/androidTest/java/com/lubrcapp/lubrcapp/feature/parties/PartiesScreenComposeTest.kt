@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -24,11 +25,13 @@ class PartiesScreenComposeTest {
 
     private class FakeRepository : OperationalBusinessRepository {
         val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
+        var failSave = false
         val deleted = mutableListOf<String>()
         var saves = 0
         override fun observe(scope: OperationalScope, table: String) = records
         override suspend fun list(scope: OperationalScope, table: String) = records.value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
+            if (failSave) throw IllegalStateException(\"storage unavailable\")
             saves++
             records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
@@ -74,5 +77,23 @@ class PartiesScreenComposeTest {
         compose.onAllNodesWithText("Delete customer?")[1].performClick()
         compose.waitUntil(5000) { fake.deleted.size == 1 }
         compose.runOnIdle { assertEquals(0, fake.records.value.size) }
+    }
+
+    @Test fun emptyStateIsShownWhenNoRecords() {
+        val fake = FakeRepository()
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        compose.onNodeWithText("No customers yet").assertIsDisplayed()
+    }
+
+    @Test fun saveFailureShowsError() {
+        val fake = FakeRepository()
+        fake.failSave = true
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        compose.onNodeWithText("Customer").performTextInput("Sample")
+        compose.onNodeWithText("Save customer").performClick()
+        compose.waitUntil(5000) {
+            try { compose.onNodeWithText("Unable to save customer locally").assertIsDisplayed(); true }
+            catch (_: AssertionError) { false }
+        }
     }
 }

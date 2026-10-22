@@ -8,4 +8,5 @@
     <string name="sales_error">Unable to save order locally</string>
     <string name="sales_edit">Edit %1$s</string>
     <string name="sales_cancel_edit">Cancel edit</string>
+    <string name="sales_empty">No orders yet</string>
 </resources>

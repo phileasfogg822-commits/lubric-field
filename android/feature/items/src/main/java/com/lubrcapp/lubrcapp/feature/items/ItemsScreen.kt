@@ -86,6 +86,9 @@ fun ItemsScreen(
             }
         }
         error?.let { Text(it) }
+        if (records.isEmpty()) {
+            Text(stringResource(R.string.items_empty))
+        }
         LazyColumn {
             items(records, key = { it.id }) { record ->
                 val displayName = runCatching { JSONObject(record.json).optString("name", record.id) }.getOrDefault(record.id)

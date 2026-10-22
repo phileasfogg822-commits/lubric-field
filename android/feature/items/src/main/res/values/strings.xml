@@ -13,4 +13,5 @@
     <string name="items_delete_warning">This item will be hidden locally and its deletion queued for sync.</string>
     <string name="items_delete_error">Unable to delete item</string>
     <string name="items_cancel">Cancel</string>
+    <string name="items_empty">No items yet</string>
 </resources>

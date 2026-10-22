@@ -84,6 +84,9 @@ fun PurchasesScreen(
             }
         }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (records.isEmpty()) {
+            Text(stringResource(R.string.purchases_empty))
+        }
         LazyColumn {
             items(records, key = { it.id }) { record ->
                 val displayName = runCatching {

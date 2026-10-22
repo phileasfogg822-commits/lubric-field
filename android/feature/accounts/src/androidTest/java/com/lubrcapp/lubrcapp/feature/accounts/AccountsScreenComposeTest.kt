@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.accounts
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -23,10 +24,12 @@ class AccountsScreenComposeTest {
 
     private class FakeRepository : OperationalBusinessRepository {
         val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
+        var failSave = false
         var saves = 0
         override fun observe(scope: OperationalScope, table: String) = records
         override suspend fun list(scope: OperationalScope, table: String) = records.value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
+            if (failSave) throw IllegalStateException(\"storage unavailable\")
             saves++
             records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
@@ -54,5 +57,23 @@ class AccountsScreenComposeTest {
         compose.onNodeWithText("Save account entry").performClick()
         compose.waitUntil(5000) { fake.saves == 2 }
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+    }
+
+    @Test fun emptyStateIsShownWhenNoRecords() {
+        val fake = FakeRepository()
+        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        compose.onNodeWithText("No account entries yet").assertIsDisplayed()
+    }
+
+    @Test fun saveFailureShowsError() {
+        val fake = FakeRepository()
+        fake.failSave = true
+        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        compose.onNodeWithText("Account entry").performTextInput("Sample")
+        compose.onNodeWithText("Save account entry").performClick()
+        compose.waitUntil(5000) {
+            try { compose.onNodeWithText("Unable to save account entry locally").assertIsDisplayed(); true }
+            catch (_: AssertionError) { false }
+        }
     }
 }

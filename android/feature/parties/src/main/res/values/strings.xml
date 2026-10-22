@@ -13,4 +13,5 @@
     <string name="parties_delete_warning">This customer will be hidden locally and its deletion queued for sync.</string>
     <string name="parties_delete_error">Unable to delete customer</string>
     <string name="parties_cancel">Cancel</string>
+    <string name="parties_empty">No customers yet</string>
 </resources>

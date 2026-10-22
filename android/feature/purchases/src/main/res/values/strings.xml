@@ -8,4 +8,5 @@
     <string name="purchases_error">Unable to save purchase locally</string>
     <string name="purchases_edit">Edit %1$s</string>
     <string name="purchases_cancel_edit">Cancel edit</string>
+    <string name="purchases_empty">No purchases yet</string>
 </resources>
