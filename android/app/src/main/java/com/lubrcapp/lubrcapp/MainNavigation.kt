@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collect
 
 /**
  * App entry routing.
@@ -45,7 +46,10 @@ import androidx.compose.ui.unit.dp
  *
  * Phase 13 routes feature modules through [AppModuleRegistry]: the module
  * list and the feature dispatch both read the registry instead of a
- * hardcoded table.
+ * hardcoded table. Phase 13.2 gates that list live: the resolved
+ * white-label configuration for the current business (via
+ * [ShellConfigViewModel]) decides which gated modules are visible, while
+ * an unresolved configuration keeps every module visible.
  */
 @Composable
 fun MainNavigation(
@@ -53,6 +57,7 @@ fun MainNavigation(
     businessSetupViewModel: BusinessSetupViewModel = hiltViewModel(),
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
     scopeViewModel: OperationalScopeViewModel = hiltViewModel(),
+    shellConfigViewModel: ShellConfigViewModel = hiltViewModel(),
 ) {
     val setupState by businessSetupViewModel.state.collectAsState()
     val dashboardState by dashboardViewModel.state.collectAsState()
@@ -139,6 +144,21 @@ fun MainNavigation(
                     value = runCatching { scopeViewModel.resolve(currentContext) }.getOrNull()
                 }
             }
+            // Live configuration gating: re-resolves whenever the current
+            // business changes. Null (no context yet, resolution pending,
+            // or resolution failed) means no gating — every module stays
+            // visible, exactly as before Phase 13.2.
+            val enabledModuleKeys by produceState<Set<String>?>(
+                initialValue = null,
+                key1 = currentContext,
+            ) {
+                value = null
+                if (currentContext != null) {
+                    shellConfigViewModel.enabledModuleKeys(currentContext).collect { keys ->
+                        value = keys
+                    }
+                }
+            }
             if (showAccessControl && currentContext != null) {
                 AccessControlScreen(
                     context = currentContext,
@@ -178,7 +198,7 @@ fun MainNavigation(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (currentContext != null) {
-                        AppModuleRegistry.visibleModules().forEach { module ->
+                        AppModuleRegistry.visibleModules(enabledModuleKeys).forEach { module ->
                             Button(
                                 onClick = { selectedFeature = module.id },
                                 modifier = Modifier.padding(horizontal = 16.dp),

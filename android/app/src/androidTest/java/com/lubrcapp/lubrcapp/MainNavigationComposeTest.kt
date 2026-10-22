@@ -29,9 +29,12 @@ import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.domain.common.UserId
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
+import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagKeys
+import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagService
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
@@ -107,6 +110,32 @@ class MainNavigationComposeTest {
         override suspend fun getOrCreate(): DeviceId = DeviceId("device-a")
     }
 
+    /** The gated module keys the shipped deployment configuration enables. */
+    private val shippedEnabledKeys = setOf(
+        FeatureFlagKeys.MODULE_INVENTORY,
+        FeatureFlagKeys.MODULE_ORDERS,
+        FeatureFlagKeys.MODULE_PURCHASES,
+        FeatureFlagKeys.MODULE_ACCOUNTING,
+        FeatureFlagKeys.MODULE_SYNC,
+    )
+
+    private class FakeFeatureFlags(
+        private val enabled: Flow<Set<String>>,
+    ) : FeatureFlagService {
+        override fun observeEnabledFeatures(
+            tenantId: TenantId,
+            businessId: BusinessId,
+        ): Flow<Set<String>> = enabled
+
+        override suspend fun isEnabled(
+            tenantId: TenantId,
+            businessId: BusinessId,
+            feature: String,
+        ): Boolean = enabled.first().contains(feature)
+
+        override fun getAllFeatureKeys(): Set<String> = FeatureFlagKeys.ALL
+    }
+
     private fun setupViewModel(flow: Flow<BusinessBootstrap?>): BusinessSetupViewModel {
         val repository = FakeSetupRepository(flow)
         return BusinessSetupViewModel(
@@ -126,18 +155,21 @@ class MainNavigationComposeTest {
     private fun showNavigation(
         setup: BusinessSetupViewModel,
         context: FakeBusinessContext = FakeBusinessContext(),
+        enabledKeys: Flow<Set<String>> = flowOf(shippedEnabledKeys),
     ) {
         // Construct view models outside the composable lambda: lint treats a
         // direct ViewModel constructor call inside setContent as an error
         // (ViewModelConstructorInComposable).
         val dashboard = dashboardViewModel(context)
         val scope = OperationalScopeViewModel(FakeDeviceIdentity())
+        val shellConfig = ShellConfigViewModel(FakeFeatureFlags(enabledKeys))
         compose.setContent {
             MainNavigation(
                 appName = "Lubric",
                 businessSetupViewModel = setup,
                 dashboardViewModel = dashboard,
                 scopeViewModel = scope,
+                shellConfigViewModel = shellConfig,
             )
         }
     }
@@ -152,6 +184,25 @@ class MainNavigationComposeTest {
             }
         }
     }
+
+    private fun awaitNoText(text: String) {
+        compose.waitUntil(5000) {
+            try {
+                compose.onNodeWithText(text).assertDoesNotExist()
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+    }
+
+    private fun readyBootstrap() = BusinessBootstrap(
+        tenantId = TenantId("tenant-a"),
+        businessId = BusinessId("business-a"),
+        ownerUserId = UserId("owner-1"),
+        businessName = "Alpha",
+        languageCode = "en",
+    )
 
     @Test fun loadingBootstrapShowsProgress() {
         showNavigation(setupViewModel(flow { }))
@@ -174,16 +225,31 @@ class MainNavigationComposeTest {
     @Test fun readyBootstrapShowsDashboardWithFeatureNavigation() {
         val context = FakeBusinessContext()
         context.available.value = listOf(context.alpha)
-        val bootstrap = BusinessBootstrap(
-            tenantId = TenantId("tenant-a"),
-            businessId = BusinessId("business-a"),
-            ownerUserId = UserId("owner-1"),
-            businessName = "Alpha",
-            languageCode = "en",
-        )
-        showNavigation(setupViewModel(flowOf(bootstrap)), context)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context)
         awaitText("Items")
         listOf("Inventory", "Customers", "Sales", "Purchases", "Accounts", "Cloud sync")
             .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
+    }
+
+    @Test fun readyBootstrapHidesModulesExcludedByConfiguration() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // The resolved configuration for this business enables inventory,
+        // orders (sales) and accounting only: purchases and cloud sync
+        // are gated out, while items and customers have no config key
+        // and always stay.
+        val gated = flowOf(
+            setOf(
+                FeatureFlagKeys.MODULE_INVENTORY,
+                FeatureFlagKeys.MODULE_ORDERS,
+                FeatureFlagKeys.MODULE_ACCOUNTING,
+            ),
+        )
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, gated)
+        awaitText("Items")
+        listOf("Inventory", "Customers", "Sales", "Accounts")
+            .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
+        awaitNoText("Purchases")
+        awaitNoText("Cloud sync")
     }
 }

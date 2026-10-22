@@ -189,3 +189,136 @@ locally: 14/14, 30/30, 7/7.)
   configuration gating (feed the resolved `enabledModules` into the
   registry's visibility), the first package that changes what the shell
   shows, with its own acceptance evidence.
+
+## Package 13.2 — live configuration gating of the shell — PENDING CI
+
+First behavior-changing Phase 13 package: the shell now consumes the
+configuration engine it previously ignored (gap 2). Which module buttons
+a deployment/business sees is decided by the resolved white-label
+configuration, through the registry's visibility data from 13.1.
+
+Delivered locally (not yet pushed):
+
+- **Created** `android/app/src/main/java/com/lubrcapp/lubrcapp/ShellConfigViewModel.kt`
+  - A thin `@HiltViewModel` window on the production resolution path:
+    `FeatureFlagService.observeEnabledFeatures(tenantId, businessId)`,
+    whose implementation (`ResolvedFeatureFlagService`) maps
+    `WhiteLabelConfigService.observeResolvedConfig` to its
+    `enabledModules`. That service is Hilt-bound
+    (`WhiteLabelConfigModule` -> `WhiteLabelConfigServiceImpl`) and
+    resolves the deployment from `AppDeploymentConfigModule`'s
+    `DeploymentConfigSource` (BuildConfig generated from
+    `white-label/deployment.properties`, including
+    `DEPLOYMENT_INCLUDED_MODULES`) layered with the persisted business,
+    settings and feature-flag repositories through
+    `BusinessConfigurationParser` and `WhiteLabelConfigResolver`. No
+    parallel config system was built; the shell reads the same resolved
+    configuration everything else uses.
+  - `enabledModuleKeys(context)` returns `Flow<Set<String>?>`: the
+    resolved key set, or null when resolution fails (the config service
+    errors while the business is not yet visible to its repositories).
+    Null is the shell's "no gating" value, so a configuration problem
+    can never hide a module.
+- **Modified** `android/app/src/main/java/com/lubrcapp/lubrcapp/MainNavigation.kt`
+  - New `shellConfigViewModel: ShellConfigViewModel = hiltViewModel()`
+    parameter (existing callers and tests that pass the other view
+    models explicitly are unaffected in shape).
+  - In the Ready state, a `produceState` keyed on the current
+    `TenantContext` collects the view model's flow — the same pattern
+    the shell already uses for operational-scope resolution. The module
+    button list now calls
+    `AppModuleRegistry.visibleModules(enabledModuleKeys)` instead of
+    `visibleModules()`.
+  - **Bootstrap / no-business behavior is unchanged.** While bootstrap
+    is Loading / NeedsSetup / Error, and whenever there is no current
+    business context yet, the key set is null and every selectable
+    module is visible — byte-for-byte the pre-13.2 shell. The module
+    list is only rendered with a current context anyway.
+  - **Business switching re-resolves.** The `produceState` is keyed on
+    the current context: a switch cancels the old collection, resets
+    the key set to null (all visible, as today), and collects the newly
+    selected business's resolved set, so the visible buttons follow the
+    new business's overrides. Dashboard switching already resets the
+    selected feature, so no route into a newly hidden module dangles.
+  - Dispatch is not visibility-gated: registry content resolution by id
+    is unchanged, matching 13.1.
+
+Tests:
+
+- **Created** `android/app/src/test/java/com/lubrcapp/lubrcapp/ShellConfigViewModelTest.kt`
+  (plain JUnit, fake `FeatureFlagService`): forwards the resolved set
+  for exactly the requested tenant/business (two businesses resolve
+  differently — the per-business query is recorded); live configuration
+  updates flow through in order; a resolution failure emits null (no
+  gating); a resolved set composed with the real registry hides the
+  gated modules it excludes.
+- **Created** `android/app/src/test/java/com/lubrcapp/lubrcapp/shell/ResolvedShellVisibilityTest.kt`
+  (plain JUnit): the real `WhiteLabelConfigResolver` composed with the
+  real `AppModuleRegistry` — no double between configuration and
+  visibility. Deployment excluding gated modules hides them (Level A);
+  a business override `false` disables an included module (Level B); an
+  override `true` keeps an included module but cannot enable a
+  deployment-excluded one (pins the resolver contract at shell level);
+  unknown configuration keys (reports, future keys) are ignored;
+  items/parties survive an empty resolved set; the shipped
+  `deployment.properties` module set keeps every module visible.
+- **Modified** `android/app/src/androidTest/java/com/lubrcapp/lubrcapp/MainNavigationComposeTest.kt`
+  — the harness already builds every view model on fakes, so it takes a
+  fake `FeatureFlagService` (default: the shipped deployment's gated key
+  set) behind a real `ShellConfigViewModel`. The four pre-existing
+  tests are expectation-identical — with the default resolved
+  configuration the ready dashboard still shows all seven module
+  buttons. New test
+  `readyBootstrapHidesModulesExcludedByConfiguration`: a resolved set
+  of {inventory, orders, accounting} shows Items / Inventory /
+  Customers / Sales / Accounts and (awaited) no Purchases or Cloud sync
+  button. The dashboard itself renders no such labels (verified against
+  `feature/dashboard`), so absence assertions bind only the shell list.
+
+Spec-fidelity note — the items/parties key space (flagged, not fixed):
+
+- Items and parties declare a null registry `configKey` because
+  `FeatureFlagKeys` has no key for them, so after 13.2 they remain
+  visible for every deployment and business: the configuration engine
+  cannot address them, exactly as the resolver already treated
+  non-included keys. This package documents the consequence rather than
+  extending `FeatureFlagKeys` — adding keys (e.g. "items", "parties")
+  is a configuration-schema change that also touches deployment files
+  and the key-space contract tests, and the master spec does not
+  demand it for this slice. It stays a named follow-up: deployment
+  authors must not expect `includedModules` to gate core master-data
+  modules today.
+
+Deliberately NOT in this package: capability-gated navigation (spec
+§12 role configurability), the §13 bottom-navigation shape,
+configurable dashboard cards / quick actions (§11 / §12), and any
+change to the resolver, the parser, or the configuration key space.
+
+Local evidence:
+
+- Node suites untouched and green: `server/test_sync_push.mjs` 14/14,
+  `scripts/test-desktop-sync.mjs` 30/30,
+  `scripts/test-desktop-sqlite.mjs` 7/7 (PASS counts re-verified, 0
+  FAIL).
+- New/modified Kotlin files carry no escaped-quote literals
+  (`grep -c '\"'` = 0 on all five).
+- Android cannot compile locally (no SDK in this environment); first
+  verification is CI (app unit tests + lint via Native Android CI, the
+  Segmented matrix, and the Compose UI emulator workflow for
+  `MainNavigationComposeTest`).
+
+CI risks on first run:
+
+- `MainNavigationComposeTest` runs on the emulator workflow only when
+  `:app` connected tests are wired (the standing 12B-09 workflow note);
+  if it still does not execute there, the gated-variant evidence lands
+  with that wiring, while the unit tests above carry the package's
+  proof in Native/Segmented either way.
+- The gated compose test awaits absence with the same `waitUntil`
+  pattern the file already uses for presence; if emulator timing makes
+  absence flaky, the fallback is asserting the visible set after the
+  gated labels appear rather than racing the ungated first frame.
+- Lint: the new view model and the touched navigation file follow the
+  file's existing import and constructor patterns (view models are
+  built outside `setContent` in tests); a lint finding in the new
+  files remains the most likely first-round failure, as with 13.1.
