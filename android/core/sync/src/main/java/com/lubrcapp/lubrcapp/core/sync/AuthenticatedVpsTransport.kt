@@ -28,6 +28,9 @@ class AuthenticatedVpsTransport(
     }
 
     override suspend fun exchange(batch: SyncBatch): SyncResponse = withContext(Dispatchers.IO) {
+        // Fail fast on revoked consent before building any payload; the
+        // per-request check in request() still guards mid-exchange revocation.
+        check(canExchange()) { "Cloud sync consent revoked" }
         SyncContract.validateBatch(batch)
         val token = tokenProvider.token()?.takeIf { it.isNotBlank() }
             ?: error("Device is not paired with the VPS")
