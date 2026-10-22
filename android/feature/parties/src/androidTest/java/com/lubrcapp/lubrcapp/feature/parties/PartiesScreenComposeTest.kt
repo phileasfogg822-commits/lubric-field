@@ -31,7 +31,7 @@ class PartiesScreenComposeTest {
         override fun observe(scope: OperationalScope, table: String) = records
         override suspend fun list(scope: OperationalScope, table: String) = records.value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
-            if (failSave) throw IllegalStateException(\"storage unavailable\")
+            if (failSave) throw IllegalStateException("storage unavailable")
             saves++
             records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
