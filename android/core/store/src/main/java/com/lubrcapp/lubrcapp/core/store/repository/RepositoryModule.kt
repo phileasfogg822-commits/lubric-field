@@ -4,6 +4,7 @@ import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
 import com.lubrcapp.lubrcapp.core.store.db.dao.VpsBusinessRecordDao
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.AccessControlRepository
+import com.lubrcapp.lubrcapp.core.repository.CloudPairingGateway
 import com.lubrcapp.lubrcapp.core.repository.AuditRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.BusinessSwitcher
@@ -69,6 +70,11 @@ abstract class LocalDataSourceModule {
     abstract fun bindDeviceIdentityProvider(
         impl: PersistentDeviceIdentityProvider,
     ): DeviceIdentityProvider
+
+    @Binds @Singleton
+    abstract fun bindCloudPairingGateway(
+        impl: DevicePairingManager,
+    ): CloudPairingGateway
 
     @Binds @Singleton
     abstract fun bindBusinessLocal(impl: RoomBusinessLocalDataSource): BusinessLocalDataSource

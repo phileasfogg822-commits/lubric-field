@@ -16,8 +16,10 @@ import com.lubrcapp.lubrcapp.core.sync.SyncQueueStore
  * explicit per-entity mapping is installed. This prevents unsafe financial overwrites.
  */
 class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
-    private companion object {
-        val DELETABLE_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
+    companion object {
+        private val DELETABLE_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
+
+        /** Every business table the VPS sync protocol may carry; shared with device pairing. */
         val SUPPORTED_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "orders", "order_items", "expenses", "accounts", "account_transactions", "purchase_orders", "vendor_payables", "reminders", "inspections", "cash_movements", "reservations", "party_ledger", "commitments", "stock_movements", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
     }
 
