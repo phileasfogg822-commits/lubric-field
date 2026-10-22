@@ -94,7 +94,7 @@ class PulledTombstoneVisibilityTest {
             ), "1")
             assertEquals(
                 listOf("product-1", "product-2"),
-                repository.list(scope, "products").map { it.entityId }.sorted(),
+                repository.list(scope, "products").map { it.id }.sorted(),
             )
 
             // The server deletes product-1; the next pull delivers the
@@ -107,7 +107,7 @@ class PulledTombstoneVisibilityTest {
             // survivor — the pulled tombstone now behaves like a local one.
             assertEquals(
                 listOf("product-2"),
-                repository.list(scope, "products").map { it.entityId },
+                repository.list(scope, "products").map { it.id },
             )
             // The row is staged, not dropped: it remains in the replica
             // store in canonical tombstone form, with the server's
@@ -136,7 +136,7 @@ class PulledTombstoneVisibilityTest {
             ), "1")
             assertEquals(
                 listOf("product-1"),
-                repository.list(scope, "products").map { it.entityId },
+                repository.list(scope, "products").map { it.id },
             )
             val staged = database.vpsBusinessRecordDao().get(
                 "tenant-a", "business-a", "products", "product-1")

@@ -484,7 +484,7 @@ class TwoDeviceSyncSimulationTest {
             SyncEngine(queueA, server).run(StorageMode.CLOUD_SYNC, identityA)
             SyncEngine(queueB, server).run(StorageMode.CLOUD_SYNC, identityB)
             assertEquals(listOf("product-1"),
-                repositoryB.list(scopeB, "products").map { it.entityId })
+                repositoryB.list(scopeB, "products").map { it.id })
 
             // A deletes through the production repository: the staged
             // record becomes a _deleted tombstone and a DELETE operation
