@@ -725,3 +725,30 @@ Accepted total is now **10 of 22**: 12B-04, 12B-08, 12B-11, 12C-01,
 12C-02, 12C-03, 12C-05, 12C-07, 12C-08, 12C-10. Partial: 12B-09
 (emulator wiring), 12C-04 (process-kill residual), 12C-06 (Keystore-seam
 residuals), 12C-09 (Tauri on-device residual).
+
+## 2026-10-23 Package 10 verification (head `5f7c0e00`) — six 12B tasks accepted; 17 of 22
+
+**All four workflows green** — Native Android CI (39846525506), Phase 12
+Segmented Verification (39846525945), Compose UI Emulator (39846525910),
+Desktop/VPS (39846525835). No fix round was needed.
+
+- **12B-02, 12B-03, 12B-05, 12B-06, 12B-07 ACCEPTED.** The per-module
+  flow evidence (Compose create/edit round trips, ViewModel delegation,
+  Room create/edit across restart) was largely in the tree already;
+  Package 10 closed the real gaps — Items' edit-save completion and
+  delete delegation, and a save-failure propagation pin for every module
+  (the screens' error state depends on it) — all green in CI.
+- **12B-10 ACCEPTED.** `OperationalCrudGuardRoomTest` plus the existing
+  integration suite prove Room CRUD, the observe Flow the screens consume,
+  save-validation guards, the financial delete-rejection sweep,
+  delete scope-isolation, and compensating-entry reversal semantics.
+
+Accepted-with-evidence total is now **17 of 22** (including 12B-01,
+checked in issue #19 before this package series from its source-audit
+evidence): 12B-01, 12B-02, 12B-03, 12B-04, 12B-05, 12B-06, 12B-07, 12B-08,
+12B-10, 12B-11, 12C-01, 12C-02, 12C-03, 12C-05, 12C-07, 12C-08, 12C-10.
+Partial: 12B-09, 12C-04, 12C-06, 12C-09 (residuals as recorded). Open:
+12C-11, whose own text is the close-out — full candidate-commit CI,
+report/artifact inspection, and reconciliation of these gates — followed
+by the §12.7 release gate (12.7.3 is the owner's alone; PR #12 stays
+draft).
