@@ -61,3 +61,39 @@ First fully green candidate head. All four GitHub Actions workflows succeeded on
 
 ### Still open
 12B-02/03/05/06/07 (delete is intentionally absent for financial modules; remaining flow acceptance), 12B-08, 12B-09 (navigation/back-stack tests), 12B-10 (broader CRUD/isolation), 12C-01, 12C-04, 12C-05, 12C-08, 12C-09, 12C-10, 12C-11. PR #12 stays draft and unmerged.
+
+## 2026-10-22 Package 3 verification (12C-05 / 12C-08)
+
+Pushed as a single commit `13f831f3a8ab7ce8aa7c11d533dd64d8aa59fa1c` after a full
+test-coverage audit of 12C-04/05/08. All four workflows are green on that head:
+[Native Android CI 39760866892](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39760866892),
+[Segmented Verification 39760866900](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39760866900),
+[Compose UI Emulator 39760866903](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39760866903),
+[Desktop/VPS 39760866966](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39760866966).
+
+Defect found and fixed (12C-05): the Android incoming path
+(`RoomSyncQueueStore.applyRemoteAndSaveCursor`) upserted every replayed row, so
+a pull replaying a ledger UUID with different data would have overwritten the
+stored posting. The VPS push handler and the desktop agent both treat
+`account_transactions`, `cash_movements`, `stock_movements` and `party_ledger`
+as insert-only; Android now skips an incoming change for those tables when a
+local record already exists (the rest of the batch and the cursor still
+advance). Proven by `incomingFinancialReplayCannotOverwriteLocalLedgerRecord`.
+
+Advanced but still partial:
+
+- **12C-05** — Android insert-only parity fixed and tested; server gained the
+  stale-editable-update scenario (a second device's older `updated_at` write is
+  rejected, not applied; 9/9 scenarios pass). Remaining: a genuine two-device
+  simulation and the remote-change-vs-already-synced-local-edit policy.
+- **12C-08** — dynamic isolation proven: `markAccepted`/`markRetry` from a
+  different device are ignored (`queueAcknowledgementAndRetryIgnoreOtherDevices`),
+  and cancelling one identity's scheduled sync leaves another identity's job
+  ENQUEUED (`cancellingOneIdentityLeavesAnotherIdentityScheduled`). Remaining:
+  cross-scope sync-run isolation, `isPaired` device-mismatch, and a
+  switch-then-operate sequence test.
+- **12C-04** — unchanged by this package. Store-level rollback, cursor
+  monotonicity and replay idempotency were already proven; the open gaps are
+  transport-level pull validation and process-death-mid-pull, both needing a
+  connection seam in `AuthenticatedVpsTransport` (shared with the 12C-07
+  mid-flight race residual).
