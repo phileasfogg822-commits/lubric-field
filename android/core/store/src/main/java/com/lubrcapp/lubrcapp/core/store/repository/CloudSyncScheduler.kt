@@ -104,7 +104,7 @@ class CloudSyncWorker(context: Context, params: WorkerParameters) : CoroutineWor
         return try {
             SyncEngine(
                 RoomSyncQueueStore(database),
-                AuthenticatedVpsTransport(endpoint, credentials, tables) { CloudSyncConsent.isEnabled(applicationContext, identity) }
+                AuthenticatedVpsTransport(endpoint, credentials, tables, canExchange = { CloudSyncConsent.isEnabled(applicationContext, identity) })
             ).run(if (CloudSyncConsent.isEnabled(applicationContext, identity)) StorageMode.CLOUD_SYNC else StorageMode.LOCAL_ONLY, identity)
             Result.success()
         } catch (_: Exception) {
