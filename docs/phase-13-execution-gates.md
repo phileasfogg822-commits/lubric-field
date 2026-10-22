@@ -325,7 +325,9 @@ CI risks on first run:
   built outside `setContent` in tests); a lint finding in the new
   files remains the most likely first-round failure, as with 13.1.
 
-## Package 13.3 — capability-gated navigation — PENDING CI
+## Package 13.3 — capability-gated navigation — VERIFIED
+
+**Verified 2026-10-23 on head `6da576a2` — all four workflows green:** Native Android CI 39864205566, Phase 12 Segmented Verification 39864205400, Compose UI Emulator Tests 39864205548, Desktop and VPS Verification 39864205467. Verification took three runs, each documented honestly: the first wired run (`090d2adc`) died before Gradle started — GitHub's runner failed installing the Android Emulator SDK package ("Error on ZipFile unknown archive", pure infrastructure); the tree-identical re-trigger (`24d53883`) ran the tests for the first time and **5 of 7 `MainNavigationComposeTest` tests failed** with `IllegalStateException: DesignTokens are only available inside LubrcappTheme` — the harness mounted `MainNavigation` bare while production hosts it inside `LubrcappTheme` (`MainActivity`), the sole provider of `LocalDesignTokens`. Fix `6da576a2` wraps the test content in `LubrcappTheme` with a neutral `DesignSystemConfig` (test-only change; production code untouched), after which all 7 instrumented tests execute on the emulator and pass, alongside the two new unit suites. The deny-by-default capability gate is therefore proven at unit level AND at UI level on the emulator. **Package 13.3 ACCEPTED.**
 
 What was wired:
 
