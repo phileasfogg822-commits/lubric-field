@@ -97,3 +97,23 @@ Advanced but still partial:
   transport-level pull validation and process-death-mid-pull, both needing a
   connection seam in `AuthenticatedVpsTransport` (shared with the 12C-07
   mid-flight race residual).
+
+## 2026-10-22 Package 4 verification (transport seam; 12C-07 accepted)
+
+`AuthenticatedVpsTransport` gained a `connectionFactory` seam (Package 4,
+`73dc31e8`) with Robolectric exchange tests driving scripted connections:
+happy-path push/pull receipts, **mid-exchange consent revocation stops before
+the pull request is opened**, regressing server cursor rejected, unexpected
+pull table rejected, malformed stored cursor rejected before any request.
+The first CI round failed at `:core:store` compilation — the new last
+constructor parameter silently re-bound the trailing consent lambda at the
+`CloudSyncScheduler` call site; fixed by binding `canExchange` by name
+(`afeeb768`). All four workflows are green on head `afeeb768` (Native Android
+CI, Segmented Verification, Compose UI Emulator, Desktop/VPS).
+
+- **12C-07 ACCEPTED.** Scheduler LOCAL_ONLY cancellation, worker zero-network
+  with consent off, transport fail-fast + per-request consent checks, and now
+  the deterministic mid-flight revocation race are all proven green.
+- **12C-04 advanced, still partial.** Transport-level pull validation is
+  closed. Remaining: process-death-mid-pull and a composed engine + real Room
+  store interruption round.
