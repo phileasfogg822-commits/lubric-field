@@ -127,12 +127,17 @@ class MainNavigationComposeTest {
         setup: BusinessSetupViewModel,
         context: FakeBusinessContext = FakeBusinessContext(),
     ) {
+        // Construct view models outside the composable lambda: lint treats a
+        // direct ViewModel constructor call inside setContent as an error
+        // (ViewModelConstructorInComposable).
+        val dashboard = dashboardViewModel(context)
+        val scope = OperationalScopeViewModel(FakeDeviceIdentity())
         compose.setContent {
             MainNavigation(
                 appName = "Lubric",
                 businessSetupViewModel = setup,
-                dashboardViewModel = dashboardViewModel(context),
-                scopeViewModel = OperationalScopeViewModel(FakeDeviceIdentity()),
+                dashboardViewModel = dashboard,
+                scopeViewModel = scope,
             )
         }
     }
