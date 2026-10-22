@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_sync_back">Back</string>
+    <string name="cloud_sync_title">Cloud sync</string>
+    <string name="cloud_sync_unpaired_note">Not paired. Business data stays on this device until you pair it with your VPS.</string>
+    <string name="cloud_sync_endpoint">VPS endpoint</string>
+    <string name="cloud_sync_token">Pairing token</string>
+    <string name="cloud_sync_pair">Pair device</string>
+    <string name="cloud_sync_paired">Paired with %1$s</string>
+    <string name="cloud_sync_unpair">Unpair device</string>
+</resources>
