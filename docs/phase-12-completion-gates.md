@@ -141,7 +141,7 @@ Segmented Verification, Compose UI Emulator, Desktop/VPS).
   their own Hilt ViewModels internally, so a full click-through needs the
   Hilt graph; that residual is recorded rather than hidden.
 
-## 2026-10-22 Package 6 (12C-01 audit write-up; 12C-09 / 12C-10 contract fixture) — PENDING CI
+## 2026-10-22 Package 6 (12C-01 audit write-up; 12C-09 / 12C-10 contract fixture) — VERIFIED (see the verification section below)
 
 Prepared locally; **not accepted** until this package is pushed and all four
 workflows are green on the resulting head.
@@ -197,3 +197,41 @@ workflows are green on the resulting head.
   locally (no SDK in this environment); `SyncContractFixtureTest` is
   verified only when CI runs it, which is why this whole section stays
   PENDING CI.
+
+## 2026-10-22 Packages 5b + 6 verification (head `6d24c644`; 12C-01 + 12C-10 accepted)
+
+**All four workflows are green on head `6d24c644`** — Native Android CI
+(39825932381), Phase 12 Segmented Verification (39825932360), Compose UI
+Emulator (39825932347), Desktop/VPS (39825932345). The road there, for the
+record: `d91d0d96` failed Native at lint-model dependency resolution
+(versionless `ui-test-junit4` in the app module — the Compose BOM was not
+applied to its androidTest classpath; fixed `dfb3c1ba`); that head then
+failed on ONE real lint error, `ViewModelConstructorInComposable` in the new
+navigation test (fixed `0b5746b2` by constructing view models outside
+`setContent`); `fc17c8bb` failed Segmented across all core:store jobs
+because the fixture test's `seed()` called suspend DAO upserts from a plain
+function (fixed `6d24c644` with `runBlocking`). An earlier incident in the
+same window: the first three 5b files were briefly stored base64-encoded via
+the wrong write route and were restored byte-identical before any of the
+above verification.
+
+- **12C-01 ACCEPTED.** The 28-table parity (Android `SUPPORTED_TABLES` ==
+  server `SYNC_TABLES` == desktop `SYNC_TABLES`, insert-only set identical
+  in all three) is pinned by the shared fixture and asserted in all three
+  clients' test suites, green in CI.
+- **12C-10 ACCEPTED.** `sync-contract/sync-contract.json` is the single
+  cross-client contract: canonical push fully acknowledged by the
+  production handler, all six receipt scenarios executed against the
+  production desktop `syncNow`, pull legs (apply + cursor advance,
+  insert-only replay preserving the original posting, regressing cursor
+  rejected) asserted on desktop and against the Room queue store.
+- **12C-09 PARTIAL.** Desktop SQLite parity is proven in CI (rollback,
+  immutable replay, retry batch). Residual: native Tauri plugin-sql
+  connection-pool atomicity still needs on-device verification; it cannot
+  be proven in CI and is recorded here rather than hidden.
+- **12B-09 PARTIAL.** The MainNavigation bootstrap-state tests compile,
+  pass lint, and are in the tree; emulator EXECUTION of `:app` tests still
+  requires adding `:app:connectedDebugAndroidTest` to
+  `compose-ui-emulator.yml`, which is blocked on the GitHub App's missing
+  Workflows permission. Feature click-through (Hilt graph) residual stands
+  as recorded in the Package 5 section.
