@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - phase-12-completion
+      - phase-13-app-shell
     paths:
       - "src/**"
       - "scripts/test-desktop-sync.mjs"
