@@ -67,4 +67,16 @@ class CloudSyncSchedulerTest {
             .build()
         assertTrue(worker.doWork() is ListenableWorker.Result.Success)
     }
+
+    @Test fun cancellingOneIdentityLeavesAnotherIdentityScheduled() {
+        val scheduler = CloudSyncScheduler(context)
+        val other = SyncIdentity("tenant-a", "business-a", "device-b")
+        val otherJob = "lubric-vps-sync:tenant-a:business-a:device-b"
+        scheduler.configure(identity, StorageMode.CLOUD_SYNC, "https://example.invalid", setOf("products"))
+        scheduler.configure(other, StorageMode.CLOUD_SYNC, "https://example.invalid", setOf("products"))
+        assertTrue(workInfos(otherJob).any { it.state == WorkInfo.State.ENQUEUED })
+        scheduler.configure(other, StorageMode.LOCAL_ONLY, "https://example.invalid", setOf("products"))
+        assertTrue(workInfos(otherJob).all { it.state == WorkInfo.State.CANCELLED })
+        assertTrue(workInfos(jobName).any { it.state == WorkInfo.State.ENQUEUED })
+    }
 }

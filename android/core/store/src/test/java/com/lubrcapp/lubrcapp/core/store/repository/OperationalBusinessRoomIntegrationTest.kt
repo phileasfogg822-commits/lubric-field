@@ -523,4 +523,66 @@ class OperationalBusinessRoomIntegrationTest {
         } finally { db.close() }
     }
 
+    @Test fun incomingFinancialReplayCannotOverwriteLocalLedgerRecord() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val identity = SyncIdentity("tenant-a", "business-a", "device-a")
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            val queue = RoomSyncQueueStore(db)
+            queue.applyRemoteAndSaveCursor(identity, listOf(
+                SyncChange("op-ledger-1", "account_transactions", "ledger-1",
+                    OperationType.CREATE, 1, """{"uuid":"ledger-1","amount":100}""", 100L)
+            ), "1")
+            // A later pull replays the same ledger UUID with a different amount:
+            // insert-only parity means the stored posting wins, the rest of the
+            // batch still applies, and the cursor still advances.
+            queue.applyRemoteAndSaveCursor(identity, listOf(
+                SyncChange("op-ledger-2", "account_transactions", "ledger-1",
+                    OperationType.CREATE, 1, """{"uuid":"ledger-1","amount":999}""", 101L),
+                SyncChange("op-product-9", "products", "product-9",
+                    OperationType.CREATE, 1, """{"uuid":"product-9","name":"Oil"}""", 102L)
+            ), "2")
+            val stored = db.vpsBusinessRecordDao().get(
+                "tenant-a", "business-a", "account_transactions", "ledger-1")
+            assertEquals(100, org.json.JSONObject(stored!!.payloadJson).getInt("amount"))
+            assertNotNull(db.vpsBusinessRecordDao().get(
+                "tenant-a", "business-a", "products", "product-9"))
+            assertEquals("2", queue.cursor(identity))
+        } finally { db.close() }
+    }
+
+    @Test fun queueAcknowledgementAndRetryIgnoreOtherDevices() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val owner = SyncIdentity("tenant-a", "business-a", "device-a")
+            val other = SyncIdentity("tenant-a", "business-a", "device-b")
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repo.save(OperationalScope("tenant-a", "business-a", "device-a"), "customers",
+                "customer-guard", """{"uuid":"customer-guard","name":"Guarded"}""")
+            val queue = RoomSyncQueueStore(db)
+            val operationId = queue.pending(owner, 20).single().operationId
+            // Another device in the same tenant/business must not be able to
+            // acknowledge or reschedule this device's queued change.
+            queue.markAccepted(other, setOf(operationId))
+            assertEquals(listOf(operationId), queue.pending(owner, 20).map { it.operationId })
+            queue.markRetry(other, setOf(operationId))
+            assertEquals(listOf(operationId), queue.pending(owner, 20).map { it.operationId })
+            assertTrue(queue.pending(other, 20).isEmpty())
+        } finally { db.close() }
+    }
+
 }

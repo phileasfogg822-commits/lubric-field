@@ -19,6 +19,13 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
     companion object {
         private val DELETABLE_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
 
+        /**
+         * Ledger tables whose rows are immutable postings. Mirrors the VPS push
+         * handler's immutable set and the desktop agent's INSERT_ONLY_SYNC_TABLES:
+         * an incoming replay never overwrites an existing local posting.
+         */
+        private val INSERT_ONLY_TABLES = setOf("account_transactions", "cash_movements", "stock_movements", "party_ledger")
+
         /** Every business table the VPS sync protocol may carry; shared with device pairing. */
         val SUPPORTED_TABLES = setOf("products", "services", "customers", "vehicles", "vendors", "orders", "order_items", "expenses", "accounts", "account_transactions", "purchase_orders", "vendor_payables", "reminders", "inspections", "cash_movements", "reservations", "party_ledger", "commitments", "stock_movements", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
     }
@@ -109,6 +116,16 @@ class RoomSyncQueueStore(private val database: AppDatabase) : SyncQueueStore {
                     listOf("PENDING", "FAILED"), Long.MAX_VALUE, 200
                 ).any { it.entityType == change.entityType && it.entityId == change.entityId }
                 require(!pendingLocal) { "Remote change conflicts with unsynchronized local edit" }
+                // Insert-only parity: a replayed ledger posting that is already
+                // stored locally is an idempotent no-op, never an overwrite —
+                // the same rule the VPS handler and the desktop agent apply.
+                if (change.entityType in INSERT_ONLY_TABLES &&
+                    database.vpsBusinessRecordDao().get(
+                        identity.tenantId, identity.businessId, change.entityType, change.entityId
+                    ) != null
+                ) {
+                    continue
+                }
                 database.vpsBusinessRecordDao().upsert(
                     VpsBusinessRecordEntity(
                         identity.tenantId, identity.businessId, change.entityType,

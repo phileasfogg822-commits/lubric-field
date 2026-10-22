@@ -26,7 +26,7 @@ const client = {
     }
     if (statement.startsWith('INSERT INTO')) {
       if (mode === 'statement-error') throw new Error('synthetic constraint violation');
-      if ((mode === 'conflict' || mode === 'other-shop' || mode === 'mismatched-replay')) return { rowCount: 0 };
+      if ((mode === 'conflict' || mode === 'other-shop' || mode === 'mismatched-replay' || mode === 'stale-editable')) return { rowCount: 0 };
       return { rowCount: 1 };
     }
     if (statement.startsWith('SELECT shop_id')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7, replay_matches: mode !== 'mismatched-replay' }] };
@@ -115,3 +115,9 @@ assert.equal(result.body.applied.length, 0);
 assert.equal(result.body.rejected.length, 1);
 assert.ok(result.queries.some(x => x.statement.includes('amount IS NOT DISTINCT FROM')));
 console.log('PASS immutable UUID replay with changed amount is rejected');
+
+result = await run([change('products', 'product-1', { name: 'Stale name', updated_at: '2000-01-01T00:00:00.000Z' })], 'stale-editable');
+assert.equal(result.body.applied.length, 0);
+assert.equal(result.body.rejected.length, 1);
+assert.equal(result.body.rejected[0].operationId, 'op-1');
+console.log('PASS stale editable update from a second device is rejected, not applied');
