@@ -135,3 +135,49 @@ assert.equal(retry.pulled, 1);
 assert.equal(retryDb.state.cursor, "3");
 assert.ok(retryDb.state.statements.includes("COMMIT"));
 console.log("PASS successful incoming retry commits cursor");
+
+// ─── 12C-10: shared cross-client contract fixture ────────────────────────
+// The same fixture file is asserted by the VPS push-handler test and the
+// Android store tests. Here every fixture receipt scenario is executed
+// against the production desktop agent, and the production table constants
+// are pinned to the fixture (the desktop leg of the 12C-01 parity audit).
+const contract = JSON.parse(fs.readFileSync(new URL("../sync-contract/sync-contract.json", import.meta.url), "utf8"));
+const { SYNC_TABLES: desktopTables, INSERT_ONLY_SYNC_TABLES: desktopInsertOnly } = module.exports;
+assert.deepEqual([...contract.supportedTables].sort(), [...desktopTables].sort());
+assert.deepEqual([...contract.insertOnlyTables].sort(), [...desktopInsertOnly].sort());
+console.log("PASS contract fixture table sets match production desktop constants (12C-01)");
+
+for (const scenario of contract.receiptScenarios) {
+  const rows = contract.receiptOutbox.map((entry) => ({
+    id: entry.id, table_name: entry.table, row_uuid: entry.uuid, op: entry.op,
+    payload: JSON.stringify(entry.row),
+  }));
+  response = { push: scenario.pushResponse, pull: scenario.pullResponse };
+  const db = database(rows);
+  const actual = await syncNow(db);
+  assert.deepEqual(db.state.deletes, scenario.expect.deletedIds, scenario.name + " deletes");
+  assert.deepEqual(db.state.retries, scenario.expect.retriedIds, scenario.name + " retries");
+  assert.equal(actual.pushed, scenario.expect.pushed, scenario.name + " pushed");
+  assert.equal(actual.rejected, scenario.expect.rejected, scenario.name + " rejected");
+  assert.equal(db.state.cursor, scenario.expect.cursor, scenario.name + " cursor");
+  console.log("PASS contract fixture:", scenario.name);
+}
+
+response = { push: { applied: [], rejected: [] }, pull: contract.pullExchange.response };
+const pullDb = database([]);
+const pullResult = await syncNow(pullDb);
+assert.equal(pullResult.pulled, 2);
+assert.equal(pullDb.state.cursor, String(contract.pullExchange.response.cursor));
+assert.ok(pullDb.state.statements.some((sql) => sql.startsWith("INSERT INTO account_transactions")));
+assert.ok(pullDb.state.statements.some((sql) => sql.startsWith("INSERT INTO products")));
+console.log("PASS contract fixture: canonical pull applies and advances cursor");
+
+response = {
+  push: { applied: [], rejected: [] },
+  pull: { cursor: contract.pullExchange.regressedCursor, changes: {} },
+};
+const regressedDb = database([]);
+regressedDb.state.cursor = String(contract.pullExchange.response.cursor);
+await assert.rejects(syncNow(regressedDb), /Invalid or regressing server sync cursor/);
+assert.equal(regressedDb.state.cursor, String(contract.pullExchange.response.cursor));
+console.log("PASS contract fixture: regressing cursor rejected and stored cursor preserved");
