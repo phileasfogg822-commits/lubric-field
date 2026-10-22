@@ -39,3 +39,25 @@ GitHub Actions is the sole active CI provider for this phase; earlier CircleCI-f
 - **12C:** receipt/retry/cursor/conflict/consent/security/desktop parity acceptance remains tracked in Issue #19; do not mark complete from green compilation alone.
 - **Release:** draft PR #12 must remain unmerged until explicit approval.
 
+
+## 2026-10-22 Packages 1–2 verification (head `17e77f4c`)
+
+First fully green candidate head. All four GitHub Actions workflows succeeded on the same commit `17e77f4c09d6456aaea0615ab0a6e458a2823a75`:
+
+- [Native Android CI 39757736679](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39757736679) — all steps green: boundary guards, 15.1 Room regression, 15.2 full Room store tests, 15.3 all Android unit tests, 15.4 lint, 15.5 debug APK, 15.6 release APK, 16 migration-test compilation, 17 white-label APK, 17.1 Compose instrumentation compilation, 18–19 artifact evidence recorded and uploaded.
+- [Phase 12 Segmented Verification 39757736743](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39757736743) — 20/20 jobs green.
+- [Compose UI Emulator Tests 39757736547](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39757736547) — green, including the new Parties delete and Cloud Sync pairing Compose tests.
+- [Desktop and VPS Verification 39757736799](https://github.com/phileasfogg822-commits/lubric-field/actions/runs/39757736799) — green. This workflow was already failing on the pre-package head `9d4c7f4` (verified against the 2026-10-21 runs): the push-handler contract test's protocol double had gone stale when the handler gained stored-field replay comparison. The double is repaired (`b5fc0824`); the production handler was not changed. All 8 scenarios pass.
+
+### Accepted with this evidence (Issue #19)
+- **12B-04 Parties — accepted.** Soft-delete parity delivered (`510723b2`): customers are nonfinancial master data, so Parties gained the Items-style tombstone delete (ViewModel, confirm dialog, strings) with ViewModel and Compose tests. The DELETE-contract audit concluded the other modules must NOT gain delete: `orders`, `purchase_orders`, `accounts`, `stock_movements` are rejected by the repository contract ("financial and inventory history requires a reversal, not deletion").
+- **12B-11 — accepted.** Same-SHA tests, lint, debug/release/white-label APK builds and artifact evidence recorded above.
+- **12C-02 — accepted.** SyncEngineTest now covers missing (empty), unknown, duplicate and partial receipts plus idempotent acknowledgment; unknown receipts still cannot acknowledge local changes.
+- **12C-03 — accepted.** Persisted FAILED/backoff state across restart (pre-existing) plus new elapsed-backoff resumption: the operation becomes pending again and a full engine round marks it SYNCED.
+
+### Partially verified
+- **12C-06 pairing — partial.** Delivered: `CloudPairingGateway`/`DevicePairingManager` (HTTPS + non-blank validation before any state change, Keystore-only token storage, per-scope scheduling, re-pair cancels the previous scope), Cloud Sync pairing screen (write-only token field), startup restore, lifecycle tests (validation, record/schedule side effects, restore, unpair). Remaining: expired-token and corrupt-token behavior tests (the Keystore crypto round-trip is not Robolectric-coverable; `token()` already fails safe to null) and a log-redaction test.
+- **12C-07 opt-out race — partial.** Scheduler LOCAL_ONLY cancellation, worker zero-network-with-consent-off, transport fail-fast consent check and per-request consent re-check are all tested and green. Remaining: a deterministic mid-flight revocation race test, which needs a connection seam in `AuthenticatedVpsTransport` (it opens `HttpURLConnection` directly).
+
+### Still open
+12B-02/03/05/06/07 (delete is intentionally absent for financial modules; remaining flow acceptance), 12B-08, 12B-09 (navigation/back-stack tests), 12B-10 (broader CRUD/isolation), 12C-01, 12C-04, 12C-05, 12C-08, 12C-09, 12C-10, 12C-11. PR #12 stays draft and unmerged.
