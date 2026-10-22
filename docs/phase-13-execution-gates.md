@@ -170,3 +170,22 @@ CI risk on first run:
   so an unused-import or API-surface lint finding in the touched files
   is the most likely first-round failure; imports in `MainNavigation`
   were pruned to match the new wiring.
+
+## 2026-10-23 Package 13.1 verification (head `bdf7e383`) — registry foundation accepted
+
+**All three applicable workflows green on the first run** — Native Android
+CI (39853002790), Phase 12 Segmented Verification (39853002681), Compose
+UI Emulator (39853002619), all via PR #22. (Desktop/VPS does not trigger
+on this branch — see the infrastructure note in this doc's scope section;
+13.1 touches no server/desktop code and the node suites were verified
+locally: 14/14, 30/30, 7/7.)
+
+- `AppModuleRegistry` is in the tree with the eight shell surfaces in
+  their exact legacy order; the 9 registry unit tests pass.
+- `MainNavigationComposeTest` passed **unmodified** — the
+  behavior-preservation proof for the registry rewiring (same labels,
+  order, routing, bootstrap states).
+- Accepted as the Phase 13 foundation. Next: Package 13.2 — live
+  configuration gating (feed the resolved `enabledModules` into the
+  registry's visibility), the first package that changes what the shell
+  shows, with its own acceptance evidence.
