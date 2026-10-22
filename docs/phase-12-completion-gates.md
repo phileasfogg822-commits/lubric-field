@@ -140,3 +140,60 @@ Segmented Verification, Compose UI Emulator, Desktop/VPS).
   workflow. Feature click-through is not covered: feature screens resolve
   their own Hilt ViewModels internally, so a full click-through needs the
   Hilt graph; that residual is recorded rather than hidden.
+
+## 2026-10-22 Package 6 (12C-01 audit write-up; 12C-09 / 12C-10 contract fixture) — PENDING CI
+
+Prepared locally; **not accepted** until this package is pushed and all four
+workflows are green on the resulting head.
+
+- **12C-01 table parity — audit write-up (verified in source, pending CI).**
+  The three production table sets were compared exactly and are identical:
+  Android `RoomSyncQueueStore.SUPPORTED_TABLES` == server `SYNC_TABLES`
+  (`server/index.js`) == desktop `SYNC_TABLES` (`src/lib/sync.ts`) — the same
+  28 tables: account_transactions, accounts, cash_movements, commitments,
+  customer_groups, customers, expenses, inspections, order_items, orders,
+  party_ledger, party_price_lists, party_prices, price_list_items,
+  price_lists, products, purchase_orders, reminders, reservations, services,
+  stock_movements, unit_conversions, units, vehicles, vendor_payables,
+  vendors, warehouse_locations, warehouses. The insert-only ledger set is
+  likewise identical in all three implementations — `account_transactions`,
+  `cash_movements`, `stock_movements`, `party_ledger` (Android
+  `INSERT_ONLY_TABLES`, server `immutableLedger`, desktop
+  `INSERT_ONLY_SYNC_TABLES`). The deliberate exclusions also agree:
+  `commitment_items` (no `shop_id` yet, so the pull cannot scope it) and the
+  derived `stock_levels` cache are absent from every client's set.
+- **12C-10 cross-client contract fixture.** New canonical fixture
+  `sync-contract/sync-contract.json` captures the wire contract all three
+  clients implement: the 28-table supported set, the insert-only ledger set,
+  the locked receipt rules (exact operation IDs; an outbox entry is deleted
+  only on an explicit server ack of that exact ID — missing, unknown,
+  UUID-only and conflicting receipts all retain the entry), a canonical push
+  exchange, six canonical receipt scenarios, and canonical pull exchanges
+  with a monotonic cursor (a regressing cursor aborts the round and
+  preserves the stored cursor; batch and cursor commit atomically; an
+  insert-only replay never overwrites the stored posting). Consumers:
+  `server/test_sync_push.mjs` pins the fixture to the production handler's
+  own table configuration and to the desktop source, and drives the
+  fixture's canonical push through the production handler;
+  `scripts/test-desktop-sync.mjs` executes every fixture receipt scenario
+  plus the pull exchanges against the production desktop agent and pins
+  the production desktop constants to the fixture; Android
+  `SyncContractFixtureTest` (core:store) asserts its test-resources copy is
+  byte-identical to the canonical file and drives the fixture pull
+  exchanges through the production Room queue store.
+- **12C-09 desktop/Tauri SQLite parity.** The desktop leg of the contract
+  continues to be exercised against real on-disk SQLite by
+  `scripts/test-desktop-sqlite.mjs` (durable commit across reopen, real
+  rollback preserving rows and cursor, insert-only ledger replay, complete
+  retry); Package 6 ties those behaviors to the shared fixture above
+  instead of desktop-only constants. Unchanged residual, recorded in that
+  file: the Node adapter uses one SQLite connection, so native Tauri
+  plugin-sql connection-pool atomicity still needs on-device verification
+  and is not claimed here.
+- **Local evidence (this preparation run, 2026-10-22):** `node
+  server/test_sync_push.mjs` 14/14 PASS, `node scripts/test-desktop-sync.mjs`
+  30/30 PASS, `node --disable-warning=ExperimentalWarning
+  scripts/test-desktop-sqlite.mjs` 7/7 PASS. Android cannot compile or run
+  locally (no SDK in this environment); `SyncContractFixtureTest` is
+  verified only when CI runs it, which is why this whole section stays
+  PENDING CI.
