@@ -928,3 +928,43 @@ outstanding.
    happens only when all gates above pass **and the owner authorizes
    the release**. This close-out does not mark the PR ready; PR #12
    stays draft and unmerged.
+
+## Post-close-out addendum (2026-10-23) — 12B-09 reclassified ACCEPTED; Phase 12 now 19 of 22
+
+This addendum supersedes the 12B-09 "Partial" entries above (evidence map
+row and known-limitations item 1) without rewriting them; the close-out
+record stands as written for its date.
+
+- **The blocker is gone.** The limitation recorded that
+  `:app:connectedDebugAndroidTest` was missing from
+  `compose-ui-emulator.yml` and that adding it was blocked on the GitHub
+  App's missing Workflows permission. On 2026-10-23 Umar added a repo
+  deploy key for the Muse VM, and pushes moved to git-over-SSH, which
+  is not bound by the app's permissions. Commit `2952f633` added
+  `:app:connectedDebugAndroidTest` to the emulator workflow on this
+  branch.
+- **First execution found a real harness defect, now fixed.** The wired
+  run and its re-trigger first died on a GitHub-side SDK install failure
+  (infrastructure; no tests ran), then executed the tests and failed 2
+  of 4: `MainNavigationComposeTest` mounted `MainNavigation` bare,
+  while production hosts it inside `LubrcappTheme` (`MainActivity`),
+  the sole provider of `LocalDesignTokens` — every screen reading
+  `LubrcTheme.tokens` threw `IllegalStateException: DesignTokens are
+  only available inside LubrcappTheme`. Commit `d877653f` wraps the
+  test content in `LubrcappTheme` with a neutral `DesignSystemConfig`
+  (test-only; production code untouched).
+- **Green evidence on head `d877653f` — FINAL 4/4 SUCCESS:** Native
+  Android CI 39864241256, Phase 12 Segmented Verification 39864241028,
+  Compose UI Emulator Tests 39864241047 (the `:app` instrumented tests
+  actually execute on the emulator and pass), Desktop and VPS
+  Verification 39864241013.
+- **Reclassification:** 12B-09 Partial → **Accepted**. Phase 12 totals
+  are now **19 of 22 accepted, 3 partial** (12C-04, 12C-06, 12C-09 —
+  residuals unchanged: JVM-unprovable process-kill, Keystore seam,
+  on-device Tauri pool). The residual noted in the original limitation
+  — feature click-through needing a Hilt-graph harness — remains true
+  and is unchanged; it was never the acceptance criterion for 12B-09's
+  navigation/back-stack scope. §12.7.3 remains the owner's alone; PR
+  #12 stays draft and unmerged. (Issue #19's checklist still shows the
+  close-out state; reconciling it is a connector write and is recorded
+  as pending the owner's next approval tap.)
