@@ -364,6 +364,20 @@ class OperationalBusinessRoomIntegrationTest {
         val db = Room.databaseBuilder(context, AppDatabase::class.java, name)
             .allowMainThreadQueries().build()
         try {
+            // Settings rows (the sync cursor) require existing tenant/business parents.
+            val now = System.currentTimeMillis()
+            db.tenantDao().upsert(TenantEntity(
+                id = identity.tenantId, name = "Test tenant",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
+            db.businessDao().upsert(BusinessEntity(
+                id = identity.businessId, tenantId = identity.tenantId,
+                name = "Test business", businessType = "RETAIL",
+                currencyCode = "USD", timezoneId = "UTC",
+                createdAt = now, updatedAt = now, deviceId = identity.deviceId,
+                syncStatus = "LOCAL"
+            ))
             RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db).save(
                 scope, "products", "product-resume",
                 """{"uuid":"product-resume","name":"Offline resume"}"""

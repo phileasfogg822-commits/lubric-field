@@ -26,10 +26,10 @@ const client = {
     }
     if (statement.startsWith('INSERT INTO')) {
       if (mode === 'statement-error') throw new Error('synthetic constraint violation');
-      if ((mode === 'conflict' || mode === 'other-shop')) return { rowCount: 0 };
+      if ((mode === 'conflict' || mode === 'other-shop' || mode === 'mismatched-replay')) return { rowCount: 0 };
       return { rowCount: 1 };
     }
-    if (statement.startsWith('SELECT shop_id FROM')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7, replay_matches: mode !== 'mismatched-replay' }] };
+    if (statement.startsWith('SELECT shop_id')) return { rows: [{ shop_id: mode === 'other-shop' ? 99 : 7, replay_matches: mode !== 'mismatched-replay' }] };
     if (statement.startsWith('UPDATE products SET deleted_at')) return { rowCount: 0 };
     if (statement.startsWith('SELECT id FROM cash_movements')) return { rows: [{ id: 1 }] };
     return { rowCount: 1, rows: [] };
