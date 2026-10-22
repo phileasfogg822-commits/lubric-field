@@ -235,3 +235,67 @@ above verification.
   `compose-ui-emulator.yml`, which is blocked on the GitHub App's missing
   Workflows permission. Feature click-through (Hilt graph) residual stands
   as recorded in the Package 5 section.
+
+## 2026-10-22 Package 7 (12C-04 composed interruption round) — PENDING CI
+
+Prepared locally; **not accepted** until this package is pushed and all four
+workflows are green on the resulting head. No production code changes — one
+new test file:
+`core/store/src/test/java/com/lubrcapp/lubrcapp/core/store/repository/ComposedSyncEngineRoomTest.kt`.
+
+- **Placement (dependency-driven).** The composed test needs the real
+  `SyncEngine` (core:sync) and the real `RoomSyncQueueStore` + `AppDatabase`
+  (core:store) in one class. `core/store/build.gradle.kts` already declares
+  `implementation(project(":core:sync"))`, so core:store's test classpath
+  sees both; core:sync has no dependency on core:store and cannot gain one
+  (store → sync already exists, so sync → store would be a cycle). The app
+  module was therefore not needed. core:store already carries Robolectric
+  4.11.1, room-testing and the Maven-Central Robolectric repo-url test
+  block, so no build file changes either. Precedent:
+  `OperationalBusinessRoomIntegrationTest.failedUploadResumesAfterBackoffElapses`
+  already composes engine + Room store for the push/retry leg; this package
+  adds the missing pull-interruption legs.
+- **What the new tests prove** (real engine + real Room store on a seeded
+  database; only the transport is scripted):
+  1. `pullFailingMidBatchLeavesRecordsAndCursorUnchangedThroughEngine` —
+     a pull whose batch the store must reject halfway (second row's payload
+     UUID does not match its entity ID, after the first row was already
+     upserted inside the transaction) fails the engine round and leaves
+     local records AND the stored cursor exactly as before: the valid first
+     row is rolled back, the pre-existing record is intact, the cursor
+     stays at its prior value. This is atomicity across the composed path,
+     not just the store called directly.
+  2. `successfulRoundAfterInterruptionAppliesFullBatchAndAdvancesCursorOnce` —
+     after that interrupted round, a clean redelivery applies the complete
+     batch (the engine resumes from the preserved cursor), advances the
+     cursor exactly once, and a further exact redelivery is an idempotent
+     no-op: no duplicated records, no second cursor advance.
+  3. `pushAckedButCleanupInterruptedReplaysExactOperationIdNextRound` —
+     a response that ACCEPTS a push but carries a pull batch that dies
+     mid-apply kills the round after the server ack and before the local
+     outbox cleanup (the engine persists incoming changes before
+     acknowledging outgoing ones, so this is the real crash window). The
+     operation stays PENDING with its original attempt count — not lost,
+     not half-acked. The next round re-presents the exact same operation
+     ID, the server answers DUPLICATE, and the operation settles as the
+     single SYNCED row for that ID.
+- **What remains of 12C-04.** The mid-apply failure is injected as a batch
+  the real store rejects mid-transaction, because once the transport has
+  returned, a pull can only fail inside the store's transaction;
+  transport-level failure modes occur before apply and are already covered
+  by `SyncEngineTest` and `AuthenticatedVpsTransportExchangeTest`. A true
+  process-death-mid-pull (killing the process between statements inside
+  the apply) is still not directly provable in a JVM/Robolectric test and
+  is not claimed: what is proven is the mechanism that makes it safe —
+  records, inbox and cursor commit in one Room transaction, and the
+  composed engine path performs no non-transactional side effect before
+  that commit — plus the ack-after-crash recovery semantics in test 3.
+  12C-04 therefore stays **partial** pending CI verification of this
+  package and that stated residual.
+- **Local evidence (this preparation run, 2026-10-22):** node suites
+  unchanged and green — `server/test_sync_push.mjs` 14/14,
+  `scripts/test-desktop-sync.mjs` 30/30,
+  `scripts/test-desktop-sqlite.mjs` 7/7. Android cannot compile or run
+  locally (no SDK in this environment), so the new tests are verified only
+  when CI runs them (`:core:store:testDebugUnitTest` via Native Android CI
+  step 15.3 and the Segmented core:store jobs).
