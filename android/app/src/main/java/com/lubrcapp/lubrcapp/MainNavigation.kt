@@ -27,13 +27,7 @@ import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
 import com.lubrcapp.lubrcapp.feature.settings.AccessControlScreen
-import com.lubrcapp.lubrcapp.feature.items.ItemsScreen
-import com.lubrcapp.lubrcapp.feature.inventory.InventoryScreen
-import com.lubrcapp.lubrcapp.feature.parties.PartiesScreen
-import com.lubrcapp.lubrcapp.feature.sales.SalesScreen
-import com.lubrcapp.lubrcapp.feature.purchases.PurchasesScreen
-import com.lubrcapp.lubrcapp.feature.accounts.AccountsScreen
-import com.lubrcapp.lubrcapp.feature.syncstatus.CloudSyncScreen
+import com.lubrcapp.lubrcapp.shell.AppModuleRegistry
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -48,6 +42,10 @@ import androidx.compose.ui.unit.dp
  * Phase 9 restores and validates the current tenant/business context from
  * persisted local state. Business switching is membership-scoped and does not
  * rely on role names or unscoped business queries.
+ *
+ * Phase 13 routes feature modules through [AppModuleRegistry]: the module
+ * list and the feature dispatch both read the registry instead of a
+ * hardcoded table.
  */
 @Composable
 fun MainNavigation(
@@ -154,14 +152,15 @@ fun MainNavigation(
                     }
                 } else {
                     val back = { selectedFeature = null }
-                    when (selectedFeature) {
-                        "items" -> ItemsScreen(scope, back)
-                        "inventory" -> InventoryScreen(scope, back)
-                        "parties" -> PartiesScreen(scope, back)
-                        "sales" -> SalesScreen(scope, back)
-                        "purchases" -> PurchasesScreen(scope, back)
-                        "accounts" -> AccountsScreen(scope, back)
-                        "cloudsync" -> CloudSyncScreen(scope, back)
+                    val content = AppModuleRegistry.module(selectedFeature)?.content
+                    if (content != null) {
+                        content(scope, back)
+                    } else {
+                        // Defensive: selections are only produced by the
+                        // registry-driven module list below, so an unknown
+                        // id cannot occur; render an empty surface and let
+                        // Back return to the dashboard.
+                        Box(Modifier.fillMaxSize())
                     }
                 }
             } else {
@@ -179,19 +178,11 @@ fun MainNavigation(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (currentContext != null) {
-                        listOf(
-                            "items" to stringResource(R.string.nav_items_title),
-                            "inventory" to stringResource(R.string.feature_inventory),
-                            "parties" to stringResource(R.string.feature_customers),
-                            "sales" to stringResource(R.string.feature_sales),
-                            "purchases" to stringResource(R.string.feature_purchases),
-                            "accounts" to stringResource(R.string.feature_accounts),
-                            "cloudsync" to stringResource(R.string.feature_cloud_sync),
-                        ).forEach { (key, label) ->
+                        AppModuleRegistry.visibleModules().forEach { module ->
                             Button(
-                                onClick = { selectedFeature = key },
+                                onClick = { selectedFeature = module.id },
                                 modifier = Modifier.padding(horizontal = 16.dp),
-                            ) { Text(label) }
+                            ) { Text(stringResource(module.titleRes)) }
                         }
                     }
                 }
