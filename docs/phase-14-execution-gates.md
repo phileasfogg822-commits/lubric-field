@@ -196,3 +196,42 @@ success (the group lifecycle test ran on the emulator: create group,
 assign party, member count 0 → 1, delete group, party survives
 showing "Group: —"); Phase 12 Segmented Verification run
 39916981588 — success. Package 14.3 ACCEPTED on `b5e2039`.
+
+## Package 14.4 — credit rules + profile header — PENDING CI
+
+What was wired:
+
+- **New** `PartyCredit` (pure rules, §18): outstanding is the
+  receivable side of the opening balance alone — the documented
+  stand-in until the Phase 22 ledger exists; payable/neutral
+  balances are not exposure. Statuses: BLOCKED (takes precedence),
+  NO_LIMIT (no usable limit set), WITHIN_LIMIT, NEAR_LIMIT,
+  OVER_LIMIT. **Threshold decision**: near-limit fires at
+  utilization >= 95% — the spec §18 example's own number (95 of a
+  100 limit warns) — rather than an invented 90%; over-limit at
+  >= 100%. Sale-time hard blocking stays with Phases 17/21; this
+  package ships data and warnings only.
+- **New** `PartyProfileMode` (§17 header): a read-only profile
+  surface per party — name, type, group (unresolved shown as "—"),
+  the balance-direction line, and the credit block (outstanding,
+  credit limit or "No credit limit set", credit days, status text;
+  blocked/over-limit in error color) plus payment terms, mobile,
+  email, notes, and an Edit jump into the form. §17's tabs and
+  Invoice/Order/Payment/Statement actions are deliberately absent:
+  they need Phases 17–22 data, and dead buttons would fake
+  capability.
+- List items gain a "View" button into the profile; `labelRes` is
+  now shared between the screen and the profile.
+
+Tests:
+
+- **New** `PartyCreditTest` (4): the boundary matrix pinned exactly
+  (94.99 within, 95 near, 100 over), blocked precedence, zero/absent
+  limit → NO_LIMIT, and only the receivable side counting as
+  outstanding (incl. the supplier-advance case).
+- **Compose** `PartiesScreenComposeTest` (9 now): profile flow —
+  create a party at 96/100, open its profile, see "Outstanding: 96",
+  "Credit limit: 100" and "Near credit limit", back to the list.
+
+Local evidence: escaped-quote grep = 0 and braces balanced on every
+changed Kotlin file. First verification is CI, as before.

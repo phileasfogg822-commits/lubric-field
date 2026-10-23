@@ -74,4 +74,18 @@
     <string name="parties_group_form_error">Discount must be a number.</string>
     <string name="parties_delete_group_confirm">Delete group?</string>
     <string name="parties_delete_group_warning">Parties in this group keep their group link and show it as — until the group exists again. The group will be hidden locally and its deletion queued for sync.</string>
+    <string name="parties_view">View %1$s</string>
+    <string name="parties_credit">Credit</string>
+    <string name="parties_outstanding">Outstanding: %1$s</string>
+    <string name="parties_credit_limit_line">Credit limit: %1$s</string>
+    <string name="parties_credit_none">No credit limit set</string>
+    <string name="parties_credit_days_line">Credit days: %1$d</string>
+    <string name="parties_status_within">Within limit</string>
+    <string name="parties_status_near">Near credit limit</string>
+    <string name="parties_status_over">Over credit limit</string>
+    <string name="parties_status_no_limit">No limit to check against</string>
+    <string name="parties_payment_terms_line">Payment terms: %1$s</string>
+    <string name="parties_mobile_line">Mobile: %1$s</string>
+    <string name="parties_email_line">Email: %1$s</string>
+    <string name="parties_notes_line">Notes: %1$s</string>
 </resources>

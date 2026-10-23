@@ -151,6 +151,23 @@ class PartiesScreenComposeTest {
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
     }
 
+    @Test fun profileShowsCreditWarningAndFacts() {
+        val fake = FakeRepository()
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        openForm()
+        compose.onNodeWithText("Name").performTextInput("Credit Party")
+        compose.onNodeWithText("Opening balance").performScrollTo().performTextInput("96")
+        compose.onNodeWithText("Credit limit").performScrollTo().performTextInput("100")
+        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("View Credit Party").performClick()
+        compose.onNodeWithText("Outstanding: 96").assertIsDisplayed()
+        compose.onNodeWithText("Credit limit: 100").assertIsDisplayed()
+        compose.onNodeWithText("Near credit limit").assertIsDisplayed()
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Add party").assertIsDisplayed()
+    }
+
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
         compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }

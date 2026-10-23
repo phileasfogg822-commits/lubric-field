@@ -58,6 +58,8 @@ fun PartiesScreen(
     val form = remember(scope) { PartyFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
     var groupsOpen by remember(scope) { mutableStateOf(false) }
+    var profileId by remember(scope) { mutableStateOf<String?>(null) }
+    val profileParty = profileId?.let { id -> parties.firstOrNull { it.id == id } }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -105,6 +107,20 @@ fun PartiesScreen(
             groups = groups,
             viewModel = viewModel,
             onBack = { groupsOpen = false },
+        )
+    } else if (profileParty != null) {
+        PartyProfileMode(
+            party = profileParty,
+            groupName = profileParty.groupId?.let { gid -> groups.firstOrNull { it.id == gid }?.name },
+            onBack = { profileId = null },
+            onEdit = {
+                form.load(profileParty)
+                editingId = profileParty.id
+                formError = false
+                error = null
+                profileId = null
+                formOpen = true
+            },
         )
     } else {
         Column(
@@ -159,6 +175,10 @@ fun PartiesScreen(
                             Text(stringResource(R.string.parties_blocked), color = MaterialTheme.colorScheme.error)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                enabled = !saving,
+                                onClick = { profileId = party.id },
+                            ) { Text(stringResource(R.string.parties_view, party.name)) }
                             Button(
                                 enabled = !saving,
                                 onClick = { form.load(party); editingId = party.id; formError = false; error = null; formOpen = true },
@@ -338,7 +358,7 @@ private fun PartyTextField(
     )
 }
 
-private fun PartyType.labelRes(): Int = when (this) {
+fun PartyType.labelRes(): Int = when (this) {
     PartyType.CUSTOMER -> R.string.parties_type_customer
     PartyType.SUPPLIER -> R.string.parties_type_supplier
     PartyType.BOTH -> R.string.parties_type_both
