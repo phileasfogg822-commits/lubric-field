@@ -250,6 +250,13 @@ sales history (Phases 18/21); the tax engine — Phase 17; computed
 stock — the Phase 19 ledger (opening stock stays stored data).
 
 Phase 15 COMPLETE: 5/5 packages accepted, each on green CI over
-its exact head. Phase 16 prep is recorded in the agent notes
+its exact head. Post-close confirmation: the docs-only gate head
+`134041a` itself ran a full PR trio — Native Android CI
+39939251773, Compose UI Emulator Tests 39939251728, Phase 12
+Segmented Verification 39939251694 — all completed success, so the
+recorded head carries the same full-trio evidence as every
+accepted package.
+
+Phase 16 prep is recorded in the agent notes
 (units + conversions, branches/warehouses, price lists, batches,
 barcode lookup).
