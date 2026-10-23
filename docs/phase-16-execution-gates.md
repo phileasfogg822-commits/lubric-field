@@ -235,3 +235,47 @@ Verification: PR #25 fired the trio on the exact head `1c71234` —
 Native Android CI 39954722627, Compose UI Emulator Tests
 39954722622, Phase 12 Segmented Verification 39954722664 — all
 completed success. Package 16.3 ACCEPTED on `1c71234`.
+
+## Package 16.4 — batches — PENDING CI
+
+What was wired:
+
+- **New record type in the operational store**: `Batch` (id,
+  itemId, batchNumber, manufacturing/expiry dates as ISO text,
+  purchase/sale rates + MRP + quantity as nullable `BigDecimal`s)
+  as "batches", with a tolerant codec on the established pattern
+  (`BatchJson`). Batch tracking is optional per item (§29): an
+  item has no batch records until someone adds one.
+- **Quantities are stored data only — the standing boundary of
+  this package.** A batch quantity recorded here never moves,
+  sums, or drives availability; the stock ledger is Phase 19.
+  The delete dialog states this explicitly so the data can never
+  be mistaken for counted stock. Dates are stored exactly as
+  entered (yyyy-MM-dd by convention) — no calendar math in this
+  phase.
+- **ViewModel surface**: observe/load/save/delete for "batches"
+  through the same tombstone delete path; deleting an item
+  never edits its batches — their item ids stay and render "—".
+  **New** `ItemBatchesMode` (ItemBatches.kt): every batch
+  across items with item-name, expiry and quantity lines, and
+  the batch form (item picker + all §29 fields). A Batches
+  button joins the items screen's second entry row.
+
+Tests:
+
+- **New** `BatchJsonTest` (3): full §29 round-trip; numbers as
+  JSON numbers with precision kept; legacy/bad payloads decode
+  minimal.
+- **New** `BatchFormStateTest` (4): trims text fields; rejects
+  unpicked item, blank batch number and non-numeric amounts;
+  load round-trip.
+- **New** `ItemsViewModelBatchesTest` (2): CRUD on the "batches"
+  table through the codec; legacy payload decode.
+- **Compose** +1: batch lifecycle — item, then a batch saved
+  through the codec with expiry and quantity shown in the list
+  and asserted as stored data.
+
+Local evidence: escaped-quote grep = 0, braces balanced, strings
+cross-checked against every R.string reference, and strings.xml
+parses on the staged package (re-verified after integration).
+First verification is CI on this head.

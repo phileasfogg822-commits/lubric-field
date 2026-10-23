@@ -186,4 +186,25 @@ class ItemsViewModel @Inject constructor(
     /** Price-list entries are nonfinancial master data: soft-delete by tombstone, like items. */
     suspend fun deletePriceListItem(scope: OperationalScope, id: String) =
         repository.delete(scope, "price_list_items", id)
+
+    // Phase 16.4 — batches (§29) as their own record type in the
+    // same store. Quantities are stored data only — nothing here
+    // moves stock (the ledger is Phase 19). Deleting an item never
+    // touches its batches: their item ids stay and render
+    // unresolved.
+
+    /** Typed batches: every record decoded through [BatchJson]. */
+    fun observeBatches(scope: OperationalScope): Flow<List<Batch>> =
+        repository.observe(scope, "batches")
+            .map { records -> records.map { BatchJson.decode(it.id, it.json) } }
+
+    suspend fun loadBatches(scope: OperationalScope): List<Batch> =
+        repository.list(scope, "batches").map { BatchJson.decode(it.id, it.json) }
+
+    suspend fun saveBatch(scope: OperationalScope, batch: Batch, revision: Long = 0) =
+        repository.save(scope, "batches", batch.id, BatchJson.encode(batch), revision)
+
+    /** Batches are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteBatch(scope: OperationalScope, id: String) =
+        repository.delete(scope, "batches", id)
 }

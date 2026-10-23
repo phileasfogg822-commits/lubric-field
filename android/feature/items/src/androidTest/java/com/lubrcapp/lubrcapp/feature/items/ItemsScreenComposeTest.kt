@@ -381,4 +381,35 @@ class ItemsScreenComposeTest {
             assertEquals(BigDecimal("950"), PriceListResolution.resolve(item, listRecord.id, listOf(entry)))
         }
     }
+
+    @Test fun batchLifecycleStoresQuantityAsData() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // An item to batch.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        // A batch for it.
+        compose.onNodeWithText("Batches").performClick()
+        compose.onNodeWithText("No batches yet").assertIsDisplayed()
+        compose.onNodeWithText("Add batch").performClick()
+        compose.onNodeWithText("Engine Oil").performClick()
+        compose.onNodeWithText("Batch number").performTextInput("B-2026-01")
+        compose.onNodeWithText("Expiry date (yyyy-MM-dd)").performScrollTo().performTextInput("2027-01-14")
+        compose.onNodeWithText("Quantity").performScrollTo().performTextInput("48")
+        compose.onNodeWithText("Save batch").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("batches").value.size == 1 }
+        compose.onNodeWithText("Engine Oil — B-2026-01").assertIsDisplayed()
+        compose.onNodeWithText("Expires: 2027-01-14").assertIsDisplayed()
+        compose.onNodeWithText("Qty: 48").assertIsDisplayed()
+        compose.runOnIdle {
+            val itemId = fake.records.value.single().id
+            val record = fake.flow("batches").value.single()
+            val batch = BatchJson.decode(record.id, record.json)
+            assertEquals(itemId, batch.itemId)
+            assertEquals("B-2026-01", batch.batchNumber)
+            assertEquals(BigDecimal("48"), batch.quantity)
+        }
+    }
 }

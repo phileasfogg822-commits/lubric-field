@@ -71,6 +71,8 @@ fun ItemsScreen(
         .collectAsState(initial = emptyList())
     val priceListItems by remember(viewModel, scope) { viewModel.observePriceListItems(scope) }
         .collectAsState(initial = emptyList())
+    val batches by remember(viewModel, scope) { viewModel.observeBatches(scope) }
+        .collectAsState(initial = emptyList())
     val form = remember(scope) { ItemFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
     var categoriesOpen by remember(scope) { mutableStateOf(false) }
@@ -78,6 +80,7 @@ fun ItemsScreen(
     var unitsOpen by remember(scope) { mutableStateOf(false) }
     var locationsOpen by remember(scope) { mutableStateOf(false) }
     var priceListsOpen by remember(scope) { mutableStateOf(false) }
+    var batchesOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -162,6 +165,14 @@ fun ItemsScreen(
             viewModel = viewModel,
             onBack = { priceListsOpen = false },
         )
+    } else if (batchesOpen) {
+        ItemBatchesMode(
+            scope = scope,
+            items = items,
+            batches = batches,
+            viewModel = viewModel,
+            onBack = { batchesOpen = false },
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -196,6 +207,10 @@ fun ItemsScreen(
                     enabled = !saving,
                     onClick = { priceListsOpen = true },
                 ) { Text(stringResource(R.string.items_price_lists)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { batchesOpen = true },
+                ) { Text(stringResource(R.string.items_batches)) }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (items.isEmpty()) {

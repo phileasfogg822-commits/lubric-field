@@ -166,4 +166,24 @@
     <string name="items_delete_price_entry_confirm">Delete entry?</string>
     <string name="items_delete_price_entry_warning">This entry will be hidden locally and its deletion queued for sync.</string>
     <string name="items_price_entry_form_error">Pick an item and enter a rate of zero or more.</string>
+    <string name="items_batches">Batches</string>
+    <string name="items_batches_title">Batches</string>
+    <string name="items_batches_empty">No batches yet</string>
+    <string name="items_add_batch">Add batch</string>
+    <string name="items_new_batch">New batch</string>
+    <string name="items_edit_batch">Edit batch</string>
+    <string name="items_save_batch">Save batch</string>
+    <string name="items_batch_item">Item</string>
+    <string name="items_batch_number">Batch number</string>
+    <string name="items_batch_mfg_date">Manufacturing date (yyyy-MM-dd)</string>
+    <string name="items_batch_expiry_date">Expiry date (yyyy-MM-dd)</string>
+    <string name="items_batch_quantity">Quantity</string>
+    <string name="items_batch_line">%1$s — %2$s</string>
+    <string name="items_batch_expiry_line">Expires: %1$s</string>
+    <string name="items_batch_quantity_line">Qty: %1$s</string>
+    <string name="items_batch_error">Unable to save batch locally</string>
+    <string name="items_batch_delete_error">Unable to delete batch</string>
+    <string name="items_delete_batch_confirm">Delete batch?</string>
+    <string name="items_delete_batch_warning">This batch will be hidden locally and its deletion queued for sync. Its quantity is stored data only and was never counted as stock.</string>
+    <string name="items_batch_form_error">Pick an item, enter a batch number, and make sure rates and quantity are numbers.</string>
 </resources>
