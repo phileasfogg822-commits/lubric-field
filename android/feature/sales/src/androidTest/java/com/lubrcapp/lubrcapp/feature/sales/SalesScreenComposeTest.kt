@@ -1,9 +1,10 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -64,12 +65,13 @@ class SalesScreenComposeTest {
         compose.onNodeWithText("Tax %").performScrollTo().performTextInput("17")
         // 2 x 500 exclusive + 17% tax = 1170, computed live by the engine
         // (Money strips trailing zeros; the app displays toPlainString).
-        // assertExists, not assertIsDisplayed: the node is found and
-        // scrolled to (proving the layout reaches it), but asserting
-        // on-screen visibility flaps against the focused text field's
-        // bring-into-view fighting the test's scroll. The exact text
-        // match is what proves the engine totals are live.
-        compose.onNodeWithText("Grand total: 1170").performScrollTo().assertExists()
+        // assertCountEquals, not assertIsDisplayed: the exact text match
+        // proves the engine totals are live; on-screen visibility flaps
+        // against the focused text field's bring-into-view fighting the
+        // test's scroll. (assertExists is not importable in this
+        // project's compose-ui-test version — unresolved reference at
+        // compile; assertCountEquals is the proven pattern here.)
+        compose.onAllNodesWithText("Grand total: 1170").assertCountEquals(1)
         compose.onNodeWithText("Save").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.orders.value.size == 1 }
         // Back in list mode, the saved row carries the issued number.
