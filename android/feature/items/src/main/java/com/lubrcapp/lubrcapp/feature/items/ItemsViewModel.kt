@@ -112,4 +112,41 @@ class ItemsViewModel @Inject constructor(
     /** Conversions are nonfinancial master data: soft-delete by tombstone, like items. */
     suspend fun deleteConversion(scope: OperationalScope, id: String) =
         repository.delete(scope, "unit_conversions", id)
+
+    // Phase 16.2 — branches and warehouses (§34) as their own
+    // record types in the same store. Master data only: no stock
+    // and no transactions live here (Phases 18–21 own those, the
+    // §35 transfer workflow is Phase 19). Deleting a branch uses
+    // the same tombstone path and never touches its warehouses:
+    // their branch ids stay and render unresolved.
+
+    /** Typed branches: every record decoded through [BranchJson]. */
+    fun observeBranches(scope: OperationalScope): Flow<List<Branch>> =
+        repository.observe(scope, "branches")
+            .map { records -> records.map { BranchJson.decode(it.id, it.json) } }
+
+    suspend fun loadBranches(scope: OperationalScope): List<Branch> =
+        repository.list(scope, "branches").map { BranchJson.decode(it.id, it.json) }
+
+    suspend fun saveBranch(scope: OperationalScope, branch: Branch, revision: Long = 0) =
+        repository.save(scope, "branches", branch.id, BranchJson.encode(branch), revision)
+
+    /** Branches are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteBranch(scope: OperationalScope, id: String) =
+        repository.delete(scope, "branches", id)
+
+    /** Typed warehouses: every record decoded through [WarehouseJson]. */
+    fun observeWarehouses(scope: OperationalScope): Flow<List<Warehouse>> =
+        repository.observe(scope, "warehouses")
+            .map { records -> records.map { WarehouseJson.decode(it.id, it.json) } }
+
+    suspend fun loadWarehouses(scope: OperationalScope): List<Warehouse> =
+        repository.list(scope, "warehouses").map { WarehouseJson.decode(it.id, it.json) }
+
+    suspend fun saveWarehouse(scope: OperationalScope, warehouse: Warehouse, revision: Long = 0) =
+        repository.save(scope, "warehouses", warehouse.id, WarehouseJson.encode(warehouse), revision)
+
+    /** Warehouses are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteWarehouse(scope: OperationalScope, id: String) =
+        repository.delete(scope, "warehouses", id)
 }

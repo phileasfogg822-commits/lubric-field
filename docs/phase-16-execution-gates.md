@@ -123,3 +123,50 @@ exact head `d3c3033` — Native Android CI 39950141032, Compose UI
 Emulator Tests 39950141011, Phase 12 Segmented Verification
 39950140979 — all completed success. Package 16.1 ACCEPTED on
 `d3c3033`.
+
+## Package 16.2 — branches + warehouses — PENDING CI
+
+What was wired:
+
+- **New record types in the operational store**: `Branch` (id,
+  name) as "branches" and `Warehouse` (id, name, branchId) as
+  "warehouses", each with a tolerant codec on the established
+  pattern (`BranchJson` / `WarehouseJson`). §34's Main Shop /
+  Godown / branch stores are all just warehouses under this
+  shape.
+- **Host decision**: branches and warehouses live in
+  feature/items as a Locations mode, on the same store, ViewModel
+  and playbook as the rest of Phase 16 master data.
+  feature/settings is preferences-only, feature/inventory's typed
+  surface is Phase 19, and a new Gradle module plus navigation
+  wiring is shell work beyond this package. Recorded in the
+  Phase 16 prep note.
+- **Orphan policy (standing)**: a warehouse keeps its branchId
+  when the branch is deleted; the link renders "—" and the delete
+  dialog says exactly that, because sync may resurrect the
+  branch.
+- **ViewModel surface**: observe/load/save/delete for both
+  tables through the same tombstone delete path; **new**
+  `ItemLocationsMode` (ItemLocations.kt) manages branches (with
+  warehouse counts) and warehouses (with branch lines and a
+  branch picker) in one LazyColumn. The items screen's entry
+  rows are split in two (Add item / Categories / Brands, then
+  Units / Locations) so five buttons no longer overflow one row.
+
+Tests:
+
+- **New** `ItemLocationsJsonTest` (4): branch + warehouse
+  round-trips; warehouse without branch; legacy payloads; bad
+  payloads decode minimal.
+- **New** `ItemLocationsFormStatesTest` (3): trims; warehouse
+  carries its branch pick; blank loads drop.
+- **New** `ItemsViewModelLocationsTest` (3): CRUD on the
+  "branches" and "warehouses" tables through the codecs.
+- **Compose** +1: branch and warehouse lifecycle — create,
+  assign, counts, delete the branch → the warehouse keeps its
+  link and shows "Branch: —".
+
+Local evidence: escaped-quote grep = 0, braces balanced, strings
+cross-checked against every R.string reference, and strings.xml
+parses on the staged package (re-verified after integration).
+First verification is CI on this head.

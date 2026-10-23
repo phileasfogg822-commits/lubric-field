@@ -315,4 +315,31 @@ class ItemsScreenComposeTest {
             assertEquals(BigDecimal("12"), saved.factor)
         }
     }
+
+    @Test fun branchAndWarehouseLifecycleWithOrphanAfterBranchDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Locations").performClick()
+        compose.onNodeWithText("No branches yet").assertIsDisplayed()
+        compose.onNodeWithText("Add branch").performClick()
+        compose.onNodeWithText("Branch name").performTextInput("Main Shop")
+        compose.onNodeWithText("Save branch").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("branches").value.size == 1 }
+        compose.onNodeWithText("Warehouses: 0").assertIsDisplayed()
+        // A warehouse inside the branch.
+        compose.onNodeWithText("Add warehouse").performClick()
+        compose.onNodeWithText("Warehouse name").performTextInput("Godown")
+        compose.onNodeWithText("Main Shop").performScrollTo().performClick()
+        compose.onNodeWithText("Save warehouse").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("warehouses").value.size == 1 }
+        compose.onNodeWithText("Branch: Main Shop").assertIsDisplayed()
+        compose.onNodeWithText("Warehouses: 1").assertIsDisplayed()
+        // Delete the branch: the warehouse keeps its link, shown unresolved.
+        compose.onNodeWithText("Delete Main Shop").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete branch?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete branch?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("branches").value.isEmpty() }
+        compose.onNodeWithText("Branch: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.flow("warehouses").value.size) }
+    }
 }

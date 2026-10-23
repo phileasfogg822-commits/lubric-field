@@ -63,11 +63,16 @@ fun ItemsScreen(
         .collectAsState(initial = emptyList())
     val conversions by remember(viewModel, scope) { viewModel.observeConversions(scope) }
         .collectAsState(initial = emptyList())
+    val branches by remember(viewModel, scope) { viewModel.observeBranches(scope) }
+        .collectAsState(initial = emptyList())
+    val warehouses by remember(viewModel, scope) { viewModel.observeWarehouses(scope) }
+        .collectAsState(initial = emptyList())
     val form = remember(scope) { ItemFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
     var categoriesOpen by remember(scope) { mutableStateOf(false) }
     var brandsOpen by remember(scope) { mutableStateOf(false) }
     var unitsOpen by remember(scope) { mutableStateOf(false) }
+    var locationsOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -135,6 +140,14 @@ fun ItemsScreen(
             viewModel = viewModel,
             onBack = { unitsOpen = false },
         )
+    } else if (locationsOpen) {
+        ItemLocationsMode(
+            scope = scope,
+            branches = branches,
+            warehouses = warehouses,
+            viewModel = viewModel,
+            onBack = { locationsOpen = false },
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -155,10 +168,16 @@ fun ItemsScreen(
                     enabled = !saving,
                     onClick = { brandsOpen = true },
                 ) { Text(stringResource(R.string.items_brands)) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     enabled = !saving,
                     onClick = { unitsOpen = true },
                 ) { Text(stringResource(R.string.items_units)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { locationsOpen = true },
+                ) { Text(stringResource(R.string.items_locations)) }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (items.isEmpty()) {
