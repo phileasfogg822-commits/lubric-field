@@ -186,4 +186,6 @@
     <string name="items_delete_batch_confirm">Delete batch?</string>
     <string name="items_delete_batch_warning">This batch will be hidden locally and its deletion queued for sync. Its quantity is stored data only and was never counted as stock.</string>
     <string name="items_batch_form_error">Pick an item, enter a batch number, and make sure rates and quantity are numbers.</string>
+    <string name="items_search">Search name or barcode</string>
+    <string name="items_search_empty">No items match</string>
 </resources>

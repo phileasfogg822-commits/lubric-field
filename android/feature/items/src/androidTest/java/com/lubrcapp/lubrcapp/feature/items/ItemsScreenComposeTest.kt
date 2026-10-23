@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
@@ -411,5 +412,34 @@ class ItemsScreenComposeTest {
             assertEquals("B-2026-01", batch.batchNumber)
             assertEquals(BigDecimal("48"), batch.quantity)
         }
+    }
+
+    @Test fun searchFindsByExactBarcodeThenByName() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Barcode").performScrollTo().performTextInput("8901234567890")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Oil Filter")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 2 }
+        // Exact barcode: only the barcoded item remains.
+        compose.onNodeWithText("Search name or barcode").performTextInput("8901234567890")
+        compose.onNodeWithText("Engine Oil").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(0, compose.onAllNodesWithText("Oil Filter").fetchSemanticsNodes().size)
+        }
+        // Name fragment: only the matching item remains.
+        compose.onNodeWithText("Search name or barcode").performTextReplacement("filter")
+        compose.onNodeWithText("Oil Filter").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(0, compose.onAllNodesWithText("Engine Oil").fetchSemanticsNodes().size)
+        }
+        // No match at all: the empty-search line shows.
+        compose.onNodeWithText("Search name or barcode").performTextReplacement("brake pads")
+        compose.onNodeWithText("No items match").assertIsDisplayed()
     }
 }

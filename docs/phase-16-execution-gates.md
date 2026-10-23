@@ -283,3 +283,40 @@ Verification: PR #25 fired the trio on the exact head `c218aa0` —
 Native Android CI 39956540612, Compose UI Emulator Tests
 39956540709, Phase 12 Segmented Verification 39956540574 — all
 completed success. Package 16.4 ACCEPTED on `c218aa0`.
+
+## Package 16.5 — barcode lookup — PENDING CI
+
+What was wired:
+
+- **New** `ItemSearch`: the §28 lookup with no hardware — a
+  typed or wedged code matches an item by EXACT barcode (both
+  sides trimmed), never a substring, so a partial code can
+  never surface the wrong product; a non-barcode query falls
+  back to a case-insensitive name substring. USB/Bluetooth HID
+  wedge scanners act as keyboards, so their input lands in the
+  search field with no code.
+- **The items list gains a search field** ("Search name or
+  barcode") driven by `ItemSearch.filter`: blank shows
+  everything, an exact barcode hit shows just that item, and a
+  query with no match shows "No items match" (distinct from the
+  empty-catalog line).
+- **Camera scanning is NOT in this package — owner decision,
+  recorded.** It needs a scanning library (a new dependency).
+  Nothing here pretends to scan; §28's add / invoice / stock
+  count / receiving scan flows land with their document phases
+  (18/19/21/26) once the owner picks a library.
+
+Tests:
+
+- **New** `ItemSearchTest` (5): exact hit (incl. whitespace
+  trim); partial/unknown/blank codes find nothing; filter
+  returns the barcode hit alone; name-substring fallback;
+  blank query returns everything.
+- **Compose** +1: two items — an exact barcode query leaves
+  only the barcoded item, a name fragment leaves only its
+  match, and a nonsense query shows "No items match".
+
+Local evidence: escaped-quote grep = 0, braces balanced, strings
+cross-checked against every R.string reference, and strings.xml
+parses on the staged package (re-verified after integration).
+First verification is CI on this head.

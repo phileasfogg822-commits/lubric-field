@@ -79,6 +79,7 @@ fun ItemsScreen(
     var brandsOpen by remember(scope) { mutableStateOf(false) }
     var unitsOpen by remember(scope) { mutableStateOf(false) }
     var locationsOpen by remember(scope) { mutableStateOf(false) }
+    var searchText by remember(scope) { mutableStateOf("") }
     var priceListsOpen by remember(scope) { mutableStateOf(false) }
     var batchesOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -212,12 +213,21 @@ fun ItemsScreen(
                     onClick = { batchesOpen = true },
                 ) { Text(stringResource(R.string.items_batches)) }
             }
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                label = { Text(stringResource(R.string.items_search)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            val visibleItems = ItemSearch.filter(items, searchText)
             if (items.isEmpty()) {
                 Text(stringResource(R.string.items_empty))
+            } else if (visibleItems.isEmpty()) {
+                Text(stringResource(R.string.items_search_empty))
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(items, key = { it.id }) { item ->
+                items(visibleItems, key = { it.id }) { item ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(item.name, style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(item.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
