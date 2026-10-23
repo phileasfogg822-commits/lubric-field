@@ -175,7 +175,7 @@ Native Android CI 39952477719, Compose UI Emulator Tests
 39952477924, Phase 12 Segmented Verification 39952477906 — all
 completed success. Package 16.2 ACCEPTED on `59a2ed4`.
 
-## Package 16.3 — price lists — PENDING CI
+## Package 16.3 — price lists — ACCEPTED
 
 What was wired:
 
@@ -230,4 +230,8 @@ Tests:
 Local evidence: escaped-quote grep = 0, braces balanced, strings
 cross-checked against every R.string reference, and strings.xml
 parses on the staged package (re-verified after integration).
-First verification is CI on this head.
+
+Verification: PR #25 fired the trio on the exact head `1c71234` —
+Native Android CI 39954722627, Compose UI Emulator Tests
+39954722622, Phase 12 Segmented Verification 39954722664 — all
+completed success. Package 16.3 ACCEPTED on `1c71234`.
