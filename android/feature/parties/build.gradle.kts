@@ -48,6 +48,8 @@ dependencies {
 
     implementation(project(":core:designsystem"))
     implementation(project(":core:repository"))
+    // Phase 14.1: PartyJson codec (manual JsonObject mapping, no compiler plugin).
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx")
     implementation(project(":core:ui"))
     implementation(project(":domain:party"))
