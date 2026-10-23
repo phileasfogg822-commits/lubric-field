@@ -1,9 +1,9 @@
 # Phase 17 — Transaction / Tax / Numbering / Posting Contract Engine (Roadmap V2)
 
 Branch: `phase-17-transaction-engine` (from the Phase 16 candidate,
-`phase-16-branches-pricing-batch` at `f760ce1`). Draft PR
-to follow via the connector. Packages are accepted only with green-CI
-proof on the exact SHA, as in Phases 12–16.
+`phase-16-branches-pricing-batch` at `f760ce1`). Draft PR #26
+(base `phase-16-branches-pricing-batch`). Packages are accepted
+only with green-CI proof on the exact SHA, as in Phases 12–16.
 
 ## Authoritative scope
 
@@ -63,13 +63,83 @@ writer in Phase 18; see 17.5.
   fabrication-prone dead code.
 - **17.6** Phase gate: evidence sweep + close-out + Phase 18 prep.
 
-## Package 17.1 — Tax model + computation
+## Package 17.1 — Tax model + computation — ACCEPTED
 
-Status: PENDING CI.
+What was wired (all in `domain/accounting`, pure Kotlin/JVM over
+`domain/common`, zero Gradle changes):
 
-## Package 17.2 — Numbering
+- **New** `Tax.kt`: `TaxComponent(name, rate)`, `TaxScheme(name,
+  registrationNumber?, inclusive, components)` with `totalRate`,
+  `TaxComponentAmount`, `TaxResult(taxableBase, components,
+  totalTax, grossAmount)`. The scheme is data (§8.2): no tax name
+  is hard-coded anywhere, and any number of components works —
+  one 17% component, or CGST 9% + SGST 9%.
+- **New** `TaxCalculator`: one pure entry point for both modes.
+  Exclusive: per-component tax = rate × amount. Inclusive: the
+  base is extracted (gross / (1 + total rate)) and the total tax
+  is the exact remainder. In both modes `gross − base == totalTax`
+  and the components sum exactly to the total tax.
 
-Status: PENDING CI.
+Rounding policy (explicit, pinned by tests): money rounds to
+2dp HALF_UP per component; in inclusive mode the base rounds
+first, and any component-share residue is absorbed by the
+largest component.
+
+Tests:
+
+- **New** `TaxCalculatorTest` (9): exclusive single- and
+  two-component; exclusive rounding (17% of 33.33 → 5.67);
+  inclusive extraction (5% of 1050 → 50; 9+9 of 1180 → 90/90);
+  the residue case (5+5 inclusive on 100 → tax 9.09 with shares
+  summing exactly); non-clean extraction (17% inclusive on 100
+  → base 85.47 / tax 14.53); empty scheme and zero-rated
+  components in both modes; `totalRate` summing.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration).
+
+Verification: PR #26 (opened 2026-10-23) fired the trio on the
+exact head `f460a6f` — Native 39969422317, Compose 39969422286,
+Segmented 39969422211 — all completed success. Package 17.1
+ACCEPTED on `f460a6f`.
+
+## Package 17.2 — Numbering — PENDING CI
+
+What was wired (all in `domain/business`, pure Kotlin/JVM over
+`domain/common`, zero Gradle changes):
+
+- **New** `Numbering.kt`: `NumberingReset` (NEVER / YEARLY /
+  MONTHLY), `NumberingSequence(documentType, prefix, suffix,
+  startingNumber, padding, reset)` with `periodKey(date)`, the
+  persisted counter `NumberingState(periodKey, lastIssued)`, and
+  `DocumentNumbering` (nextNumber / format / issue). Independent
+  sequence per document type (§51).
+- **Format contract**: the non-empty segments `[branchPrefix,
+  prefix, periodSegment, paddedNumber]` joined with "-", the
+  suffix appended verbatim; the period segment is "yyyy" for a
+  yearly reset, "yyyy-MM" for monthly, absent when the sequence
+  never resets. First invoice of 2026 = "INV-2026-00001", the
+  §51 example verbatim.
+- **Stated plainly in the code**: the counter is device-local in
+  LOCAL_ONLY mode; cross-device uniqueness is a Phase 30
+  concern. The "numbering_sequences" persistence record is not
+  in the Phase 12 sync whitelist, so it is local-only until the
+  sync layer learns the table (same posture as Phase 16's
+  branches and batches); persistence wiring lands with the
+  first document consumer in Phase 18.
+
+Tests:
+
+- **New** `DocumentNumberingTest` (9): the spec example,
+  incrementing within a period, yearly rollover restart,
+  monthly segment + restart, never-reset, branch prefix leading
+  the segments, suffix + custom starting number (100 →
+  "QT-2026-00100/A"), no truncation beyond the padding, and
+  per-document-type independence.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). First
+verification is CI on this head.
 
 ## Package 17.3 — Document totals engine
 
