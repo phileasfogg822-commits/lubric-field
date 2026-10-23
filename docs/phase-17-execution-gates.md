@@ -1,0 +1,299 @@
+# Phase 17 — Transaction / Tax / Numbering / Posting Contract Engine (Roadmap V2)
+
+Branch: `phase-17-transaction-engine` (from the Phase 16 candidate,
+`phase-16-branches-pricing-batch` at `f760ce1`). Draft PR #26
+(base `phase-16-branches-pricing-batch`). Packages are accepted
+only with green-CI proof on the exact SHA, as in Phases 12–16.
+
+## Authoritative scope
+
+Master spec §8.2 (generic tax architecture: Tax Scheme, Tax
+Registration Number, Tax Rate, Tax Inclusive / Exclusive, Tax
+Components; never hard-code GST as a mandatory architectural
+assumption), §14 (transaction timeline), §51 (automatic numbering:
+independent sequences per document type; configurable prefix, suffix,
+starting number, reset yearly/monthly, branch prefix), §52 (invoice
+item row), §53 (discounts: line % or fixed, invoice-level % or fixed,
+schemes), §54 (additional charges, each taxable or non-taxable).
+
+This phase is the CONTRACT engine: pure rules and types that Phases
+18/21 (documents), 19 (inventory ledger), 20 (accounting core) and 22
+(party ledger) consume. No documents, no ledgers, no UI screens beyond
+what proves the contracts. The engine fills the domain scaffolds for
+the first time (domain/accounting, domain/business) — pure Kotlin/JVM
+modules over domain/common, zero new Gradle wiring.
+
+Standing limitations, stated plainly: numbering counters are
+device-local in LOCAL_ONLY mode — cross-device uniqueness in CLOUD
+mode is a Phase 30 concern, and the "numbering_sequences" table is not
+in the Phase 12 sync whitelist (nor are tax-scheme records), so engine
+records are local-only until the sync layer learns them; the sync
+whitelists are NOT edited in this phase. Scheme discounts (Buy 10 Get
+1) are deferred to the document phases 18/21 — they are a line
+transform needing promotion configuration. The invoice-level discount
+is a bottom-line discount applied after tax and does not recompute
+tax (see 17.3). The transaction record shape (§14) gets its first
+writer in Phase 18; see 17.5.
+
+## Package split
+
+- **17.1** Tax model + computation (§8.2): TaxScheme / TaxComponent /
+  TaxResult as data; TaxCalculator — exclusive adds per-component tax
+  (HALF_UP 2dp per component), inclusive extracts (base rounded first,
+  tax is the exact remainder, component residue absorbed by the
+  largest component so parts always sum to the whole).
+- **17.2** Numbering (§51): NumberingSequence config + NumberingState
+  counter + DocumentNumbering (nextNumber / format / issue); segments
+  [branchPrefix, prefix, period, paddedNumber] joined with "-", suffix
+  verbatim; first invoice of 2026 = "INV-2026-00001".
+- **17.3** Document totals engine (§52/§53/§54): line math (qty ×
+  rate, line discount clamping at the gross, per-line tax via 17.1),
+  additional charges (taxable or not), invoice-level discount
+  (bottom-line policy, above), round-off reported as its own amount,
+  per-component tax aggregation across lines and charges.
+- **17.4** Posting contract: DocumentPosting — the stock movements
+  (Phase 19, "stock_movements"), journal lines (Phase 20,
+  "account_transactions") and party-ledger effect (Phase 22,
+  "party_ledger") a posted document must emit — plus PostingValidator
+  (balanced journal, reconciled totals, valid movements) including
+  the §18 credit hard block as a caller-supplied CreditCheck.
+- **17.5** Transaction record shape (§14): settled as a contract note
+  (see section) — the timeline entry type is defined by its first
+  producer in Phase 18; defining a record nothing writes would be
+  fabrication-prone dead code.
+- **17.6** Phase gate: evidence sweep + close-out + Phase 18 prep.
+
+## Package 17.1 — Tax model + computation — ACCEPTED
+
+What was wired (all in `domain/accounting`, pure Kotlin/JVM over
+`domain/common`, zero Gradle changes):
+
+- **New** `Tax.kt`: `TaxComponent(name, rate)`, `TaxScheme(name,
+  registrationNumber?, inclusive, components)` with `totalRate`,
+  `TaxComponentAmount`, `TaxResult(taxableBase, components,
+  totalTax, grossAmount)`. The scheme is data (§8.2): no tax name
+  is hard-coded anywhere, and any number of components works —
+  one 17% component, or CGST 9% + SGST 9%.
+- **New** `TaxCalculator`: one pure entry point for both modes.
+  Exclusive: per-component tax = rate × amount. Inclusive: the
+  base is extracted (gross / (1 + total rate)) and the total tax
+  is the exact remainder. In both modes `gross − base == totalTax`
+  and the components sum exactly to the total tax.
+
+Rounding policy (explicit, pinned by tests): money rounds to
+2dp HALF_UP per component; in inclusive mode the base rounds
+first, and any component-share residue is absorbed by the
+largest component.
+
+Tests:
+
+- **New** `TaxCalculatorTest` (9): exclusive single- and
+  two-component; exclusive rounding (17% of 33.33 → 5.67);
+  inclusive extraction (5% of 1050 → 50; 9+9 of 1180 → 90/90);
+  the residue case (5+5 inclusive on 100 → tax 9.09 with shares
+  summing exactly); non-clean extraction (17% inclusive on 100
+  → base 85.47 / tax 14.53); empty scheme and zero-rated
+  components in both modes; `totalRate` summing.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration).
+
+Verification: PR #26 (opened 2026-10-23) fired the trio on the
+exact head `f460a6f` — Native 39969422317, Compose 39969422286,
+Segmented 39969422211 — all completed success. Package 17.1
+ACCEPTED on `f460a6f`.
+
+## Package 17.2 — Numbering — ACCEPTED
+
+What was wired (all in `domain/business`, pure Kotlin/JVM over
+`domain/common`, zero Gradle changes):
+
+- **New** `Numbering.kt`: `NumberingReset` (NEVER / YEARLY /
+  MONTHLY), `NumberingSequence(documentType, prefix, suffix,
+  startingNumber, padding, reset)` with `periodKey(date)`, the
+  persisted counter `NumberingState(periodKey, lastIssued)`, and
+  `DocumentNumbering` (nextNumber / format / issue). Independent
+  sequence per document type (§51).
+- **Format contract**: the non-empty segments `[branchPrefix,
+  prefix, periodSegment, paddedNumber]` joined with "-", the
+  suffix appended verbatim; the period segment is "yyyy" for a
+  yearly reset, "yyyy-MM" for monthly, absent when the sequence
+  never resets. First invoice of 2026 = "INV-2026-00001", the
+  §51 example verbatim.
+- **Stated plainly in the code**: the counter is device-local in
+  LOCAL_ONLY mode; cross-device uniqueness is a Phase 30
+  concern. The "numbering_sequences" persistence record is not
+  in the Phase 12 sync whitelist, so it is local-only until the
+  sync layer learns the table (same posture as Phase 16's
+  branches and batches); persistence wiring lands with the
+  first document consumer in Phase 18.
+
+Tests:
+
+- **New** `DocumentNumberingTest` (9): the spec example,
+  incrementing within a period, yearly rollover restart,
+  monthly segment + restart, never-reset, branch prefix leading
+  the segments, suffix + custom starting number (100 →
+  "QT-2026-00100/A"), no truncation beyond the padding, and
+  per-document-type independence.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). First
+verification is CI on this head.
+
+Verification: PR #26 fired the trio on the exact head
+`f74c01f` — Native 39971895345, Compose 39971895370, Segmented
+39971895404 — all completed success. Package 17.2 ACCEPTED on
+`f74c01f`.
+
+## Package 17.3 — Document totals engine — ACCEPTED
+
+What was wired (all in `domain/accounting`, beside 17.1, whose
+calculator it consumes):
+
+- **New** `DocumentTotals.kt`: `Discount` (Percent / Fixed),
+  `DocumentLineInput(quantity, rate, discount, taxScheme)`,
+  `AdditionalChargeInput(name, amount, taxScheme)`, and
+  `DocumentTotalsCalculator` (totalLine / totalCharge /
+  totalDocument) producing per-line totals, per-charge totals,
+  and a full `DocumentTotals` (gross before discounts, line
+  discounts, taxable base, aggregated tax components, total
+  tax, charges, invoice discount, round-off, grand total).
+- **Computation order — the contract**: line gross (quantity ×
+  rate, 2dp HALF_UP per line) → line discount (§53: percent of
+  gross or fixed; clamps at the gross, never negative) → line
+  tax via 17.1 on the discounted amount (the entered rate is
+  tax-inclusive exactly when the line's scheme is) → charges
+  (§54, each with its own optional scheme) totalled the same
+  way → invoice-level discount → optional round-off to whole
+  units with the difference reported as its own amount, never
+  hidden.
+- **Policy decision, recorded**: the invoice-level discount
+  applies to the sum of line totals AFTER line discounts and
+  tax — a bottom-line commercial discount — and does NOT
+  recompute tax; the tax figures stay exactly what 17.1
+  produced per line. A phase needing discount-before-tax
+  semantics must revisit this contract explicitly.
+- **Scheme discounts deferred**: "Buy 10 Get 1" (§53) is a line
+  transform needing promotion configuration; it belongs with
+  the document phases 18/21, not the engine.
+- Tax components aggregate across lines and charges by
+  component (name + rate), first-seen order. All money in one
+  document must share one currency — `Money` arithmetic throws
+  on a mismatch, which is the engine's currency guard.
+
+Tests:
+
+- **New** `DocumentTotalsCalculatorTest` (10): exclusive line;
+  percent discount before tax; fixed discount clamping at the
+  gross; inclusive line extraction; untaxed line; invoice
+  discount leaving tax unchanged; a taxable and a non-taxable
+  charge together (base total 1300 on a 1000 line + 200 taxable
+  + 100 plain); component aggregation across lines (340 over two
+  lines); round-off in both directions (±0.40 reported); empty
+  document with a currency hint.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). One test
+assertion was caught and fixed during staging review
+(taxableBaseTotal 1200 → 1300) — the arithmetic, not the
+engine. First verification is CI on this head.
+
+Verification: PR #26 fired the trio on the exact head
+`9ea1e2c` — Native 39973835050, Compose 39973835104, Segmented
+39973835055 — all completed success. Package 17.3 ACCEPTED on
+`9ea1e2c`.
+
+## Package 17.4 — Posting contract + validator — ACCEPTED
+
+What was wired (all in `domain/accounting`):
+
+- **New** `Posting.kt`: the contract types a posted document
+  must emit — `StockMovement(itemId, warehouseId?, kind IN/OUT,
+  quantity always positive, rate?, batchId?)` for Phase 19's
+  ledger (table "stock_movements"), `PostingJournalLine
+  (accountId, debit, credit)` for Phase 20's accounting core
+  ("account_transactions"), `PartyLedgerEffect(partyId,
+  direction RECEIVABLE/PAYABLE, signed amount)` for Phase 22's
+  customer ledger ("party_ledger") — and `DocumentPosting
+  (transactionId, documentType, documentNumber, partyId?,
+  totals, stockMovements, journalLines, partyEffect)` binding
+  them together. The types are permissive on purpose; the
+  validator below is the gate.
+- **New** `PostingValidator`: returns ALL violations at once
+  instead of failing on the first — EMPTY_DOCUMENT,
+  JOURNAL_UNBALANCED (total debits ≠ total credits),
+  JOURNAL_LINE_INVALID (both sides set, or neither),
+  STOCK_MOVEMENT_INVALID (non-positive quantity),
+  GRAND_TOTAL_MISMATCH / TAX_TOTAL_MISMATCH /
+  TAXABLE_BASE_MISMATCH (the totals are recomputed from their
+  own parts and compared), PARTY_EFFECT_MISMATCH (an effect
+  without a party, or naming a different one).
+- **The §18 credit hard block lives here** (Phase 14 deferred
+  it to "17/21"): as a caller-supplied `CreditCheck
+  (outstandingBefore, creditLimit, blocked)`. Only the caller
+  knows the current outstanding, so the facts arrive as inputs;
+  the RULE is enforced once, here, for every document type — a
+  positive receivable effect against a blocked party →
+  CREDIT_BLOCKED; outstanding + effect over the limit →
+  CREDIT_LIMIT_EXCEEDED.
+
+Tests:
+
+- **New** `PostingValidatorTest` (8), built over a real
+  engine-computed posting (2 × 500 at 17% exclusive = 1170,
+  balanced journal, stock OUT, receivable effect): the clean
+  posting passes; unbalanced journal; journal lines with both
+  sides set and with neither; empty document; three
+  tampered-totals cases; a zero-quantity movement; an effect
+  naming the wrong party; and the credit matrix (blocked /
+  over-limit / within-limit / no facts supplied).
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). First
+verification is CI on this head.
+
+Verification: PR #26 fired the trio on the exact head
+`54cb77c` — Native 39976370698, Compose 39976371406, Segmented
+39976370788 — all completed success. Package 17.4 ACCEPTED on
+`54cb77c`.
+
+## Package 17.5 — Transaction record shape (§14)
+
+Status: DECIDED — contract note only (see package split). The §14
+timeline entry (document type, number, party, amount, status, date)
+will be defined in Phase 18 alongside its first writer, against the
+17.4 posting contract, which already fixes the vocabulary (document
+type, document number, party, totals) a timeline entry summarizes.
+
+## Package 17.6 — Phase gate — ACCEPTED
+
+Evidence sweep, this branch against the Phase 16 base
+`f760ce1` at the 17.4 head `54cb77c`: 11 files changed, 1,359
+insertions, 0 deletions — 5 main + 3 test files in
+`domain/accounting`, 1 main + 1 test file in `domain/business`,
+plus this ledger. No feature module, no core/store, no sync
+file changed; zero Gradle changes (both domain modules already
+had domain/common and JUnit wired). 36 new unit tests across
+the four engine packages, all green in every package's trio on
+PR #26: 17.1 `f460a6f`, 17.2 `f74c01f`, 17.3 `9ea1e2c`, 17.4
+`54cb77c`.
+
+The contracts the next phases build on, all in one place:
+TaxScheme / TaxCalculator (§8.2, 17.1), NumberingSequence /
+DocumentNumbering (§51, 17.2), DocumentTotalsCalculator
+(§52/§53/§54, 17.3), DocumentPosting / PostingValidator with
+the §18 CreditCheck gate (17.4), and the 17.5 decision that
+the §14 timeline record is defined by its first producer in
+Phase 18.
+
+Deferred by design, not dropped: scheme discounts ("Buy 10
+Get 1") to Phases 18/21 with promotion configuration;
+discount-before-tax semantics (needs an explicit contract
+revisit); numbering persistence + cross-device uniqueness
+(Phase 18 wiring / Phase 30); tax-scheme and numbering records
+are local-only until the sync whitelist learns their tables —
+the whitelists were NOT edited in this phase.
+
+**Phase 17 COMPLETE — 17.1–17.4 accepted, 17.5 decided,
+17.6 gate accepted.**
