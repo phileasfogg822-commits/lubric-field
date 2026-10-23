@@ -60,9 +60,13 @@ import org.junit.runner.RunWith
  * the bootstrap state decides the top-level surface — progress while
  * loading, onboarding when setup is needed, an error surface when the
  * local state cannot be read, and the dashboard with feature navigation
- * when ready. ViewModels are built on fake repositories, mirroring the
- * feature-level test fakes; feature screens themselves keep their own
- * back-navigation tests in their modules.
+ * when ready. Phase 13.4 shapes the ready surface as a Scaffold: the
+ * registry-driven bottom navigation (Home / Items / Customers / More)
+ * with the full module list under More. ViewModels are built on fake
+ * repositories, mirroring the feature-level test fakes; feature screens
+ * themselves keep their own back-navigation tests in their modules, so
+ * these tests pin the bar and the More/list surfaces — click-through
+ * into a feature surface still needs the Hilt-graph harness (see 12B-09).
  */
 @RunWith(AndroidJUnit4::class)
 class MainNavigationComposeTest {
@@ -333,13 +337,31 @@ class MainNavigationComposeTest {
         awaitText("Unable to load the local business state.")
     }
 
-    @Test fun readyBootstrapShowsDashboardWithFeatureNavigation() {
+    @Test fun readyBootstrapShowsBottomNavWithHomeItemsCustomersMore() {
         val context = FakeBusinessContext()
         context.available.value = listOf(context.alpha)
         showNavigation(setupViewModel(flowOf(readyBootstrap())), context)
-        awaitText("Items")
-        listOf("Inventory", "Customers", "Sales", "Purchases", "Accounts", "Cloud sync")
+        awaitText("Home")
+        listOf("Home", "Items", "Customers", "More")
             .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
+        // The module list lives under More now, not on the ready surface.
+        compose.onNodeWithText("Inventory").assertDoesNotExist()
+    }
+
+    @Test fun moreSurfaceShowsFullModuleListAndHomeReturns() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context)
+        awaitText("Home")
+        compose.onNodeWithText("More").performClick()
+        awaitText("Inventory")
+        // Items/Customers hold bottom-bar slots too, so in the More state
+        // their labels exist twice (bar + list) — assert only the
+        // non-slotted modules, which are unique to the list.
+        listOf("Inventory", "Sales", "Purchases", "Accounts", "Cloud sync")
+            .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
+        compose.onNodeWithText("Home").performClick()
+        awaitNoText("Inventory")
     }
 
     @Test fun readyBootstrapHidesModulesExcludedByConfiguration() {
@@ -358,7 +380,9 @@ class MainNavigationComposeTest {
         )
         showNavigation(setupViewModel(flowOf(readyBootstrap())), context, gated)
         awaitText("Items")
-        listOf("Inventory", "Customers", "Sales", "Accounts")
+        compose.onNodeWithText("More").performClick()
+        awaitText("Inventory")
+        listOf("Inventory", "Sales", "Accounts")
             .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
         awaitNoText("Purchases")
         awaitNoText("Cloud sync")
@@ -373,9 +397,25 @@ class MainNavigationComposeTest {
         val grants = flowOf(Capabilities.ALL - Capabilities.PURCHASES_VIEW)
         showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
         awaitText("Items")
-        listOf("Inventory", "Customers", "Sales", "Accounts", "Cloud sync")
+        compose.onNodeWithText("More").performClick()
+        awaitText("Inventory")
+        listOf("Inventory", "Sales", "Accounts", "Cloud sync")
             .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
         awaitNoText("Purchases")
+    }
+
+    @Test fun bottomNavOmitsSlottedModuleDeniedByCapability() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // Parties (Customers) holds a bottom-bar slot and declares a view
+        // capability: denying parties.view removes it from the bar, while
+        // Home, Items and More stay.
+        val grants = flowOf(Capabilities.ALL - Capabilities.PARTIES_VIEW)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Home")
+        compose.onNodeWithText("Customers").assertDoesNotExist()
+        listOf("Home", "Items", "More")
+            .forEach { label -> compose.onNodeWithText(label).assertIsDisplayed() }
     }
 
     @Test fun capabilityRevocationHidesModuleLive() {
@@ -386,6 +426,8 @@ class MainNavigationComposeTest {
         // follows without a restart or a business switch.
         val grants = MutableStateFlow(Capabilities.ALL)
         showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Home")
+        compose.onNodeWithText("More").performClick()
         awaitText("Purchases")
         grants.value = Capabilities.ALL - Capabilities.PURCHASES_VIEW
         awaitNoText("Purchases")

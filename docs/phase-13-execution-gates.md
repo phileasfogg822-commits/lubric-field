@@ -471,3 +471,70 @@ CI risks on first run:
   test clicks through into a feature surface — that still needs the
   Hilt-graph harness noted under 12B-09, so the guard's UI-level proof
   lands with that wiring while its predicate proof is in unit tests now.
+
+## Package 13.4 — bottom-navigation shape — PENDING CI
+
+What was wired:
+
+- **New** `BottomNavSlot` enum + `bottomNavSlot` field on `AppModule` in
+  `AppModuleRegistry`: `dashboard → HOME`, `items → ITEMS`, `parties →
+  PARTIES`. The spec's Transactions slot is deliberately absent — there is
+  no transactions module or screen in the tree (it is spec §14, a later
+  phase); when its registry entry lands with a slot, the bar picks it up
+  with no shell change.
+- **New** `AppModuleRegistry.bottomNavModules(...)`: slotted modules in
+  slot order, each still passing the full `isVisible` gates — a module
+  hidden by configuration or capability never reaches the bar.
+- **New** `ShellBottomBar` composable: Material 3 `NavigationBar`
+  (Home / Items / Customers / More) plus the overflow "More" destination,
+  which is a shell surface, not a registry module.
+- **Modified** `MainNavigation`: the ready surface is now a `Scaffold`
+  with the bar; "More" swaps the dashboard for the full module list
+  (unchanged labels and behavior); a bar tap sets the same
+  `selectedFeature` the list sets, so the existing dispatch branch guards
+  it with the same composed visibility. System Back now also unwinds
+  "More"; business switch resets it.
+- **Not wired:** the spec's floating action button "+". No create-flows
+  exist yet (§12 quick actions are Package 13.5), and a dead "+" would be
+  worse than none — the FAB slot arrives with 13.5, where it opens the
+  quick-actions sheet.
+
+Tests:
+
+- **New** `BottomNavSlotTest` (10 plain-JUnit tests, real registry):
+  exact slot assignments; only Home/Items/Parties hold slots; slotted
+  destinations are selectable; slot order; capability gate removes
+  slotted modules from the bar (empty grants leave only Home); and the
+  parity pin — under every gate mix, the bar's destinations stay within
+  the composed-visible set, so the bar cannot open a gated module.
+- **Modified** `MainNavigationComposeTest` (:app androidTest): the ready
+  surface now asserts the bar (Home/Items/Customers/More) instead of the
+  list; the module-list assertions moved under a tap on More; the
+  config-gated and capability-denied assertions follow; new tests pin
+  More→list→Home round-trip and a capability-denied slotted module
+  (Customers) disappearing from the bar.
+- **Explicit gap:** no Compose test clicks a bar destination into its
+  feature surface — feature screens resolve Hilt ViewModels and the
+  harness has no Hilt graph (same standing gap as 13.3's dispatch
+  guard). The bar↔list dispatch parity is the same `selectedFeature`
+  state through the same guarded branch, pinned by `BottomNavSlotTest`
+  at unit level; UI-level click-through lands with the Hilt-graph
+  harness (the residual noted under 12B-09).
+
+Local evidence:
+
+- New/modified files carry no escaped-quote literals (`grep` = 0 on all
+  six). Android cannot compile locally (no SDK in this environment);
+  first verification is CI.
+- Dependency added: `androidx.compose.material:material-icons-core`
+  (BOM-versioned) for the bar icons — the only build-file change.
+
+CI risks on first run:
+
+- `MainNavigationComposeTest` in the More state has two nodes for the
+  slotted labels (bar item + list item), so the list assertions cover
+  only the non-slotted modules; if the runner's text matching behaves
+  differently on a real device, CI will say so.
+- The new icons dependency is one line, but a BOM/artifact mismatch
+  would fail compilation before any test runs — the Native workflow
+  arbitrates.

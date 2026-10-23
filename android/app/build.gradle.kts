@@ -132,6 +132,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material")
+    // Material icons for the shell bottom navigation (13.4); versioned by the Compose BOM.
+    implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.hilt:hilt-navigation-compose")
 

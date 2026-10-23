@@ -31,6 +31,21 @@ import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagKeys
  * surface has none because the shell renders it with dashboard state and
  * shell callbacks instead of a bare scope.
  */
+/**
+ * Spec §13 bottom-navigation slots. The registry is the single source for
+ * which modules hold a bottom-bar slot: [HOME] is the dashboard home,
+ * [ITEMS] and [PARTIES] are master-data destinations. The spec's
+ * Transactions slot is deliberately absent — there is no transactions
+ * module or screen in the tree (it is spec §14, a later phase); when it
+ * lands, its registry entry will declare a slot and the bar will pick it
+ * up with no shell change.
+ */
+enum class BottomNavSlot {
+    HOME,
+    ITEMS,
+    PARTIES,
+}
+
 class AppModule(
     val id: String,
     @StringRes val titleRes: Int,
@@ -38,6 +53,7 @@ class AppModule(
     val viewCapability: CapabilityKey?,
     val selectable: Boolean,
     val content: (@Composable (OperationalScope, () -> Unit) -> Unit)?,
+    val bottomNavSlot: BottomNavSlot? = null,
 )
 
 /**
@@ -83,6 +99,7 @@ object AppModuleRegistry {
             viewCapability = null,
             selectable = false,
             content = null,
+            bottomNavSlot = BottomNavSlot.HOME,
         ),
         AppModule(
             id = ITEMS_ID,
@@ -93,6 +110,7 @@ object AppModuleRegistry {
             viewCapability = Capabilities.ITEMS_VIEW,
             selectable = true,
             content = { scope, back -> ItemsScreen(scope, back) },
+            bottomNavSlot = BottomNavSlot.ITEMS,
         ),
         AppModule(
             id = INVENTORY_ID,
@@ -110,6 +128,7 @@ object AppModuleRegistry {
             viewCapability = Capabilities.PARTIES_VIEW,
             selectable = true,
             content = { scope, back -> PartiesScreen(scope, back) },
+            bottomNavSlot = BottomNavSlot.PARTIES,
         ),
         AppModule(
             id = SALES_ID,
@@ -192,4 +211,23 @@ object AppModuleRegistry {
         navigationModules().filter { module ->
             isVisible(module, enabledConfigKeys, grantedCapabilities)
         }
+
+    /**
+     * Bottom-navigation destinations for the shell bar (Phase 13.4): the
+     * registered modules that declare a [BottomNavSlot], in slot order,
+     * each still passing the full [isVisible] gates — a module hidden by
+     * configuration or capability is never reachable from the bar. The
+     * "More" destination is not a registry module; the shell renders it
+     * as the overflow surface for the rest of [visibleModules].
+     */
+    fun bottomNavModules(
+        enabledConfigKeys: Set<String>? = null,
+        grantedCapabilities: Set<CapabilityKey>? = null,
+    ): List<AppModule> =
+        modules
+            .filter { module ->
+                module.bottomNavSlot != null &&
+                    isVisible(module, enabledConfigKeys, grantedCapabilities)
+            }
+            .sortedBy { it.bottomNavSlot!!.ordinal }
 }

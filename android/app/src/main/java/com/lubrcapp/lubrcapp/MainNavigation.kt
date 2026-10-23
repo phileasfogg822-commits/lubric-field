@@ -29,6 +29,9 @@ import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
 import com.lubrcapp.lubrcapp.feature.settings.AccessControlScreen
 import com.lubrcapp.lubrcapp.shell.AppModuleRegistry
+import com.lubrcapp.lubrcapp.shell.BottomNavSelection
+import com.lubrcapp.lubrcapp.shell.ShellBottomBar
+import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -54,7 +57,10 @@ import kotlinx.coroutines.flow.collect
  * composes the second gate: the current user's granted capabilities (via
  * [ShellAccessViewModel]) hide modules the user may not view, and the
  * same composed visibility guards feature dispatch, so a module hidden
- * by either gate never renders its surface.
+ * by either gate never renders its surface. Phase 13.4 puts the ready
+ * surface in a Scaffold: the registry-driven bottom navigation (Home /
+ * Items / Parties / More) with the full module list under More; the
+ * spec's FAB "+" waits for Package 13.5's quick actions.
  */
 @Composable
 fun MainNavigation(
@@ -69,11 +75,15 @@ fun MainNavigation(
     val dashboardState by dashboardViewModel.state.collectAsState()
     var showAccessControl by remember { mutableStateOf(false) }
     var selectedFeature by remember { mutableStateOf<String?>(null) }
+    // "More" is a shell surface (the module-list overflow), not a registry
+    // module: it is a plain boolean beside selectedFeature.
+    var showMore by remember { mutableStateOf(false) }
     // Keep Android system Back consistent with each feature's visible Back button.
-    BackHandler(enabled = selectedFeature != null || showAccessControl) {
+    BackHandler(enabled = selectedFeature != null || showAccessControl || showMore) {
         when {
             selectedFeature != null -> selectedFeature = null
             showAccessControl -> showAccessControl = false
+            showMore -> showMore = false
         }
     }
 
@@ -227,25 +237,72 @@ fun MainNavigation(
                     }
                 }
             } else {
-                Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    DashboardScreen(
-                        state = dashboardState,
-                        onSwitchBusiness = { tenant, business ->
-                            selectedFeature = null
-                            dashboardViewModel.switchTo(tenant, business)
-                        },
-                        onOpenAccessControl = { showAccessControl = true },
-                        modifier = Modifier.weight(1f, fill = false),
+                // Phase 13.4: the ready surface is a Scaffold whose bottom
+                // bar is the registry-driven NavigationBar (Home / Items /
+                // Parties / More); "More" swaps the dashboard for the full
+                // module list. Bar taps set the same selectedFeature the
+                // list sets, so the dispatch branch above guards them with
+                // the same composed visibility.
+                val bottomNavModules =
+                    AppModuleRegistry.bottomNavModules(
+                        enabledModuleKeys,
+                        grantedCapabilities,
                     )
-                    if (currentContext != null) {
-                        visibleModules.forEach { module ->
-                            Button(
-                                onClick = { selectedFeature = module.id },
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            ) { Text(stringResource(module.titleRes)) }
+                Scaffold(
+                    bottomBar = {
+                        ShellBottomBar(
+                            bottomNavModules = bottomNavModules,
+                            selected =
+                                if (showMore) BottomNavSelection.MORE
+                                else BottomNavSelection.HOME,
+                            onSelectHome = {
+                                showMore = false
+                                selectedFeature = null
+                            },
+                            onSelectModule = { module ->
+                                showMore = false
+                                selectedFeature = module.id
+                            },
+                            onSelectMore = {
+                                showMore = true
+                                selectedFeature = null
+                            },
+                        )
+                    },
+                ) { padding ->
+                    if (showMore) {
+                        Column(
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .padding(padding)
+                                    .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            visibleModules.forEach { module ->
+                                Button(
+                                    onClick = { selectedFeature = module.id },
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                ) { Text(stringResource(module.titleRes)) }
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .padding(padding)
+                                    .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            DashboardScreen(
+                                state = dashboardState,
+                                onSwitchBusiness = { tenant, business ->
+                                    selectedFeature = null
+                                    showMore = false
+                                    dashboardViewModel.switchTo(tenant, business)
+                                },
+                                onOpenAccessControl = { showAccessControl = true },
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
                         }
                     }
                 }
