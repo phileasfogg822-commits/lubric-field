@@ -387,7 +387,14 @@ private fun DocumentEditor(
                     Text(stringResource(R.string.sales_timeline), style = MaterialTheme.typography.titleMedium)
                 }
                 items(timeline, key = { "tl-" + it.id }) { entry ->
-                    Text("${entry.timestamp} · ${entry.action} · ${entry.grandTotal}")
+                    Text(
+                        stringResource(
+                            R.string.sales_timeline_entry,
+                            entry.timestamp,
+                            entry.action,
+                            entry.grandTotal,
+                        )
+                    )
                 }
             }
         }

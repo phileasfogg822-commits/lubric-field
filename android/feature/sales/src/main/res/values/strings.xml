@@ -35,4 +35,5 @@
     <string name="sales_mark_status">Mark %1$s</string>
     <string name="sales_convert_to_order">Convert to sales order</string>
     <string name="sales_timeline">Timeline</string>
+    <string name="sales_timeline_entry">%1$s · %2$s · %3$s</string>
 </resources>
