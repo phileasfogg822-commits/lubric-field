@@ -77,6 +77,24 @@ class ItemFormStateTest {
         assertEquals(BigDecimal("450.25"), padded.toItem("i-4")!!.saleRate)
     }
 
+    @Test fun imageReferencesRoundTripThroughTheForm() {
+        val item = Item(
+            id = "i-6",
+            name = "Imaged",
+            mainImageUri = "content://media/main.png",
+            additionalImageUris = listOf("content://media/a.png", "content://media/b.png"),
+        )
+        val form = ItemFormState()
+        form.load(item)
+        assertEquals(item, form.toItem("i-6"))
+
+        form.additionalImagesText = "content://media/x.png\n\n  content://media/y.png  \n"
+        form.mainImageUri = "  "
+        val saved = form.toItem("i-6")!!
+        assertNull(saved.mainImageUri)
+        assertEquals(listOf("content://media/x.png", "content://media/y.png"), saved.additionalImageUris)
+    }
+
     @Test fun resetReturnsToBlankDefaults() {
         val form = ItemFormState()
         form.load(

@@ -20,7 +20,9 @@ import java.math.BigDecimal
  * then. [taxPercent] is likewise data only; the tax engine is
  * Phase 17. [unit] is a free-text unit name in this phase — the §25
  * Unit entity and its conversions belong to Phase 16. Image
- * references (§22) arrive with Package 15.4.
+ * references (§22, Package 15.4) are URI strings only — no binary
+ * ever lives in an operational record; rendering and thumbnails are
+ * platform media work and are not faked here.
  */
 data class Item(
     val id: String,
@@ -40,6 +42,8 @@ data class Item(
     val taxPercent: BigDecimal? = null,
     val openingStock: BigDecimal? = null,
     val description: String? = null,
+    val mainImageUri: String? = null,
+    val additionalImageUris: List<String> = emptyList(),
 )
 
 /** Item types (§21). */

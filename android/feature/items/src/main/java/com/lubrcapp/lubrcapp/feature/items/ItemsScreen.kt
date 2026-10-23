@@ -179,6 +179,12 @@ fun ItemsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
+                        if (item.mainImageUri != null) {
+                            Text(
+                                stringResource(R.string.items_image_attached),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 enabled = !saving,
@@ -315,6 +321,8 @@ private fun ItemForm(
         ItemTextField(form.taxPercent, { form.taxPercent = it }, R.string.items_tax_percent, KeyboardType.Decimal)
         ItemTextField(form.openingStock, { form.openingStock = it }, R.string.items_opening_stock, KeyboardType.Decimal)
         ItemTextField(form.description, { form.description = it }, R.string.items_description)
+        ItemTextField(form.mainImageUri, { form.mainImageUri = it }, R.string.items_main_image)
+        ItemTextField(form.additionalImagesText, { form.additionalImagesText = it }, R.string.items_additional_images)
         if (formError) {
             Text(stringResource(R.string.items_form_error), color = MaterialTheme.colorScheme.error)
         }

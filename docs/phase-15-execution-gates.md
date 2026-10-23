@@ -39,8 +39,9 @@ percent only. §27 party-wise price memory needs sales history
   orphan policy = the 14.3 rule (keep dangling id, UI shows "—").
 - **15.4** Media: image references on the item (main + additional
   URI strings in the payload; no binary in operational records),
-  editor in the form, main image shown where the platform renders
-  it. Thumbnail generation only if honestly shippable — never faked.
+  editor in the form. References only — no rendering, no
+  thumbnails: the app has no image-loading library and adding one
+  is a separate decision; nothing faked.
 - **15.5** Phase gate: evidence sweep + close-out + Phase 16 prep.
 
 ## Package 15.1 — typed Item model + codec — ACCEPTED
@@ -183,3 +184,37 @@ head `9812502` (pull_request events, PR #24): Native Android CI run
 39934861069 — success; Compose UI Emulator Tests run 39934861077 —
 success; Phase 12 Segmented Verification run 39934861178 — success.
 Package 15.3 ACCEPTED on `9812502`.
+
+## Package 15.4 — media references (§22) — PENDING CI
+
+What was wired:
+
+- **`Item` gains media references**: `mainImageUri: String?` and
+  `additionalImageUris: List<String>` — URI strings in the payload
+  only; no binary ever enters an operational record.
+- **`ItemJson`**: encodes the list as a JSON array of strings;
+  decode tolerates a lone string as a one-element list and drops
+  blanks and non-strings (a value counts only when it is a string
+  primitive).
+- **`ItemFormState`**: references edited as text — the main URI
+  trimmed-or-null; additional URIs one per line, blanks dropped.
+  Form fields for both, and the list shows an "Image attached"
+  line when a main reference is present.
+- **Deliberate absence, stated plainly**: no rendering and no
+  thumbnails. The app has no image-loading library; pulling one in
+  is a separate owner-level decision, so references and the editor
+  ship and display does not — nothing is faked.
+
+Tests:
+
+- `ItemJsonTest` +2: media round-trip (main + additional list);
+  tolerant decode (lone string, blanks and non-strings dropped).
+- `ItemFormStateTest` +1: per-line editing of additional URIs and
+  main-URI trim/null handling.
+- `ItemsScreenComposeTest` +1:
+  `imageReferencesSaveThroughCodecAndShowInList` — references save
+  through the codec and the list line appears.
+
+Local evidence: escaped-quote grep = 0, braces balanced, and
+strings.xml parses on every changed file (re-checked after the
+staging copy). First verification is CI, as before.

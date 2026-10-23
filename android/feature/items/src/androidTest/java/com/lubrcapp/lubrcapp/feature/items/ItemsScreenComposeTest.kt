@@ -222,6 +222,24 @@ class ItemsScreenComposeTest {
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
     }
 
+    @Test fun imageReferencesSaveThroughCodecAndShowInList() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Imaged Item")
+        compose.onNodeWithText("Main image URI").performScrollTo().performTextInput("content://media/main.png")
+        compose.onNodeWithText("Additional image URIs (one per line)").performScrollTo()
+            .performTextInput("content://media/side.png")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Image attached").assertIsDisplayed()
+        compose.runOnIdle {
+            val saved = ItemJson.decode(fake.records.value.single().id, fake.records.value.single().json)
+            assertEquals("content://media/main.png", saved.mainImageUri)
+            assertEquals(listOf("content://media/side.png"), saved.additionalImageUris)
+        }
+    }
+
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
         compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }

@@ -75,4 +75,7 @@
     <string name="items_brand_delete_error">Unable to delete brand</string>
     <string name="items_delete_brand_confirm">Delete brand?</string>
     <string name="items_delete_brand_warning">Items with this brand keep their brand link and show it as — until the brand exists again. The brand will be hidden locally and its deletion queued for sync.</string>
+    <string name="items_main_image">Main image URI</string>
+    <string name="items_additional_images">Additional image URIs (one per line)</string>
+    <string name="items_image_attached">Image attached</string>
 </resources>

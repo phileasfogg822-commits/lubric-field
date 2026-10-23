@@ -17,6 +17,10 @@ import java.math.BigDecimal
  * their entities and pickers; until then the values are carried
  * through edits untouched, exactly as the party form carried its
  * group link before the group picker existed.
+ *
+ * Package 15.4 adds the §22 image references, edited as plain text:
+ * the main image URI in its own field, additional URIs one per line
+ * in [additionalImagesText] (blank lines are dropped on save).
  */
 class ItemFormState {
     var name by mutableStateOf("")
@@ -35,6 +39,8 @@ class ItemFormState {
     var taxPercent by mutableStateOf("")
     var openingStock by mutableStateOf("")
     var description by mutableStateOf("")
+    var mainImageUri by mutableStateOf("")
+    var additionalImagesText by mutableStateOf("")
 
     /** Starts a blank form (new item). */
     fun reset() {
@@ -59,6 +65,8 @@ class ItemFormState {
         taxPercent = item.taxPercent?.toPlainString().orEmpty()
         openingStock = item.openingStock?.toPlainString().orEmpty()
         description = item.description.orEmpty()
+        mainImageUri = item.mainImageUri.orEmpty()
+        additionalImagesText = item.additionalImageUris.joinToString("\n")
     }
 
     /**
@@ -92,6 +100,8 @@ class ItemFormState {
             taxPercent = tax.value,
             openingStock = stock.value,
             description = description.trimmedOrNull(),
+            mainImageUri = mainImageUri.trimmedOrNull(),
+            additionalImageUris = additionalImagesText.lines().map { it.trim() }.filter { it.isNotEmpty() },
         )
     }
 

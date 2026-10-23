@@ -100,6 +100,34 @@ class ItemJsonTest {
         assertEquals(BigDecimal("999999999.99"), decoded.purchaseRate)
     }
 
+    @Test fun imageReferencesRoundTrip() {
+        val item = Item(
+            id = "item-9",
+            name = "Imaged",
+            mainImageUri = "content://media/main.png",
+            additionalImageUris = listOf("content://media/a.png", "content://media/b.png"),
+        )
+        assertEquals(item, ItemJson.decode("item-9", ItemJson.encode(item)))
+    }
+
+    @Test fun imageReferencesDefaultEmptyAndTolerateLoneString() {
+        val absent = ItemJson.decode("item-10", """{"name":"Plain"}""")
+        assertNull(absent.mainImageUri)
+        assertEquals(emptyList<String>(), absent.additionalImageUris)
+
+        val lone = ItemJson.decode(
+            "item-10",
+            """{"name":"Lone","additionalImageUris":"content://media/only.png"}""",
+        )
+        assertEquals(listOf("content://media/only.png"), lone.additionalImageUris)
+
+        val messy = ItemJson.decode(
+            "item-10",
+            """{"name":"Messy","additionalImageUris":[" content://media/a.png ","",42]}""",
+        )
+        assertEquals(listOf("content://media/a.png"), messy.additionalImageUris)
+    }
+
     @Test fun explicitNullsAndBadNumbersAreTolerated() {
         val decoded = ItemJson.decode(
             "item-8",

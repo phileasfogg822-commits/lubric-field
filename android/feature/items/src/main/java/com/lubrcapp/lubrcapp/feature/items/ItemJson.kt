@@ -2,9 +2,11 @@ package com.lubrcapp.lubrcapp.feature.items
 
 import java.math.BigDecimal
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -50,6 +52,13 @@ object ItemJson {
             item.taxPercent?.let { put("taxPercent", it.toPlainString()) }
             item.openingStock?.let { put("openingStock", it.toPlainString()) }
             item.description?.let { put("description", it) }
+            item.mainImageUri?.let { put("mainImageUri", it) }
+            if (item.additionalImageUris.isNotEmpty()) {
+                put(
+                    "additionalImageUris",
+                    buildJsonArray { item.additionalImageUris.forEach { add(JsonPrimitive(it)) } },
+                )
+            }
         }
         return json.encodeToString(JsonObject.serializer(), obj)
     }
@@ -74,7 +83,28 @@ object ItemJson {
             taxPercent = root.decimal("taxPercent"),
             openingStock = root.decimal("openingStock"),
             description = root.string("description"),
+            mainImageUri = root.string("mainImageUri"),
+            additionalImageUris = decodeImageUris(root),
         )
+    }
+
+    /**
+     * Additional image URIs (§22): a JSON array of strings. A lone
+     * string written by an older or simpler writer is tolerated as a
+     * one-element list; blanks and non-strings are dropped.
+     */
+    private fun decodeImageUris(root: JsonObject): List<String> {
+        val element = root["additionalImageUris"] ?: return emptyList()
+        if (element is JsonPrimitive) {
+            if (!element.isString) return emptyList()
+            return element.content.trim().takeIf { it.isNotEmpty() }?.let { listOf(it) } ?: emptyList()
+        }
+        val array = element as? JsonArray ?: return emptyList()
+        return array.mapNotNull { entry ->
+            val primitive = entry as? JsonPrimitive ?: return@mapNotNull null
+            if (!primitive.isString) return@mapNotNull null
+            primitive.content.trim().takeIf { it.isNotEmpty() }
+        }
     }
 
     private fun parseObject(payload: String): JsonObject? {
