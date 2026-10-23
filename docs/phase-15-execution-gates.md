@@ -1,8 +1,8 @@
 # Phase 15 — Item / Service / Media Catalog (Roadmap V2)
 
 Branch: `phase-15-item-catalog` (from the Phase 14 candidate,
-`phase-14-party-master-data` at `27e714a`). Draft PR to follow via
-the connector. Packages are accepted only with green-CI proof on
+`phase-14-party-master-data` at `27e714a`). Draft PR #24 (base
+`phase-14-party-master-data`). Packages are accepted only with green-CI proof on
 the exact SHA, as in Phases 12–14.
 
 ## Authoritative scope
@@ -43,7 +43,7 @@ percent only. §27 party-wise price memory needs sales history
   it. Thumbnail generation only if honestly shippable — never faked.
 - **15.5** Phase gate: evidence sweep + close-out + Phase 16 prep.
 
-## Package 15.1 — typed Item model + codec — PENDING CI
+## Package 15.1 — typed Item model + codec — ACCEPTED
 
 What was wired:
 
@@ -87,3 +87,9 @@ Tests:
 
 Local evidence: escaped-quote grep = 0 and braces balanced on
 every changed Kotlin file. First verification is CI, as before.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `61a0636` (pull_request events, PR #24): Native Android CI run
+39930991390 — success; Compose UI Emulator Tests run 39930991382 —
+success; Phase 12 Segmented Verification run 39930991467 — success.
+Package 15.1 ACCEPTED on `61a0636`.
