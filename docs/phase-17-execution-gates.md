@@ -146,7 +146,7 @@ Verification: PR #26 fired the trio on the exact head
 39971895404 — all completed success. Package 17.2 ACCEPTED on
 `f74c01f`.
 
-## Package 17.3 — Document totals engine — PENDING CI
+## Package 17.3 — Document totals engine — ACCEPTED
 
 What was wired (all in `domain/accounting`, beside 17.1, whose
 calculator it consumes):
@@ -199,9 +199,59 @@ assertion was caught and fixed during staging review
 (taxableBaseTotal 1200 → 1300) — the arithmetic, not the
 engine. First verification is CI on this head.
 
-## Package 17.4 — Posting contract + validator
+Verification: PR #26 fired the trio on the exact head
+`9ea1e2c` — Native 39973835050, Compose 39973835104, Segmented
+39973835055 — all completed success. Package 17.3 ACCEPTED on
+`9ea1e2c`.
 
-Status: PENDING CI.
+## Package 17.4 — Posting contract + validator — PENDING CI
+
+What was wired (all in `domain/accounting`):
+
+- **New** `Posting.kt`: the contract types a posted document
+  must emit — `StockMovement(itemId, warehouseId?, kind IN/OUT,
+  quantity always positive, rate?, batchId?)` for Phase 19's
+  ledger (table "stock_movements"), `PostingJournalLine
+  (accountId, debit, credit)` for Phase 20's accounting core
+  ("account_transactions"), `PartyLedgerEffect(partyId,
+  direction RECEIVABLE/PAYABLE, signed amount)` for Phase 22's
+  customer ledger ("party_ledger") — and `DocumentPosting
+  (transactionId, documentType, documentNumber, partyId?,
+  totals, stockMovements, journalLines, partyEffect)` binding
+  them together. The types are permissive on purpose; the
+  validator below is the gate.
+- **New** `PostingValidator`: returns ALL violations at once
+  instead of failing on the first — EMPTY_DOCUMENT,
+  JOURNAL_UNBALANCED (total debits ≠ total credits),
+  JOURNAL_LINE_INVALID (both sides set, or neither),
+  STOCK_MOVEMENT_INVALID (non-positive quantity),
+  GRAND_TOTAL_MISMATCH / TAX_TOTAL_MISMATCH /
+  TAXABLE_BASE_MISMATCH (the totals are recomputed from their
+  own parts and compared), PARTY_EFFECT_MISMATCH (an effect
+  without a party, or naming a different one).
+- **The §18 credit hard block lives here** (Phase 14 deferred
+  it to "17/21"): as a caller-supplied `CreditCheck
+  (outstandingBefore, creditLimit, blocked)`. Only the caller
+  knows the current outstanding, so the facts arrive as inputs;
+  the RULE is enforced once, here, for every document type — a
+  positive receivable effect against a blocked party →
+  CREDIT_BLOCKED; outstanding + effect over the limit →
+  CREDIT_LIMIT_EXCEEDED.
+
+Tests:
+
+- **New** `PostingValidatorTest` (8), built over a real
+  engine-computed posting (2 × 500 at 17% exclusive = 1170,
+  balanced journal, stock OUT, receivable effect): the clean
+  posting passes; unbalanced journal; journal lines with both
+  sides set and with neither; empty document; three
+  tampered-totals cases; a zero-quantity movement; an effect
+  naming the wrong party; and the credit matrix (blocked /
+  over-limit / within-limit / no facts supplied).
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). First
+verification is CI on this head.
 
 ## Package 17.5 — Transaction record shape (§14)
 
