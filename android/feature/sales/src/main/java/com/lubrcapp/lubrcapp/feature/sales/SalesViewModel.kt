@@ -93,4 +93,65 @@ class SalesViewModel @Inject constructor(
         saveNumberingRecord(scope, record.withState(advancedState))
         return document.copy(number = formatted)
     }
+
+    // Phase 18.4 timeline + reference surface. The timeline is
+    // written by the editor's save/convert flows; the reference
+    // lists feed its party and item pickers.
+
+    suspend fun saveTimelineEntry(scope: OperationalScope, entry: TimelineEntry, revision: Long = 0) =
+        repository.save(scope, "timeline_entries", entry.id, TimelineEntryJson.encode(entry), revision)
+
+    suspend fun loadTimeline(scope: OperationalScope, documentId: String): List<TimelineEntry> =
+        repository.list(scope, "timeline_entries")
+            .map { TimelineEntryJson.decode(it.id, it.json) }
+            .filter { it.documentId == documentId }
+            .sortedBy { it.timestamp }
+
+    fun observeParties(scope: OperationalScope): Flow<List<PartyOption>> =
+        repository.observe(scope, "customers").map { SalesReferenceData.partyOptions(it) }
+
+    fun observeItems(scope: OperationalScope): Flow<List<ItemOption>> =
+        repository.observe(scope, "products").map { SalesReferenceData.itemOptions(it) }
+
+    /**
+     * Save a document and its full line set together: lines
+     * that existed before but are absent from [lines] are
+     * removed through the store's delete path, so an edited
+     * document's totals can never be haunted by orphan lines.
+     * (The document HEADER is never deleted — see the 18.1
+     * note; its lines are editable components of a draft.)
+     */
+    suspend fun saveDocumentWithLines(
+        scope: OperationalScope,
+        document: SalesDocument,
+        lines: List<SalesDocumentLine>,
+    ) {
+        val keep = lines.map { it.id }.toSet()
+        loadLines(scope, document.id)
+            .filter { it.id !in keep }
+            .forEach { repository.delete(scope, "order_items", it.id) }
+        saveDocument(scope, document)
+        lines.forEach { saveLine(scope, it) }
+    }
+
+    /**
+     * The 18.5 conversion, orchestrated: load the quotation and
+     * its lines, convert with fresh ids, persist the order (with
+     * its lines) and the converted quotation, and return the
+     * new order.
+     */
+    suspend fun convertQuotationToOrder(scope: OperationalScope, quotationId: String): SalesDocument {
+        val quotation = loadDocuments(scope).firstOrNull { it.id == quotationId }
+            ?: throw NoSuchElementException("No document $quotationId")
+        val lines = loadLines(scope, quotationId)
+        val result = SalesDocumentConversion.quotationToSalesOrder(
+            quotation,
+            lines,
+            newDocumentId = java.util.UUID.randomUUID().toString(),
+            newLineId = { java.util.UUID.randomUUID().toString() },
+        )
+        saveDocumentWithLines(scope, result.order, result.orderLines)
+        saveDocument(scope, result.convertedQuotation)
+        return result.order
+    }
 }
