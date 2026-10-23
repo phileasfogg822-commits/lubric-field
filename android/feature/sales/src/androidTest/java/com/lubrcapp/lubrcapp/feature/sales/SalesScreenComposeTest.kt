@@ -2,6 +2,7 @@ package com.lubrcapp.lubrcapp.feature.sales
 
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.fetchSemanticsNodes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -77,12 +78,19 @@ class SalesScreenComposeTest {
         try {
             compose.waitUntil(10000) { fake.orders.value.size == 1 }
         } catch (e: ComposeTimeoutException) {
-            // Diagnostic: pinpoint how far the save got before stalling.
+            // Diagnostic: pinpoint the UI state when the save stalls.
+            val errorShown = compose.onAllNodesWithText("Unable to save locally", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+            val saveStillThere = compose.onAllNodesWithText("Save")
+                .fetchSemanticsNodes().isNotEmpty()
+            val backInList = compose.onAllNodesWithText("New quotation")
+                .fetchSemanticsNodes().isNotEmpty()
             throw AssertionError(
                 "Save timed out: orders=${fake.orders.value.size}, " +
                 "numbering_sequences=${fake.flow("numbering_sequences").value.size}, " +
                 "order_items=${fake.flow("order_items").value.size}, " +
-                "timeline_entries=${fake.flow("timeline_entries").value.size}"
+                "timeline_entries=${fake.flow("timeline_entries").value.size}; " +
+                "errorShown=$errorShown, saveStillThere=$saveStillThere, backInList=$backInList"
             )
         }
         // Back in list mode, the saved row carries the issued number.

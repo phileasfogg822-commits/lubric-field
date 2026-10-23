@@ -82,27 +82,19 @@ fun SalesScreen(
     }
 
     fun saveCurrentForm() {
-        // TEMP-DIAG (18.4): trace the save stall; remove once diagnosed.
-        println("DIAG saveCurrentForm entry: form is ${if (form == null) "NULL -> early return" else "non-null"}")
         val current = form ?: return
         saving = true
         coroutineScope.launch {
-            println("DIAG save coroutine started")
             try {
                 val id = current.existingId ?: UUID.randomUUID().toString()
                 var document = current.toDocument(id)
-                println("DIAG toDocument ok, number='${document.number}'")
                 if (document.number.isBlank()) {
                     val date = runCatching { LocalDate.parse(document.date) }
                         .getOrDefault(LocalDate.now())
-                    println("DIAG calling issueDocumentNumber")
                     document = viewModel.issueDocumentNumber(scope, document, date)
-                    println("DIAG issueDocumentNumber ok, number='${document.number}'")
                 }
                 val lines = current.toLines(id)
-                println("DIAG toLines ok, count=${lines.size}; calling saveDocumentWithLines")
                 viewModel.saveDocumentWithLines(scope, document, lines)
-                println("DIAG saveDocumentWithLines ok")
                 val total = SalesDocumentEngine.totals(lines, currency).grandTotal
                 viewModel.saveTimelineEntry(
                     scope,
@@ -117,12 +109,10 @@ fun SalesScreen(
                         timestamp = Instant.now().toString(),
                     ),
                 )
-                println("DIAG timeline ok; clearing form")
                 form = null
                 timeline = emptyList()
                 error = null
             } catch (e: Exception) {
-                println("DIAG save threw: ${e::class.simpleName}: ${e.message}")
                 error = saveError
             } finally {
                 saving = false
