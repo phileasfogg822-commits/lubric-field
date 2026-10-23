@@ -103,7 +103,7 @@ exact head `f460a6f` — Native 39969422317, Compose 39969422286,
 Segmented 39969422211 — all completed success. Package 17.1
 ACCEPTED on `f460a6f`.
 
-## Package 17.2 — Numbering — PENDING CI
+## Package 17.2 — Numbering — ACCEPTED
 
 What was wired (all in `domain/business`, pure Kotlin/JVM over
 `domain/common`, zero Gradle changes):
@@ -141,9 +141,63 @@ Local evidence: escaped-quote grep = 0, braces balanced on the
 staged package (re-verified after integration). First
 verification is CI on this head.
 
-## Package 17.3 — Document totals engine
+Verification: PR #26 fired the trio on the exact head
+`f74c01f` — Native 39971895345, Compose 39971895370, Segmented
+39971895404 — all completed success. Package 17.2 ACCEPTED on
+`f74c01f`.
 
-Status: PENDING CI.
+## Package 17.3 — Document totals engine — PENDING CI
+
+What was wired (all in `domain/accounting`, beside 17.1, whose
+calculator it consumes):
+
+- **New** `DocumentTotals.kt`: `Discount` (Percent / Fixed),
+  `DocumentLineInput(quantity, rate, discount, taxScheme)`,
+  `AdditionalChargeInput(name, amount, taxScheme)`, and
+  `DocumentTotalsCalculator` (totalLine / totalCharge /
+  totalDocument) producing per-line totals, per-charge totals,
+  and a full `DocumentTotals` (gross before discounts, line
+  discounts, taxable base, aggregated tax components, total
+  tax, charges, invoice discount, round-off, grand total).
+- **Computation order — the contract**: line gross (quantity ×
+  rate, 2dp HALF_UP per line) → line discount (§53: percent of
+  gross or fixed; clamps at the gross, never negative) → line
+  tax via 17.1 on the discounted amount (the entered rate is
+  tax-inclusive exactly when the line's scheme is) → charges
+  (§54, each with its own optional scheme) totalled the same
+  way → invoice-level discount → optional round-off to whole
+  units with the difference reported as its own amount, never
+  hidden.
+- **Policy decision, recorded**: the invoice-level discount
+  applies to the sum of line totals AFTER line discounts and
+  tax — a bottom-line commercial discount — and does NOT
+  recompute tax; the tax figures stay exactly what 17.1
+  produced per line. A phase needing discount-before-tax
+  semantics must revisit this contract explicitly.
+- **Scheme discounts deferred**: "Buy 10 Get 1" (§53) is a line
+  transform needing promotion configuration; it belongs with
+  the document phases 18/21, not the engine.
+- Tax components aggregate across lines and charges by
+  component (name + rate), first-seen order. All money in one
+  document must share one currency — `Money` arithmetic throws
+  on a mismatch, which is the engine's currency guard.
+
+Tests:
+
+- **New** `DocumentTotalsCalculatorTest` (10): exclusive line;
+  percent discount before tax; fixed discount clamping at the
+  gross; inclusive line extraction; untaxed line; invoice
+  discount leaving tax unchanged; a taxable and a non-taxable
+  charge together (base total 1300 on a 1000 line + 200 taxable
+  + 100 plain); component aggregation across lines (340 over two
+  lines); round-off in both directions (±0.40 reported); empty
+  document with a currency hint.
+
+Local evidence: escaped-quote grep = 0, braces balanced on the
+staged package (re-verified after integration). One test
+assertion was caught and fixed during staging review
+(taxableBaseTotal 1200 → 1300) — the arithmetic, not the
+engine. First verification is CI on this head.
 
 ## Package 17.4 — Posting contract + validator
 
