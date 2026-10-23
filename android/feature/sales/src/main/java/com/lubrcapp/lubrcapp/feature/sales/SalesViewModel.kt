@@ -5,8 +5,11 @@ import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.business.DocumentNumbering
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -132,6 +135,43 @@ class SalesViewModel @Inject constructor(
             .forEach { repository.delete(scope, "order_items", it.id) }
         saveDocument(scope, document)
         lines.forEach { saveLine(scope, it) }
+    }
+
+    /**
+     * The 18.4 form save, as a ViewModel operation (not a composable-local
+     * function): numbers the document if blank, persists header + lines,
+     * and appends the SAVED timeline entry. Returns the saved document.
+     * UI state (form clearing, error display) stays with the caller.
+     */
+    suspend fun saveForm(
+        scope: OperationalScope,
+        form: SalesDocumentFormState,
+        currency: CurrencyCode,
+    ): SalesDocument {
+        val id = form.existingId ?: UUID.randomUUID().toString()
+        var document = form.toDocument(id)
+        if (document.number.isBlank()) {
+            val date = runCatching { LocalDate.parse(document.date) }
+                .getOrDefault(LocalDate.now())
+            document = issueDocumentNumber(scope, document, date)
+        }
+        val lines = form.toLines(id)
+        saveDocumentWithLines(scope, document, lines)
+        val total = SalesDocumentEngine.totals(lines, currency).grandTotal
+        saveTimelineEntry(
+            scope,
+            TimelineEntry(
+                id = UUID.randomUUID().toString(),
+                documentId = document.id,
+                documentType = document.type.name,
+                documentNumber = document.number,
+                partyId = document.partyId,
+                action = "SAVED",
+                grandTotal = total.amount.toPlainString(),
+                timestamp = Instant.now().toString(),
+            ),
+        )
+        return document
     }
 
     /**

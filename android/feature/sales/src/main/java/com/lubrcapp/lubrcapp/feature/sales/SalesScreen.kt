@@ -86,29 +86,7 @@ fun SalesScreen(
         saving = true
         coroutineScope.launch {
             try {
-                val id = current.existingId ?: UUID.randomUUID().toString()
-                var document = current.toDocument(id)
-                if (document.number.isBlank()) {
-                    val date = runCatching { LocalDate.parse(document.date) }
-                        .getOrDefault(LocalDate.now())
-                    document = viewModel.issueDocumentNumber(scope, document, date)
-                }
-                val lines = current.toLines(id)
-                viewModel.saveDocumentWithLines(scope, document, lines)
-                val total = SalesDocumentEngine.totals(lines, currency).grandTotal
-                viewModel.saveTimelineEntry(
-                    scope,
-                    TimelineEntry(
-                        id = UUID.randomUUID().toString(),
-                        documentId = document.id,
-                        documentType = document.type.name,
-                        documentNumber = document.number,
-                        partyId = document.partyId,
-                        action = "SAVED",
-                        grandTotal = total.amount.toPlainString(),
-                        timestamp = Instant.now().toString(),
-                    ),
-                )
+                viewModel.saveForm(scope, current, currency)
                 form = null
                 timeline = emptyList()
                 error = null

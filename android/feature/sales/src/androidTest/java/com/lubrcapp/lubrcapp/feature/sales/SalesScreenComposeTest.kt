@@ -2,7 +2,6 @@ package com.lubrcapp.lubrcapp.feature.sales
 
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.fetchSemanticsNodes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -79,12 +78,17 @@ class SalesScreenComposeTest {
             compose.waitUntil(10000) { fake.orders.value.size == 1 }
         } catch (e: ComposeTimeoutException) {
             // Diagnostic: pinpoint the UI state when the save stalls.
-            val errorShown = compose.onAllNodesWithText("Unable to save locally", substring = true)
-                .fetchSemanticsNodes().isNotEmpty()
-            val saveStillThere = compose.onAllNodesWithText("Save")
-                .fetchSemanticsNodes().isNotEmpty()
-            val backInList = compose.onAllNodesWithText("New quotation")
-                .fetchSemanticsNodes().isNotEmpty()
+            // (fetchSemanticsNodes is not in this project's compose-ui-test;
+            // use assertCountEquals probes in try/catch instead.)
+            fun exists(text: String, substring: Boolean = false): Boolean = try {
+                compose.onAllNodesWithText(text, substring = substring).assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+            val errorShown = exists("Unable to save locally", substring = true)
+            val saveStillThere = exists("Save")
+            val backInList = exists("New quotation")
             throw AssertionError(
                 "Save timed out: orders=${fake.orders.value.size}, " +
                 "numbering_sequences=${fake.flow("numbering_sequences").value.size}, " +
