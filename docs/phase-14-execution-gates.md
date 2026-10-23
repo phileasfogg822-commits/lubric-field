@@ -93,3 +93,49 @@ head `adccf4d` (pull_request events, PR #23): Native Android CI run
 39913036599 — success; Compose UI Emulator Tests run 39913036596 —
 success; Phase 12 Segmented Verification run 39913036669 — success.
 Package 14.1 ACCEPTED on `adccf4d`.
+
+## Package 14.2 — party form UI — PENDING CI
+
+What was wired:
+
+- **Rewritten** `PartiesScreen`: two modes over the ViewModel's typed
+  surface only. List mode shows each party's name, type, blocked flag,
+  and — when an opening balance exists — its direction line; the form
+  mode is the full §16 field set in one scrollable form (name, type
+  radio group, business name, contact person, mobile, WhatsApp,
+  phone, email, address blocks, tax number, national ID, opening
+  balance, credit limit, credit days, payment terms, price level,
+  territory, salesperson, blocked, notes). Create/edit/delete flows
+  and their error handling carry over; org.json is gone from the
+  screen. Strings renamed customer→party where the entity is generic.
+- **New** `PartyFormState` (+ `PartyAddressFormState`): text-first
+  form state; blank optionals become null, wholly blank address rows
+  are dropped, and a non-blank unparseable amount/credit-days value
+  blocks the save with a form error instead of writing corrupt data.
+  `groupId` is carried through edits with no editor until 14.3 —
+  editing a grouped party must not silently drop its group link.
+- **New** `PartyDisplay.openingBalanceDirection()`: the recorded
+  balance convention — Customer/Both positive = Receivable, negative
+  = Payable; Supplier mirrored; Other neutral; zero/absent shows no
+  line. This is opening balance only (no ledger until Phase 22) and
+  the list says exactly that by naming the figure an opening balance
+  or a direction of it.
+- The ViewModel's raw methods stay as the low-level store passthrough
+  (pinned by `PartiesViewModelTest`); the screen no longer uses them.
+
+Tests:
+
+- **New** `PartyFormStateTest` (4): full load→save round-trip of every
+  §16 field incl. both address kinds and the group link; blank
+  optionals → null and blank address rows dropped; invalid numbers
+  block the save while padded valid numbers parse; reset defaults.
+- **New** `PartyDisplayTest` (3): the direction matrix incl. sign
+  mirroring for suppliers and the zero/absent no-line cases.
+- **Rewritten** `PartiesScreenComposeTest` (7): list + back; create a
+  Supplier with an opening balance and see "Payable: 250", then edit
+  round-trip; address created in the form lands through the codec;
+  invalid credit days show the form error and save nothing; delete
+  confirmation flow; empty state; save failure shows the error.
+
+Local evidence: escaped-quote grep = 0 and braces balanced on every
+changed Kotlin file. First verification is CI, as before.

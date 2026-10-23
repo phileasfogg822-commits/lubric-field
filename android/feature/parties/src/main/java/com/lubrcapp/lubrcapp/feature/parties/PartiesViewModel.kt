@@ -27,8 +27,10 @@ class PartiesViewModel @Inject constructor(
         repository.save(scope, "customers", id, payloadJson, revision)
 
     // Phase 14.1 — typed access over the same store. The codec tolerates
-    // legacy free-form payloads, so typed reads are safe on old records;
-    // the raw methods above stay until the 14.2 form migrates the screen.
+    // legacy free-form payloads, so typed reads are safe on old records.
+    // Since 14.2 the screen uses only this typed surface (plus delete);
+    // the raw methods above remain as the low-level store passthrough,
+    // pinned by PartiesViewModelTest.
 
     /** Typed parties: every record decoded through [PartyJson]. */
     fun observeParties(scope: OperationalScope): Flow<List<Party>> =
