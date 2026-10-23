@@ -54,4 +54,24 @@
     <string name="parties_delete_error">Unable to delete party</string>
     <string name="parties_cancel">Cancel</string>
     <string name="parties_empty">No parties yet</string>
+    <string name="parties_groups">Groups</string>
+    <string name="parties_group">Group</string>
+    <string name="parties_group_none">No group</string>
+    <string name="parties_group_line">Group: %1$s</string>
+    <string name="parties_groups_title">Customer groups</string>
+    <string name="parties_add_group">Add group</string>
+    <string name="parties_new_group">New group</string>
+    <string name="parties_edit_group">Edit group</string>
+    <string name="parties_save_group">Save group</string>
+    <string name="parties_group_name">Group name</string>
+    <string name="parties_group_discount">Discount %</string>
+    <string name="parties_group_tax_rule">Tax rule</string>
+    <string name="parties_group_members">Members: %1$d</string>
+    <string name="parties_group_price_line">Price level: %1$s</string>
+    <string name="parties_groups_empty">No groups yet</string>
+    <string name="parties_group_error">Unable to save group locally</string>
+    <string name="parties_group_delete_error">Unable to delete group</string>
+    <string name="parties_group_form_error">Discount must be a number.</string>
+    <string name="parties_delete_group_confirm">Delete group?</string>
+    <string name="parties_delete_group_warning">Parties in this group keep their group link and show it as — until the group exists again. The group will be hidden locally and its deletion queued for sync.</string>
 </resources>

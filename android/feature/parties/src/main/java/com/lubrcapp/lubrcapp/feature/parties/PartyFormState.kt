@@ -14,9 +14,9 @@ import java.math.BigDecimal
  * that does not parse as a number makes [toParty] return null so the
  * screen can show the form error instead of saving corrupt data.
  *
- * [groupId] is carried through edits but has no editor yet — customer
- * groups arrive in Package 14.3; dropping the link on every edit would
- * silently destroy data.
+ * [groupId] is the §19 customer-group link: since Package 14.3 the
+ * form offers a group picker, and the value is carried through edits
+ * even when the linked group no longer resolves locally.
  */
 class PartyFormState {
     var name by mutableStateOf("")
@@ -35,7 +35,7 @@ class PartyFormState {
     var creditDays by mutableStateOf("")
     var paymentTerms by mutableStateOf("")
     var priceLevel by mutableStateOf("")
-    var groupId: String? = null
+    var groupId by mutableStateOf<String?>(null)
     var territory by mutableStateOf("")
     var salesperson by mutableStateOf("")
     var isBlocked by mutableStateOf(false)

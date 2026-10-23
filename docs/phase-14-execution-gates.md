@@ -149,3 +149,42 @@ Package 14.2 ACCEPTED on `6ee6ee2`. (An interim monitor report
 claimed a Compose failure and a recording commit on this head;
 both were checked against the repo and the Actions list and neither
 exists — the only Compose run on `6ee6ee2` is the success above.)
+
+## Package 14.3 — customer groups — PENDING CI
+
+What was wired:
+
+- **New** `PartyGroup` + `PartyGroupJson` (§19): name plus the
+  group-level defaults — price level, discount percent (BigDecimal,
+  string round-trip), payment terms, tax rule, salesperson,
+  territory — as its own operational record type "customer_groups"
+  in the same scoped store, codec tolerance mirroring `PartyJson`.
+- **ViewModel**: typed group surface — `observeGroups` / `loadGroups`
+  / `saveGroup` / `deleteGroup`. Delete uses the same tombstone path
+  as parties.
+- **Orphan policy (decided here)**: deleting a group never edits its
+  parties. The `groupId` link is kept and the party list renders it
+  unresolved ("Group: —"), because sync may resurrect the group from
+  another device; clearing the link on delete would destroy data the
+  user never chose to remove. The delete dialog says exactly this.
+- **UI**: a Groups mode beside the party list (group list with live
+  member counts and price-level line, group form with the §19
+  fields, delete confirmation), and a group picker in the party
+  form ("No group" + one radio row per group). `PartyFormState`
+  groupId is now real form state carried through edits.
+
+Tests:
+
+- **New** `PartyGroupJsonTest` (4): full/minimal round-trips,
+  garbage → minimal group, discount as number/string/null.
+- **New** `PartyGroupFormStateTest` (2): round-trip; blank optionals
+  → null, invalid discount blocks the save.
+- **New** `PartiesViewModelGroupsTest` (2): CRUD lands on the
+  "customer_groups" table through the codec; legacy payload decodes.
+- **Compose** `PartiesScreenComposeTest` (8 now; the fake repository
+  is per-table): full lifecycle — create group, assign a party to
+  it, member count goes 0 → 1, delete the group, the party survives
+  and shows "Group: —".
+
+Local evidence: escaped-quote grep = 0 and braces balanced on every
+changed Kotlin file. First verification is CI, as before.

@@ -42,4 +42,24 @@ class PartiesViewModel @Inject constructor(
     /** Saves a typed party through the codec (revision passes through to the store). */
     suspend fun saveParty(scope: OperationalScope, party: Party, revision: Long = 0) =
         save(scope, party.id, PartyJson.encode(party), revision)
+
+    // Phase 14.3 — customer groups (§19) as their own record type in
+    // the same store. Deleting a group uses the same tombstone path as
+    // parties and never touches the parties themselves: their groupId
+    // link stays and renders unresolved until the group exists again.
+
+    /** Typed customer groups: every record decoded through [PartyGroupJson]. */
+    fun observeGroups(scope: OperationalScope): Flow<List<PartyGroup>> =
+        repository.observe(scope, "customer_groups")
+            .map { records -> records.map { PartyGroupJson.decode(it.id, it.json) } }
+
+    suspend fun loadGroups(scope: OperationalScope): List<PartyGroup> =
+        repository.list(scope, "customer_groups").map { PartyGroupJson.decode(it.id, it.json) }
+
+    suspend fun saveGroup(scope: OperationalScope, group: PartyGroup, revision: Long = 0) =
+        repository.save(scope, "customer_groups", group.id, PartyGroupJson.encode(group), revision)
+
+    /** Groups are nonfinancial master data: soft-delete by tombstone, like parties. */
+    suspend fun deleteGroup(scope: OperationalScope, id: String) =
+        repository.delete(scope, "customer_groups", id)
 }

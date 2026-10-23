@@ -53,8 +53,11 @@ fun PartiesScreen(
 ) {
     val parties by remember(viewModel, scope) { viewModel.observeParties(scope) }
         .collectAsState(initial = emptyList())
+    val groups by remember(viewModel, scope) { viewModel.observeGroups(scope) }
+        .collectAsState(initial = emptyList())
     val form = remember(scope) { PartyFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
+    var groupsOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -67,6 +70,7 @@ fun PartiesScreen(
     if (formOpen) {
         PartyForm(
             form = form,
+            groups = groups,
             isEditing = editingId != null,
             saving = saving,
             formError = formError,
@@ -94,6 +98,14 @@ fun PartiesScreen(
             },
             onCancel = { formOpen = false; editingId = null; formError = false; error = null },
         )
+    } else if (groupsOpen) {
+        PartyGroupsMode(
+            scope = scope,
+            parties = parties,
+            groups = groups,
+            viewModel = viewModel,
+            onBack = { groupsOpen = false },
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -101,10 +113,16 @@ fun PartiesScreen(
         ) {
             Button(onClick = onBack) { Text(stringResource(R.string.parties_back)) }
             Text(stringResource(R.string.parties_title), style = MaterialTheme.typography.headlineMedium)
-            Button(
-                enabled = !saving,
-                onClick = { form.reset(); editingId = null; formError = false; error = null; formOpen = true },
-            ) { Text(stringResource(R.string.parties_add)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = !saving,
+                    onClick = { form.reset(); editingId = null; formError = false; error = null; formOpen = true },
+                ) { Text(stringResource(R.string.parties_add)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { groupsOpen = true },
+                ) { Text(stringResource(R.string.parties_groups)) }
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (parties.isEmpty()) {
                 Text(stringResource(R.string.parties_empty))
@@ -114,6 +132,15 @@ fun PartiesScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(party.name, style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(party.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
+                        party.groupId?.let { groupId ->
+                            Text(
+                                stringResource(
+                                    R.string.parties_group_line,
+                                    groups.firstOrNull { it.id == groupId }?.name ?: "—",
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                         party.openingBalanceDirection()?.let { direction ->
                             val amount = party.openingBalance!!.toPlainString()
                             Text(
@@ -178,6 +205,7 @@ fun PartiesScreen(
 @Composable
 private fun PartyForm(
     form: PartyFormState,
+    groups: List<PartyGroup>,
     isEditing: Boolean,
     saving: Boolean,
     formError: Boolean,
@@ -205,6 +233,29 @@ private fun PartyForm(
             ) {
                 RadioButton(selected = form.type == type, onClick = { form.type = type })
                 Text(stringResource(type.labelRes()))
+            }
+        }
+        Text(stringResource(R.string.parties_group), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth().selectable(
+                selected = form.groupId == null,
+                onClick = { form.groupId = null },
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = form.groupId == null, onClick = { form.groupId = null })
+            Text(stringResource(R.string.parties_group_none))
+        }
+        groups.forEach { group ->
+            Row(
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.groupId == group.id,
+                    onClick = { form.groupId = group.id },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = form.groupId == group.id, onClick = { form.groupId = group.id })
+                Text(group.name)
             }
         }
         PartyTextField(form.businessName, { form.businessName = it }, R.string.parties_business_name)

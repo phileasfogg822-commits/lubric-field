@@ -25,20 +25,22 @@ class PartiesScreenComposeTest {
     private val scope = OperationalScope("tenant-a", "business-a", "device-a")
 
     private class FakeRepository : OperationalBusinessRepository {
-        val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
+        private val tables = mutableMapOf<String, MutableStateFlow<List<OperationalRecord>>>()
+        fun flow(table: String) = tables.getOrPut(table) { MutableStateFlow(emptyList()) }
+        val records get() = flow("customers")
         var failSave = false
         val deleted = mutableListOf<String>()
         var saves = 0
-        override fun observe(scope: OperationalScope, table: String) = records
-        override suspend fun list(scope: OperationalScope, table: String) = records.value
+        override fun observe(scope: OperationalScope, table: String) = flow(table)
+        override suspend fun list(scope: OperationalScope, table: String) = flow(table).value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
             if (failSave) throw IllegalStateException("storage unavailable")
             saves++
-            records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
+            flow(table).value = flow(table).value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
         override suspend fun delete(scope: OperationalScope, table: String, id: String) {
             deleted.add(id)
-            records.value = records.value.filterNot { it.id == id }
+            flow(table).value = flow(table).value.filterNot { it.id == id }
         }
     }
 
@@ -115,6 +117,38 @@ class PartiesScreenComposeTest {
         compose.onAllNodesWithText("Delete party?")[1].performClick()
         compose.waitUntil(5000) { fake.deleted.size == 1 }
         compose.runOnIdle { assertEquals(0, fake.records.value.size) }
+    }
+
+    @Test fun groupLifecycleAssignMemberAndOrphanAfterDelete() {
+        val fake = FakeRepository()
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        // Create the group.
+        compose.onNodeWithText("Groups").performClick()
+        compose.onNodeWithText("No groups yet").assertIsDisplayed()
+        compose.onNodeWithText("Add group").performClick()
+        compose.onNodeWithText("Group name").performTextInput("Retail")
+        compose.onNodeWithText("Save group").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("customer_groups").value.size == 1 }
+        compose.onNodeWithText("Members: 0").assertIsDisplayed()
+        // Back to parties; create a party inside the group.
+        compose.onNodeWithText("Back").performClick()
+        openForm()
+        compose.onNodeWithText("Name").performTextInput("Grouped Party")
+        compose.onNodeWithText("Retail").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Group: Retail").assertIsDisplayed()
+        // The group now counts one member.
+        compose.onNodeWithText("Groups").performClick()
+        compose.onNodeWithText("Members: 1").assertIsDisplayed()
+        // Delete the group: the party keeps its link and shows it unresolved.
+        compose.onNodeWithText("Delete Retail").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete group?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete group?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("customer_groups").value.isEmpty() }
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Group: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
     }
 
     @Test fun emptyStateIsShownWhenNoRecords() {
