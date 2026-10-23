@@ -1,8 +1,8 @@
 # Phase 14 — Party Master Data (Roadmap V2)
 
 Branch: `phase-14-party-master-data` (from the Phase 13 candidate,
-`phase-13-app-shell` at `6cb2bb5`). Draft PR to follow via the
-connector. Packages are accepted only with green-CI proof on the exact
+`phase-13-app-shell` at `6cb2bb5`). Draft PR #23 via the connector.
+Packages are accepted only with green-CI proof on the exact
 SHA, as in Phases 12–13.
 
 ## Authoritative scope
@@ -243,3 +243,34 @@ success (the profile flow ran on the emulator: party at 96/100
 credit shows "Outstanding: 96", "Credit limit: 100" and
 "Near credit limit"); Phase 12 Segmented Verification run
 39918960933 — success. Package 14.4 ACCEPTED on `7be6ebc`.
+
+## Package 14.5 — phase gate — ACCEPTED (phase close-out)
+
+Evidence sweep (2026-10-23) across 14.1–14.4:
+
+- Every package carries its own verification block in this ledger
+  with green runs on the exact head: 14.1 `adccf4d` (Native
+  39913036599, Compose 39913036596, Segmented 39913036669),
+  14.2 `6ee6ee2` (39914565669 / 39914565699 / 39914565716),
+  14.3 `b5e2039` (39916981618 / 39916981633 / 39916981588),
+  14.4 `7be6ebc` (39918960967 / 39918961042 / 39918960933).
+- Tree sweep: 24 files changed vs the Phase 13 base `6cb2bb5`, all
+  inside `feature/parties` plus this ledger. The `domain/party`
+  scaffold is untouched (deliberate — the shared vocabulary is its
+  `PartyType` enum), no sync/store files changed, and delete
+  semantics are unchanged (tombstone soft-delete per Phase 12).
+- Spec coverage: §15 one generic Party model with four types
+  (14.1); §16 full field set incl. multiple addresses (14.1/14.2);
+  §17 profile header (14.4); §18 credit rules as pure data +
+  warnings (14.4); §19 customer groups with the keep-the-link
+  orphan policy (14.3).
+
+Deferred, by design, to their owning phases (absence is a decision,
+not an oversight): §17 profile tabs and Invoice/Order/Payment/
+Statement actions (need Phases 17–22 data); sale-time credit
+hard-blocking (Phases 17/21); any balance beyond Opening Balance
+(the customer ledger is Phase 22 — until then outstanding means
+the receivable side of the opening balance, and the UI says so).
+
+Phase 14 is COMPLETE: 5/5 packages accepted. Next: Phase 15
+(Item/Service/Media Catalog) per the finalized prep note.
