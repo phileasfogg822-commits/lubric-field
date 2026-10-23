@@ -150,7 +150,7 @@ claimed a Compose failure and a recording commit on this head;
 both were checked against the repo and the Actions list and neither
 exists — the only Compose run on `6ee6ee2` is the success above.)
 
-## Package 14.3 — customer groups — PENDING CI
+## Package 14.3 — customer groups — ACCEPTED
 
 What was wired:
 
@@ -188,3 +188,11 @@ Tests:
 
 Local evidence: escaped-quote grep = 0 and braces balanced on every
 changed Kotlin file. First verification is CI, as before.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `b5e2039` (pull_request events, PR #23): Native Android CI run
+39916981618 — success; Compose UI Emulator Tests run 39916981633 —
+success (the group lifecycle test ran on the emulator: create group,
+assign party, member count 0 → 1, delete group, party survives
+showing "Group: —"); Phase 12 Segmented Verification run
+39916981588 — success. Package 14.3 ACCEPTED on `b5e2039`.
