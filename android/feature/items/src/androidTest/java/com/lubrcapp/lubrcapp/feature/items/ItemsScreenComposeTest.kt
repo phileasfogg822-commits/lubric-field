@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.items
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -257,5 +258,184 @@ class ItemsScreenComposeTest {
             try { compose.onNodeWithText("Unable to save item locally").assertIsDisplayed(); true }
             catch (_: AssertionError) { false }
         }
+    }
+
+    @Test fun unitLifecycleAssignAndOrphanAfterDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // Create a unit from the suggested §25 names.
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("No units yet").assertIsDisplayed()
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Carton").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 1 }
+        compose.onNodeWithText("Back").performClick()
+        // Assign it to an item through the form's unit picker.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Oil Carton")
+        compose.onNodeWithText("Carton").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Unit: Carton").assertIsDisplayed()
+        // The unit counts the item; deleting it leaves the link unresolved.
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("Items: 1").assertIsDisplayed()
+        compose.onNodeWithText("Delete Carton").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete unit?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete unit?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.isEmpty() }
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Unit: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+    }
+
+    @Test fun conversionLifecycleShowsInUnitsMode() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Carton").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 1 }
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Bottle").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 2 }
+        // From = Carton (first list), To = Bottle (second list).
+        compose.onNodeWithText("Add conversion").performClick()
+        compose.onAllNodesWithText("Carton")[0].performClick()
+        compose.onAllNodesWithText("Bottle")[1].performClick()
+        compose.onNodeWithText("Factor").performTextInput("12")
+        compose.onNodeWithText("Save conversion").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("unit_conversions").value.size == 1 }
+        compose.onNodeWithText("Carton → Bottle: ×12").assertIsDisplayed()
+        compose.runOnIdle {
+            val record = fake.flow("unit_conversions").value.single()
+            val saved = UnitConversionJson.decode(record.id, record.json)
+            assertEquals(BigDecimal("12"), saved.factor)
+        }
+    }
+
+    @Test fun branchAndWarehouseLifecycleWithOrphanAfterBranchDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Locations").performClick()
+        compose.onNodeWithText("No branches yet").assertIsDisplayed()
+        compose.onNodeWithText("Add branch").performClick()
+        compose.onNodeWithText("Branch name").performTextInput("Main Shop")
+        compose.onNodeWithText("Save branch").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("branches").value.size == 1 }
+        compose.onNodeWithText("Warehouses: 0").assertIsDisplayed()
+        // A warehouse inside the branch.
+        compose.onNodeWithText("Add warehouse").performClick()
+        compose.onNodeWithText("Warehouse name").performTextInput("Godown")
+        compose.onNodeWithText("Main Shop").performScrollTo().performClick()
+        compose.onNodeWithText("Save warehouse").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("warehouses").value.size == 1 }
+        compose.onNodeWithText("Branch: Main Shop").assertIsDisplayed()
+        compose.onNodeWithText("Warehouses: 1").assertIsDisplayed()
+        // Delete the branch: the warehouse keeps its link, shown unresolved.
+        compose.onNodeWithText("Delete Main Shop").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete branch?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete branch?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("branches").value.isEmpty() }
+        compose.onNodeWithText("Branch: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.flow("warehouses").value.size) }
+    }
+
+    @Test fun priceListEntryLifecycleAndResolutionInputs() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // An item to price.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("1100")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        // A price list.
+        compose.onNodeWithText("Price lists").performClick()
+        compose.onNodeWithText("No price lists yet").assertIsDisplayed()
+        compose.onNodeWithText("Add price list").performClick()
+        compose.onNodeWithText("Price list name").performTextInput("Wholesale")
+        compose.onNodeWithText("Save price list").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("price_lists").value.size == 1 }
+        compose.onNodeWithText("Entries: 0").assertIsDisplayed()
+        // An entry for the item inside the list.
+        compose.onNodeWithText("View Wholesale").performClick()
+        compose.onNodeWithText("No entries in this list yet").assertIsDisplayed()
+        compose.onNodeWithText("Add entry").performClick()
+        compose.onNodeWithText("Engine Oil").performClick()
+        compose.onNodeWithText("Rate").performTextInput("950")
+        compose.onNodeWithText("Save entry").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("price_list_items").value.size == 1 }
+        compose.onNodeWithText("Engine Oil: 950").assertIsDisplayed()
+        compose.runOnIdle {
+            val itemRecord = fake.records.value.single()
+            val item = ItemJson.decode(itemRecord.id, itemRecord.json)
+            val entryRecord = fake.flow("price_list_items").value.single()
+            val entry = PriceListItemJson.decode(entryRecord.id, entryRecord.json)
+            val listRecord = fake.flow("price_lists").value.single()
+            assertEquals(listRecord.id, entry.priceListId)
+            assertEquals(item.id, entry.itemId)
+            // The stored entry is exactly what the resolution rule consumes.
+            assertEquals(BigDecimal("950"), PriceListResolution.resolve(item, listRecord.id, listOf(entry)))
+        }
+    }
+
+    @Test fun batchLifecycleStoresQuantityAsData() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // An item to batch.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        // A batch for it.
+        compose.onNodeWithText("Batches").performClick()
+        compose.onNodeWithText("No batches yet").assertIsDisplayed()
+        compose.onNodeWithText("Add batch").performClick()
+        compose.onNodeWithText("Engine Oil").performClick()
+        compose.onNodeWithText("Batch number").performTextInput("B-2026-01")
+        compose.onNodeWithText("Expiry date (yyyy-MM-dd)").performScrollTo().performTextInput("2027-01-14")
+        compose.onNodeWithText("Quantity").performScrollTo().performTextInput("48")
+        compose.onNodeWithText("Save batch").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("batches").value.size == 1 }
+        compose.onNodeWithText("Engine Oil — B-2026-01").assertIsDisplayed()
+        compose.onNodeWithText("Expires: 2027-01-14").assertIsDisplayed()
+        compose.onNodeWithText("Qty: 48").assertIsDisplayed()
+        compose.runOnIdle {
+            val itemId = fake.records.value.single().id
+            val record = fake.flow("batches").value.single()
+            val batch = BatchJson.decode(record.id, record.json)
+            assertEquals(itemId, batch.itemId)
+            assertEquals("B-2026-01", batch.batchNumber)
+            assertEquals(BigDecimal("48"), batch.quantity)
+        }
+    }
+
+    @Test fun searchFindsByExactBarcodeThenByName() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Barcode").performScrollTo().performTextInput("8901234567890")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Oil Filter")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 2 }
+        // Exact barcode: only the barcoded item remains.
+        compose.onNodeWithText("Search name or barcode").performTextInput("8901234567890")
+        compose.onNodeWithText("Engine Oil").assertIsDisplayed()
+        compose.onAllNodesWithText("Oil Filter").assertCountEquals(0)
+        // Name fragment: only the matching item remains.
+        compose.onNodeWithText("Search name or barcode").performTextReplacement("filter")
+        compose.onNodeWithText("Oil Filter").assertIsDisplayed()
+        compose.onAllNodesWithText("Engine Oil").assertCountEquals(0)
+        // No match at all: the empty-search line shows.
+        compose.onNodeWithText("Search name or barcode").performTextReplacement("brake pads")
+        compose.onNodeWithText("No items match").assertIsDisplayed()
     }
 }

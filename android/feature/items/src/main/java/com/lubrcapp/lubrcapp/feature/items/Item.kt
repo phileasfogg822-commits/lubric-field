@@ -18,8 +18,9 @@ import java.math.BigDecimal
  * would fabricate data. [openingStock] is a stored quantity only: the
  * inventory ledger is Phase 19, and no computed stock exists until
  * then. [taxPercent] is likewise data only; the tax engine is
- * Phase 17. [unit] is a free-text unit name in this phase — the §25
- * Unit entity and its conversions belong to Phase 16. Image
+ * Phase 17. [unit] is the legacy free-text unit name; [unitId]
+ * links the §25 unit entity added in Phase 16.1, and records
+ * written before it carry only the free-text name. Image
  * references (§22, Package 15.4) are URI strings only — no binary
  * ever lives in an operational record; rendering and thumbnails are
  * platform media work and are not faked here.
@@ -33,6 +34,7 @@ data class Item(
     val categoryId: String? = null,
     val brandId: String? = null,
     val unit: String? = null,
+    val unitId: String? = null,
     val purchaseRate: BigDecimal? = null,
     val saleRate: BigDecimal? = null,
     val wholesaleRate: BigDecimal? = null,

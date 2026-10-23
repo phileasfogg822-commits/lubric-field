@@ -77,4 +77,134 @@ class ItemsViewModel @Inject constructor(
     /** Brands are nonfinancial master data: soft-delete by tombstone, like items. */
     suspend fun deleteBrand(scope: OperationalScope, id: String) =
         repository.delete(scope, "brands", id)
+
+    // Phase 16.1 — units (§25) and conversions as their own record
+    // types in the same store. Deleting a unit uses the same
+    // tombstone path and never touches the items or conversions
+    // that link to it: their ids stay and render unresolved.
+
+    /** Typed units: every record decoded through [ItemUnitJson]. */
+    fun observeUnits(scope: OperationalScope): Flow<List<ItemUnit>> =
+        repository.observe(scope, "units")
+            .map { records -> records.map { ItemUnitJson.decode(it.id, it.json) } }
+
+    suspend fun loadUnits(scope: OperationalScope): List<ItemUnit> =
+        repository.list(scope, "units").map { ItemUnitJson.decode(it.id, it.json) }
+
+    suspend fun saveUnit(scope: OperationalScope, unit: ItemUnit, revision: Long = 0) =
+        repository.save(scope, "units", unit.id, ItemUnitJson.encode(unit), revision)
+
+    /** Units are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteUnit(scope: OperationalScope, id: String) =
+        repository.delete(scope, "units", id)
+
+    /** Typed conversions: every record decoded through [UnitConversionJson]. */
+    fun observeConversions(scope: OperationalScope): Flow<List<UnitConversion>> =
+        repository.observe(scope, "unit_conversions")
+            .map { records -> records.map { UnitConversionJson.decode(it.id, it.json) } }
+
+    suspend fun loadConversions(scope: OperationalScope): List<UnitConversion> =
+        repository.list(scope, "unit_conversions").map { UnitConversionJson.decode(it.id, it.json) }
+
+    suspend fun saveConversion(scope: OperationalScope, conversion: UnitConversion, revision: Long = 0) =
+        repository.save(scope, "unit_conversions", conversion.id, UnitConversionJson.encode(conversion), revision)
+
+    /** Conversions are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteConversion(scope: OperationalScope, id: String) =
+        repository.delete(scope, "unit_conversions", id)
+
+    // Phase 16.2 — branches and warehouses (§34) as their own
+    // record types in the same store. Master data only: no stock
+    // and no transactions live here (Phases 18–21 own those, the
+    // §35 transfer workflow is Phase 19). Deleting a branch uses
+    // the same tombstone path and never touches its warehouses:
+    // their branch ids stay and render unresolved.
+
+    /** Typed branches: every record decoded through [BranchJson]. */
+    fun observeBranches(scope: OperationalScope): Flow<List<Branch>> =
+        repository.observe(scope, "branches")
+            .map { records -> records.map { BranchJson.decode(it.id, it.json) } }
+
+    suspend fun loadBranches(scope: OperationalScope): List<Branch> =
+        repository.list(scope, "branches").map { BranchJson.decode(it.id, it.json) }
+
+    suspend fun saveBranch(scope: OperationalScope, branch: Branch, revision: Long = 0) =
+        repository.save(scope, "branches", branch.id, BranchJson.encode(branch), revision)
+
+    /** Branches are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteBranch(scope: OperationalScope, id: String) =
+        repository.delete(scope, "branches", id)
+
+    /** Typed warehouses: every record decoded through [WarehouseJson]. */
+    fun observeWarehouses(scope: OperationalScope): Flow<List<Warehouse>> =
+        repository.observe(scope, "warehouses")
+            .map { records -> records.map { WarehouseJson.decode(it.id, it.json) } }
+
+    suspend fun loadWarehouses(scope: OperationalScope): List<Warehouse> =
+        repository.list(scope, "warehouses").map { WarehouseJson.decode(it.id, it.json) }
+
+    suspend fun saveWarehouse(scope: OperationalScope, warehouse: Warehouse, revision: Long = 0) =
+        repository.save(scope, "warehouses", warehouse.id, WarehouseJson.encode(warehouse), revision)
+
+    /** Warehouses are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteWarehouse(scope: OperationalScope, id: String) =
+        repository.delete(scope, "warehouses", id)
+
+    // Phase 16.3 — price lists (§26) and their per-item rates as
+    // their own record types in the same store ("price_lists" and
+    // "price_list_items" — the table names the Phase 12 sync store
+    // already whitelists). Deleting a list uses the same tombstone
+    // path and never touches its entries: they keep their list id,
+    // show in no list, and stop resolving.
+
+    /** Typed price lists: every record decoded through [PriceListJson]. */
+    fun observePriceLists(scope: OperationalScope): Flow<List<PriceList>> =
+        repository.observe(scope, "price_lists")
+            .map { records -> records.map { PriceListJson.decode(it.id, it.json) } }
+
+    suspend fun loadPriceLists(scope: OperationalScope): List<PriceList> =
+        repository.list(scope, "price_lists").map { PriceListJson.decode(it.id, it.json) }
+
+    suspend fun savePriceList(scope: OperationalScope, priceList: PriceList, revision: Long = 0) =
+        repository.save(scope, "price_lists", priceList.id, PriceListJson.encode(priceList), revision)
+
+    /** Price lists are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deletePriceList(scope: OperationalScope, id: String) =
+        repository.delete(scope, "price_lists", id)
+
+    /** Typed price-list entries: every record decoded through [PriceListItemJson]. */
+    fun observePriceListItems(scope: OperationalScope): Flow<List<PriceListItem>> =
+        repository.observe(scope, "price_list_items")
+            .map { records -> records.map { PriceListItemJson.decode(it.id, it.json) } }
+
+    suspend fun loadPriceListItems(scope: OperationalScope): List<PriceListItem> =
+        repository.list(scope, "price_list_items").map { PriceListItemJson.decode(it.id, it.json) }
+
+    suspend fun savePriceListItem(scope: OperationalScope, entry: PriceListItem, revision: Long = 0) =
+        repository.save(scope, "price_list_items", entry.id, PriceListItemJson.encode(entry), revision)
+
+    /** Price-list entries are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deletePriceListItem(scope: OperationalScope, id: String) =
+        repository.delete(scope, "price_list_items", id)
+
+    // Phase 16.4 — batches (§29) as their own record type in the
+    // same store. Quantities are stored data only — nothing here
+    // moves stock (the ledger is Phase 19). Deleting an item never
+    // touches its batches: their item ids stay and render
+    // unresolved.
+
+    /** Typed batches: every record decoded through [BatchJson]. */
+    fun observeBatches(scope: OperationalScope): Flow<List<Batch>> =
+        repository.observe(scope, "batches")
+            .map { records -> records.map { BatchJson.decode(it.id, it.json) } }
+
+    suspend fun loadBatches(scope: OperationalScope): List<Batch> =
+        repository.list(scope, "batches").map { BatchJson.decode(it.id, it.json) }
+
+    suspend fun saveBatch(scope: OperationalScope, batch: Batch, revision: Long = 0) =
+        repository.save(scope, "batches", batch.id, BatchJson.encode(batch), revision)
+
+    /** Batches are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteBatch(scope: OperationalScope, id: String) =
+        repository.delete(scope, "batches", id)
 }
