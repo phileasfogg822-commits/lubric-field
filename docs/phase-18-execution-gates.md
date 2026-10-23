@@ -54,7 +54,45 @@ Phase 30 owns cross-device uniqueness.
 
 ## Package 18.1 — Document model + codecs
 
-Status: NOT STARTED.
+Status: ACCEPTED on `de9435d`.
+
+`SalesDocument` (header, an "orders" record: type QUOTATION /
+SALES_ORDER, number blank until 18.3, party/date/due dates,
+status as text until 18.2, notes, conversion link fields) and
+`SalesDocumentLine` (an "order_items" record: position, item,
+description, quantity, unit, rate, discount kind + value, the
+TAX SNAPSHOT — the scheme's components copied at entry so later
+scheme edits never change a document — warehouse/batch refs,
+fulfilledQuantity for §44). Both tables are in the Phase 12
+sync whitelist. Tolerant codecs in the Phase 14–16 pattern
+(record id wins; amounts as exact strings; a damaged tax
+component is dropped, never fatal; an unknown header type
+decodes as SALES_ORDER, the table's history). Totals are never
+stored: `SalesDocumentEngine` is the only bridge from stored
+lines to the Phase 17 engine (snapshot → TaxScheme, discount
+kind → Discount, totals via DocumentTotalsCalculator; the
+currency is the caller's business currency). The ViewModel
+gained a typed surface (documents + lines filtered by orderId,
+sorted by position) over the untouched raw methods, and
+deliberately NO document delete — the repository contract
+reserves soft-delete for nonfinancial records; documents
+cancel by status (18.2). Gradle: + `:domain:accounting` +
+kotlinx-serialization-json 1.6.2.
+
+Tests (10, `feature/sales`): header/line codec round-trips
+(incl. the tax snapshot), tolerance (JSON numbers, unknown
+type, garbage payload), engine bridge (exclusive totals
+1000 → tax 170 → 1170; percent discount before tax; inclusive
+extraction + an untaxed line; unknown discount kind ignored),
+and the typed ViewModel surface (tables, filter + sort).
+Local evidence: staged files brace/paren balanced, zero
+escaped quotes; no local JVM/Android SDK, CI is the compiler.
+
+Verification (GitHub Actions on exact head `de9435d`, PR #27):
+Native Android CI run 39993392164 — completed success;
+Compose UI Emulator Tests run 39993392160 — completed success;
+Phase 12 Segmented Verification run 39993392169 — completed
+success. 18.1 ACCEPTED.
 
 ## Package 18.2 — Statuses + lifecycle
 
