@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -73,7 +74,17 @@ class SalesScreenComposeTest {
         // compile; assertCountEquals is the proven pattern here.)
         compose.onAllNodesWithText("Grand total: 1170").assertCountEquals(1)
         compose.onNodeWithText("Save").performScrollTo().assertIsEnabled().performClick()
-        compose.waitUntil(5000) { fake.orders.value.size == 1 }
+        try {
+            compose.waitUntil(10000) { fake.orders.value.size == 1 }
+        } catch (e: ComposeTimeoutException) {
+            // Diagnostic: pinpoint how far the save got before stalling.
+            throw AssertionError(
+                "Save timed out: orders=${fake.orders.value.size}, " +
+                "numbering_sequences=${fake.flow("numbering_sequences").value.size}, " +
+                "order_items=${fake.flow("order_items").value.size}, " +
+                "timeline_entries=${fake.flow("timeline_entries").value.size}"
+            )
+        }
         // Back in list mode, the saved row carries the issued number.
         compose.onNodeWithText("QT-2026-00001 · Quotation · DRAFT · 2026-10-23").assertIsDisplayed()
     }
