@@ -96,7 +96,42 @@ success. 18.1 ACCEPTED.
 
 ## Package 18.2 — Statuses + lifecycle
 
-Status: NOT STARTED.
+Status: ACCEPTED on `dd0df43`.
+
+The reusable status engine the spec asks for, in domain/sales
+(the Sales.kt invoice scaffold is untouched — its SalesStatus
+is the Phase 21 invoice lifecycle, a different document):
+`QuotationStatus` (the §48 set), `SalesOrderStatus` (DRAFT /
+CONFIRMED / PARTIALLY_FULFILLED / FULFILLED / CANCELLED), and
+`DocumentStatusRules` — pure transition tables (terminal
+states have no exits; same-state is never a transition; a
+draft quotation may expire, an accepted one may not be
+rejected or expired) plus `fulfilmentStatus(lines)`, the §44
+derivation (nothing fulfilled → null and the caller keeps its
+status; any partial → PARTIALLY_FULFILLED; all fulfilled ≥
+ordered → FULFILLED; over-delivery completes a line). The
+feature bridge `SalesDocumentStatus` parses the stored status
+text tolerantly (unknown → DRAFT), refuses illegal transitions
+and wrong document kinds, and re-derives an order's status
+from its lines — refusing to move a cancelled order, which is
+a data problem, not a transition.
+
+Tests (11): domain rules (6 — the quotation happy path,
+rejection/expiry windows, terminal and skip illegality, the
+order lifecycle, cancellation rules, the §44 example
+verbatim: HX7 20/20 + Mobil 1 10/4 → PARTIALLY_FULFILLED) and
+the feature bridge (5 — legal moves, illegal/wrong-kind
+throws, unknown-status tolerance, the fulfilment chain
+CONFIRMED → PARTIALLY_FULFILLED → FULFILLED, cancelled-order
+refusal). Local evidence: staged files brace/paren balanced,
+zero escaped quotes; no local JVM/Android SDK, CI is the
+compiler.
+
+Verification (GitHub Actions on exact head `dd0df43`, PR #27):
+Native Android CI run 39995658909 — completed success;
+Compose UI Emulator Tests run 39995658871 — completed success;
+Phase 12 Segmented Verification run 39995659321 — completed
+success. 18.2 ACCEPTED.
 
 ## Package 18.3 — Numbering wiring
 
