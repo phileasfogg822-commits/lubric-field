@@ -84,13 +84,13 @@ class SalesViewModel @Inject constructor(
     ): SalesDocument {
         if (document.number.isNotBlank()) return document
         val record = loadNumberingRecord(scope, document.type)
-        val issued = DocumentNumbering.issue(
+        val (advancedState, formatted) = DocumentNumbering.issue(
             record.sequence(),
             record.state(),
             date,
             branchPrefix,
         )
-        saveNumberingRecord(scope, record.withState(issued.state))
-        return document.copy(number = issued.formatted)
+        saveNumberingRecord(scope, record.withState(advancedState))
+        return document.copy(number = formatted)
     }
 }
