@@ -61,8 +61,9 @@ class SalesScreenComposeTest {
         compose.onNodeWithText("Quantity").performScrollTo().performTextReplacement("2")
         compose.onNodeWithText("Rate").performScrollTo().performTextInput("500")
         compose.onNodeWithText("Tax %").performScrollTo().performTextInput("17")
-        // 2 x 500 exclusive + 17% tax = 1170.00, computed live by the engine.
-        compose.onNodeWithText("Grand total: 1170.00").performScrollTo().assertIsDisplayed()
+        // 2 x 500 exclusive + 17% tax = 1170, computed live by the engine
+        // (Money strips trailing zeros; the app displays toPlainString).
+        compose.onNodeWithText("Grand total: 1170").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Save").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.orders.value.size == 1 }
         // Back in list mode, the saved row carries the issued number.

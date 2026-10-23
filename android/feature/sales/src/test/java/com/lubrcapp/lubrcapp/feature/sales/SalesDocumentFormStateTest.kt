@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.common.Money
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,7 +32,7 @@ class SalesDocumentFormStateTest {
         val lines = form.toLines("doc-1")
         assertEquals(1, lines.size)
         assertEquals(listOf(SalesTaxComponent("Sales Tax", BigDecimal("17"))), lines[0].taxComponents)
-        assertEquals(BigDecimal("1170.00"), form.totalsOrNull(pkr)?.grandTotal?.amount)
+        assertEquals(Money.of("1170", pkr), form.totalsOrNull(pkr)?.grandTotal)
     }
 
     @Test
