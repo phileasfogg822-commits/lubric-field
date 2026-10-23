@@ -143,9 +143,8 @@ fun SalesScreen(
                 currency = currency,
                 onFormChange = { form = it },
                 onSave = {
-                    // Inline: currentForm is smart-cast non-null here. Do NOT
-                    // route through a local fun that re-reads the nullable
-                    // `form` state — that indirection silently no-ops.
+                    // TEMP-DIAG: prove the lambda runs
+                    error = "SAVE_LAMBDA_RAN"
                     saving = true
                     coroutineScope.launch {
                         try {
