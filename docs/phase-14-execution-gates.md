@@ -33,7 +33,7 @@ the sales phases (17/21); Phase 14 ships the data and the pure rules.
   from opening balance, warning chips).
 - **14.5** Phase gate: evidence sweep + close-out + Phase 15 prep.
 
-## Package 14.1 — typed Party model + codec — PENDING CI
+## Package 14.1 — typed Party model + codec — ACCEPTED
 
 What was wired:
 
@@ -87,3 +87,9 @@ and are brace-balanced. Android cannot compile locally (no SDK in this
 environment); first verification is CI. The JVM unit tests exercise
 the codec directly — no org.json anywhere in the new code, so the
 Phase 12 JVM-stub failure mode does not apply.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `adccf4d` (pull_request events, PR #23): Native Android CI run
+39913036599 — success; Compose UI Emulator Tests run 39913036596 —
+success; Phase 12 Segmented Verification run 39913036669 — success.
+Package 14.1 ACCEPTED on `adccf4d`.
