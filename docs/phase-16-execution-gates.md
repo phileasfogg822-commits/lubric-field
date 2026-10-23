@@ -284,7 +284,7 @@ Native Android CI 39956540612, Compose UI Emulator Tests
 39956540709, Phase 12 Segmented Verification 39956540574 — all
 completed success. Package 16.4 ACCEPTED on `c218aa0`.
 
-## Package 16.5 — barcode lookup — PENDING CI
+## Package 16.5 — barcode lookup — ACCEPTED
 
 What was wired:
 
@@ -320,3 +320,50 @@ Local evidence: escaped-quote grep = 0, braces balanced, strings
 cross-checked against every R.string reference, and strings.xml
 parses on the staged package (re-verified after integration).
 First verification is CI on this head.
+
+Verification: three heads, recorded honestly. On the code head
+`b6e9365`, Native 39958684596 and Segmented 39958684672 passed but
+Compose 39958684702 FAILED — one test
+(`searchFindsByExactBarcodeThenByName`) ran semantics queries
+inside `runOnIdle {}`, which the main thread forbids; a
+test-authoring bug, never app code. Fix `49d21c3` (assert absence
+with `assertCountEquals(0)`) then failed to compile on Native
+39961237676 and Compose 39961237782: `assertCountEquals` is also
+an extension in `androidx.compose.ui.test` in this library
+version and its import was missing (the Phase 13 `performClick`
+lesson, second offence). Fix `f4fa8e9` adds the import. On
+`f4fa8e9`: Compose 39962996944 and Segmented 39962996779
+completed success. Native 39962997002 attempt 1 FAILED at step
+15.1 (`OperationalBusinessRoomIntegrationTest`, `:core:store`) —
+all 10 failures share one cause chain, `MavenArtifactFetcher`
+→ `HttpURLConnection FileNotFoundException`: Robolectric could
+not download its runtime artifact on that runner. `:core:store`
+is byte-identical to the green `b6e9365` run and untouched by
+this phase; the failure is an environment flake, not a
+regression. "Re-run failed jobs" was dispatched from the
+website; attempt 2 of run 39962997002 completed success on the
+same head. Package 16.5 ACCEPTED on `f4fa8e9`.
+
+## Package 16.6 — phase gate — ACCEPTED
+
+Evidence sweep, this branch against the Phase 15 base `134041a`
+at the 16.5 head `f4fa8e9`: 48 files changed, 3,958 insertions,
+7 deletions — 47 files inside `android/feature/items` (30 main,
+15 test, 1 androidTest, 1 strings) plus this ledger. No domain
+scaffold file changed; no sync/store file changed; delete
+semantics unchanged (tombstones throughout, orphan policy
+intact). Every package carries its own green trio on its exact
+head in PR #25: 16.1 `d3c3033`, 16.2 `59a2ed4`, 16.3 `1c71234`,
+16.4 `c218aa0`, 16.5 `f4fa8e9`.
+
+Deferred by design, not dropped: camera barcode scanning (owner
+decision — needs a scanning library; wedge input works today);
+§30 serial numbers and §35 stock transfers (Phase 19, where
+stock actually moves); binding party/group `priceLevel` text to
+PriceList entities (a later phase's decision); §27
+customer-specific rates (Phases 18/21, needs sales history).
+Branches and batches sit outside the Phase 12 sync whitelist —
+local-only records until the sync layer learns those tables,
+the same posture Phase 17's numbering records will take.
+
+**Phase 16 COMPLETE — 6/6 packages accepted.**
