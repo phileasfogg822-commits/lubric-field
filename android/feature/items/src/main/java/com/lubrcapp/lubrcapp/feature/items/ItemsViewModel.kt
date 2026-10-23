@@ -149,4 +149,41 @@ class ItemsViewModel @Inject constructor(
     /** Warehouses are nonfinancial master data: soft-delete by tombstone, like items. */
     suspend fun deleteWarehouse(scope: OperationalScope, id: String) =
         repository.delete(scope, "warehouses", id)
+
+    // Phase 16.3 — price lists (§26) and their per-item rates as
+    // their own record types in the same store ("price_lists" and
+    // "price_list_items" — the table names the Phase 12 sync store
+    // already whitelists). Deleting a list uses the same tombstone
+    // path and never touches its entries: they keep their list id,
+    // show in no list, and stop resolving.
+
+    /** Typed price lists: every record decoded through [PriceListJson]. */
+    fun observePriceLists(scope: OperationalScope): Flow<List<PriceList>> =
+        repository.observe(scope, "price_lists")
+            .map { records -> records.map { PriceListJson.decode(it.id, it.json) } }
+
+    suspend fun loadPriceLists(scope: OperationalScope): List<PriceList> =
+        repository.list(scope, "price_lists").map { PriceListJson.decode(it.id, it.json) }
+
+    suspend fun savePriceList(scope: OperationalScope, priceList: PriceList, revision: Long = 0) =
+        repository.save(scope, "price_lists", priceList.id, PriceListJson.encode(priceList), revision)
+
+    /** Price lists are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deletePriceList(scope: OperationalScope, id: String) =
+        repository.delete(scope, "price_lists", id)
+
+    /** Typed price-list entries: every record decoded through [PriceListItemJson]. */
+    fun observePriceListItems(scope: OperationalScope): Flow<List<PriceListItem>> =
+        repository.observe(scope, "price_list_items")
+            .map { records -> records.map { PriceListItemJson.decode(it.id, it.json) } }
+
+    suspend fun loadPriceListItems(scope: OperationalScope): List<PriceListItem> =
+        repository.list(scope, "price_list_items").map { PriceListItemJson.decode(it.id, it.json) }
+
+    suspend fun savePriceListItem(scope: OperationalScope, entry: PriceListItem, revision: Long = 0) =
+        repository.save(scope, "price_list_items", entry.id, PriceListItemJson.encode(entry), revision)
+
+    /** Price-list entries are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deletePriceListItem(scope: OperationalScope, id: String) =
+        repository.delete(scope, "price_list_items", id)
 }

@@ -174,3 +174,60 @@ Verification: PR #25 fired the trio on the exact head `59a2ed4` —
 Native Android CI 39952477719, Compose UI Emulator Tests
 39952477924, Phase 12 Segmented Verification 39952477906 — all
 completed success. Package 16.2 ACCEPTED on `59a2ed4`.
+
+## Package 16.3 — price lists — PENDING CI
+
+What was wired:
+
+- **New record types in the operational store**: `PriceList`
+  (id, name) as "price_lists" and `PriceListItem` (id,
+  priceListId, itemId, rate as nullable `BigDecimal`) as
+  "price_list_items", each with a tolerant codec on the
+  established pattern. The table names are the ones the Phase 12
+  sync store already whitelists — the prep draft's
+  "price_list_rates" was corrected to the whitelist's name.
+- **Rate semantics**: a stored rate that is missing or
+  unreadable decodes as null — data damage, not a price. The
+  entry form only saves a parsed rate of zero or more (zero is a
+  legitimate promotional rate).
+- **New** `PriceListResolution`: the pure rule §26 implies —
+  the list's own rate for the item wins; without a usable entry
+  the item's own sale rate applies; with neither, null. Nothing
+  consumes it yet: documents and invoices (Phases 18/21) will
+  resolve through here instead of re-deriving precedence.
+- **Standing boundaries**: party and customer-group `priceLevel`
+  strings stay free text in this phase — binding them to
+  PriceList entities is a later phase's decision, not silently
+  done here. §27 party-wise price memory still needs sales
+  history (Phases 18/21).
+- **ViewModel surface**: observe/load/save/delete for both
+  tables through the same tombstone delete path; deleting a
+  list never edits its entries — they keep their list id, show
+  in no list, and stop resolving; the delete dialog says so.
+  **New** `ItemPriceListsMode` (ItemPriceLists.kt): lists with
+  entry counts, one list's entries (item name + rate), both
+  forms with an item picker. A third entry button (Price lists)
+  joins the items screen's second button row.
+
+Tests:
+
+- **New** `PriceListsJsonTest` (5): list + entry round-trips;
+  rate as JSON number; missing/bad rate → null; legacy/bad
+  payloads decode minimal.
+- **New** `PriceListResolutionTest` (5): list rate wins; sale
+  rate fallback; null when neither; damaged (null-rate) entry
+  ignored; another item's entry never leaks.
+- **New** `ItemPriceListsFormStatesTest` (5): name trim; valid
+  entry build; zero rate allowed; unpicked item / blank /
+  non-numeric / negative rates rejected; load drops blank item
+  and null rate.
+- **New** `ItemsViewModelPriceListsTest` (2): CRUD on both
+  tables through the codecs.
+- **Compose** +1: price-list lifecycle — item, list, entry saved
+  through the codec, and the stored entry is exactly what the
+  resolution rule consumes (asserted inside the test).
+
+Local evidence: escaped-quote grep = 0, braces balanced, strings
+cross-checked against every R.string reference, and strings.xml
+parses on the staged package (re-verified after integration).
+First verification is CI on this head.

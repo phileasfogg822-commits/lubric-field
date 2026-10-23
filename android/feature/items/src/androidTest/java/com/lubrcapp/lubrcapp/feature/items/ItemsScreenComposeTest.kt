@@ -342,4 +342,43 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Branch: —").assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, fake.flow("warehouses").value.size) }
     }
+
+    @Test fun priceListEntryLifecycleAndResolutionInputs() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // An item to price.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Engine Oil")
+        compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("1100")
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        // A price list.
+        compose.onNodeWithText("Price lists").performClick()
+        compose.onNodeWithText("No price lists yet").assertIsDisplayed()
+        compose.onNodeWithText("Add price list").performClick()
+        compose.onNodeWithText("Price list name").performTextInput("Wholesale")
+        compose.onNodeWithText("Save price list").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("price_lists").value.size == 1 }
+        compose.onNodeWithText("Entries: 0").assertIsDisplayed()
+        // An entry for the item inside the list.
+        compose.onNodeWithText("View Wholesale").performClick()
+        compose.onNodeWithText("No entries in this list yet").assertIsDisplayed()
+        compose.onNodeWithText("Add entry").performClick()
+        compose.onNodeWithText("Engine Oil").performClick()
+        compose.onNodeWithText("Rate").performTextInput("950")
+        compose.onNodeWithText("Save entry").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("price_list_items").value.size == 1 }
+        compose.onNodeWithText("Engine Oil: 950").assertIsDisplayed()
+        compose.runOnIdle {
+            val itemRecord = fake.records.value.single()
+            val item = ItemJson.decode(itemRecord.id, itemRecord.json)
+            val entryRecord = fake.flow("price_list_items").value.single()
+            val entry = PriceListItemJson.decode(entryRecord.id, entryRecord.json)
+            val listRecord = fake.flow("price_lists").value.single()
+            assertEquals(listRecord.id, entry.priceListId)
+            assertEquals(item.id, entry.itemId)
+            // The stored entry is exactly what the resolution rule consumes.
+            assertEquals(BigDecimal("950"), PriceListResolution.resolve(item, listRecord.id, listOf(entry)))
+        }
+    }
 }
