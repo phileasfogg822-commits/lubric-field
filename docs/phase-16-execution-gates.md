@@ -124,7 +124,7 @@ Emulator Tests 39950141011, Phase 12 Segmented Verification
 39950140979 — all completed success. Package 16.1 ACCEPTED on
 `d3c3033`.
 
-## Package 16.2 — branches + warehouses — PENDING CI
+## Package 16.2 — branches + warehouses — ACCEPTED
 
 What was wired:
 
@@ -169,4 +169,8 @@ Tests:
 Local evidence: escaped-quote grep = 0, braces balanced, strings
 cross-checked against every R.string reference, and strings.xml
 parses on the staged package (re-verified after integration).
-First verification is CI on this head.
+
+Verification: PR #25 fired the trio on the exact head `59a2ed4` —
+Native Android CI 39952477719, Compose UI Emulator Tests
+39952477924, Phase 12 Segmented Verification 39952477906 — all
+completed success. Package 16.2 ACCEPTED on `59a2ed4`.
