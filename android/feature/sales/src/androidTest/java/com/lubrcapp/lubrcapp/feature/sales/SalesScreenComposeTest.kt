@@ -75,7 +75,7 @@ class SalesScreenComposeTest {
         // project's compose-ui-test version — unresolved reference at
         // compile; assertCountEquals is the proven pattern here.)
         compose.onAllNodesWithText("Grand total: 1170").assertCountEquals(1)
-        compose.onNodeWithTag("salesSaveButton").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithTag("salesSaveButton").assertIsEnabled().performClick()
         try {
             compose.waitUntil(10000) { fake.orders.value.size == 1 }
         } catch (e: ComposeTimeoutException) {
