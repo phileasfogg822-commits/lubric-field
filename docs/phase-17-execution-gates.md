@@ -204,7 +204,7 @@ Verification: PR #26 fired the trio on the exact head
 39973835055 — all completed success. Package 17.3 ACCEPTED on
 `9ea1e2c`.
 
-## Package 17.4 — Posting contract + validator — PENDING CI
+## Package 17.4 — Posting contract + validator — ACCEPTED
 
 What was wired (all in `domain/accounting`):
 
@@ -253,6 +253,11 @@ Local evidence: escaped-quote grep = 0, braces balanced on the
 staged package (re-verified after integration). First
 verification is CI on this head.
 
+Verification: PR #26 fired the trio on the exact head
+`54cb77c` — Native 39976370698, Compose 39976371406, Segmented
+39976370788 — all completed success. Package 17.4 ACCEPTED on
+`54cb77c`.
+
 ## Package 17.5 — Transaction record shape (§14)
 
 Status: DECIDED — contract note only (see package split). The §14
@@ -261,6 +266,34 @@ will be defined in Phase 18 alongside its first writer, against the
 17.4 posting contract, which already fixes the vocabulary (document
 type, document number, party, totals) a timeline entry summarizes.
 
-## Package 17.6 — Phase gate
+## Package 17.6 — Phase gate — ACCEPTED
 
-Status: NOT STARTED.
+Evidence sweep, this branch against the Phase 16 base
+`f760ce1` at the 17.4 head `54cb77c`: 11 files changed, 1,359
+insertions, 0 deletions — 5 main + 3 test files in
+`domain/accounting`, 1 main + 1 test file in `domain/business`,
+plus this ledger. No feature module, no core/store, no sync
+file changed; zero Gradle changes (both domain modules already
+had domain/common and JUnit wired). 36 new unit tests across
+the four engine packages, all green in every package's trio on
+PR #26: 17.1 `f460a6f`, 17.2 `f74c01f`, 17.3 `9ea1e2c`, 17.4
+`54cb77c`.
+
+The contracts the next phases build on, all in one place:
+TaxScheme / TaxCalculator (§8.2, 17.1), NumberingSequence /
+DocumentNumbering (§51, 17.2), DocumentTotalsCalculator
+(§52/§53/§54, 17.3), DocumentPosting / PostingValidator with
+the §18 CreditCheck gate (17.4), and the 17.5 decision that
+the §14 timeline record is defined by its first producer in
+Phase 18.
+
+Deferred by design, not dropped: scheme discounts ("Buy 10
+Get 1") to Phases 18/21 with promotion configuration;
+discount-before-tax semantics (needs an explicit contract
+revisit); numbering persistence + cross-device uniqueness
+(Phase 18 wiring / Phase 30); tax-scheme and numbering records
+are local-only until the sync whitelist learns their tables —
+the whitelists were NOT edited in this phase.
+
+**Phase 17 COMPLETE — 17.1–17.4 accepted, 17.5 decided,
+17.6 gate accepted.**
