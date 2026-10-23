@@ -185,7 +185,7 @@ head `9812502` (pull_request events, PR #24): Native Android CI run
 success; Phase 12 Segmented Verification run 39934861178 — success.
 Package 15.3 ACCEPTED on `9812502`.
 
-## Package 15.4 — media references (§22) — PENDING CI
+## Package 15.4 — media references (§22) — ACCEPTED
 
 What was wired:
 
@@ -218,3 +218,38 @@ Tests:
 Local evidence: escaped-quote grep = 0, braces balanced, and
 strings.xml parses on every changed file (re-checked after the
 staging copy). First verification is CI, as before.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `26bfd46` (pull_request events, PR #24): Native Android CI run
+39937173307 — success; Compose UI Emulator Tests run 39937173314 —
+success; Phase 12 Segmented Verification run 39937173474 — success.
+Package 15.4 ACCEPTED on `26bfd46`.
+
+## Package 15.5 — phase gate — ACCEPTED (phase close-out)
+
+Evidence sweep across 15.1–15.4: 21 files changed vs the phase-14
+base `27e714a` — 20 inside `android/feature/items` (the feature's
+own build file gained the kotlinx-serialization-json dependency,
+same version as parties) plus this ledger. The domain Item
+scaffold is untouched; no sync or operational-store files changed;
+delete semantics are unchanged (items, categories and brands are
+nonfinancial master data, soft-deleted by tombstone).
+
+What Phase 15 delivered, against spec §20–§28: the typed item
+catalog with the six §26 rates and tax percent as data (§20/§26),
+the §21 type vocabulary, the §20 form and list facts, categories
+with parent hierarchy (§23) and brands (§24) as their own record
+types under the standing orphan policy, and §22 media as URI
+references with a text editor.
+
+Deferred by design, not by omission: image rendering/thumbnails
+(needs an image-loading library — an owner-level dependency
+decision); the Unit entity and conversions (§25) and barcode
+scanning (§28) — Phase 16; party-wise price memory (§27) — needs
+sales history (Phases 18/21); the tax engine — Phase 17; computed
+stock — the Phase 19 ledger (opening stock stays stored data).
+
+Phase 15 COMPLETE: 5/5 packages accepted, each on green CI over
+its exact head. Phase 16 prep is recorded in the agent notes
+(units + conversions, branches/warehouses, price lists, batches,
+barcode lookup).
