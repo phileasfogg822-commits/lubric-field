@@ -38,11 +38,13 @@ import kotlinx.coroutines.launch
 
 /**
  * Offline-first item master data (spec §20/§21/§26), always scoped to
- * the active business. Two modes: the item list (name, type, sale
- * rate, opening stock) and the full §20 form. All reads/writes go
- * through the ViewModel's typed surface; the store stays the Phase 12
- * "products" table with its tombstone delete semantics. Opening stock
- * is a stored quantity only — the inventory ledger is Phase 19.
+ * the active business. Modes: the item list (name, type, category,
+ * brand, sale rate, opening stock), the full §20 form (with §23/§24
+ * category and brand pickers), and the category/brand management
+ * modes in ItemCatalog.kt. All reads/writes go through the
+ * ViewModel's typed surface; the store stays the Phase 12 "products"
+ * table with its tombstone delete semantics. Opening stock is a
+ * stored quantity only — the inventory ledger is Phase 19.
  */
 @Composable
 fun ItemsScreen(
@@ -52,8 +54,14 @@ fun ItemsScreen(
 ) {
     val items by remember(viewModel, scope) { viewModel.observeItems(scope) }
         .collectAsState(initial = emptyList())
+    val categories by remember(viewModel, scope) { viewModel.observeCategories(scope) }
+        .collectAsState(initial = emptyList())
+    val brands by remember(viewModel, scope) { viewModel.observeBrands(scope) }
+        .collectAsState(initial = emptyList())
     val form = remember(scope) { ItemFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
+    var categoriesOpen by remember(scope) { mutableStateOf(false) }
+    var brandsOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -66,6 +74,8 @@ fun ItemsScreen(
     if (formOpen) {
         ItemForm(
             form = form,
+            categories = categories,
+            brands = brands,
             isEditing = editingId != null,
             saving = saving,
             formError = formError,
@@ -93,6 +103,22 @@ fun ItemsScreen(
             },
             onCancel = { formOpen = false; editingId = null; formError = false; error = null },
         )
+    } else if (categoriesOpen) {
+        ItemCategoriesMode(
+            scope = scope,
+            items = items,
+            categories = categories,
+            viewModel = viewModel,
+            onBack = { categoriesOpen = false },
+        )
+    } else if (brandsOpen) {
+        ItemBrandsMode(
+            scope = scope,
+            items = items,
+            brands = brands,
+            viewModel = viewModel,
+            onBack = { brandsOpen = false },
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -100,10 +126,20 @@ fun ItemsScreen(
         ) {
             Button(onClick = onBack) { Text(stringResource(R.string.items_back)) }
             Text(stringResource(R.string.items_title), style = MaterialTheme.typography.headlineMedium)
-            Button(
-                enabled = !saving,
-                onClick = { form.reset(); editingId = null; formError = false; error = null; formOpen = true },
-            ) { Text(stringResource(R.string.items_add)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    enabled = !saving,
+                    onClick = { form.reset(); editingId = null; formError = false; error = null; formOpen = true },
+                ) { Text(stringResource(R.string.items_add)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { categoriesOpen = true },
+                ) { Text(stringResource(R.string.items_categories)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { brandsOpen = true },
+                ) { Text(stringResource(R.string.items_brands)) }
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (items.isEmpty()) {
                 Text(stringResource(R.string.items_empty))
@@ -113,6 +149,24 @@ fun ItemsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(item.name, style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(item.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
+                        item.categoryId?.let { categoryId ->
+                            Text(
+                                stringResource(
+                                    R.string.items_category_line,
+                                    categories.firstOrNull { it.id == categoryId }?.name ?: "—",
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        item.brandId?.let { brandId ->
+                            Text(
+                                stringResource(
+                                    R.string.items_brand_line,
+                                    brands.firstOrNull { it.id == brandId }?.name ?: "—",
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                         item.saleRate?.let { rate ->
                             Text(
                                 stringResource(R.string.items_sale_rate_line, rate.toPlainString()),
@@ -172,6 +226,8 @@ fun ItemsScreen(
 @Composable
 private fun ItemForm(
     form: ItemFormState,
+    categories: List<ItemCategory>,
+    brands: List<Brand>,
     isEditing: Boolean,
     saving: Boolean,
     formError: Boolean,
@@ -199,6 +255,52 @@ private fun ItemForm(
             ) {
                 RadioButton(selected = form.type == type, onClick = { form.type = type })
                 Text(stringResource(type.labelRes()))
+            }
+        }
+        Text(stringResource(R.string.items_category), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth().selectable(
+                selected = form.categoryId == null,
+                onClick = { form.categoryId = null },
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = form.categoryId == null, onClick = { form.categoryId = null })
+            Text(stringResource(R.string.items_category_none))
+        }
+        categories.forEach { category ->
+            Row(
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.categoryId == category.id,
+                    onClick = { form.categoryId = category.id },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = form.categoryId == category.id, onClick = { form.categoryId = category.id })
+                Text(category.name)
+            }
+        }
+        Text(stringResource(R.string.items_brand), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth().selectable(
+                selected = form.brandId == null,
+                onClick = { form.brandId = null },
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = form.brandId == null, onClick = { form.brandId = null })
+            Text(stringResource(R.string.items_brand_none))
+        }
+        brands.forEach { brand ->
+            Row(
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.brandId == brand.id,
+                    onClick = { form.brandId = brand.id },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = form.brandId == brand.id, onClick = { form.brandId = brand.id })
+                Text(brand.name)
             }
         }
         ItemTextField(form.sku, { form.sku = it }, R.string.items_sku)

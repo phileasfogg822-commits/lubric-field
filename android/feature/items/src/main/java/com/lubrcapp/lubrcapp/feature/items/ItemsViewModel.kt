@@ -41,4 +41,40 @@ class ItemsViewModel @Inject constructor(
     /** Saves a typed item through the codec (revision passes through to the store). */
     suspend fun saveItem(scope: OperationalScope, item: Item, revision: Long = 0) =
         save(scope, item.id, ItemJson.encode(item), revision)
+
+    // Phase 15.3 — categories (§23) and brands (§24) as their own
+    // record types in the same store. Deleting one uses the same
+    // tombstone path as items and never touches the items or
+    // subcategories that link to it: their ids stay and render
+    // unresolved until the record exists again.
+
+    /** Typed categories: every record decoded through [ItemCategoryJson]. */
+    fun observeCategories(scope: OperationalScope): Flow<List<ItemCategory>> =
+        repository.observe(scope, "categories")
+            .map { records -> records.map { ItemCategoryJson.decode(it.id, it.json) } }
+
+    suspend fun loadCategories(scope: OperationalScope): List<ItemCategory> =
+        repository.list(scope, "categories").map { ItemCategoryJson.decode(it.id, it.json) }
+
+    suspend fun saveCategory(scope: OperationalScope, category: ItemCategory, revision: Long = 0) =
+        repository.save(scope, "categories", category.id, ItemCategoryJson.encode(category), revision)
+
+    /** Categories are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteCategory(scope: OperationalScope, id: String) =
+        repository.delete(scope, "categories", id)
+
+    /** Typed brands: every record decoded through [BrandJson]. */
+    fun observeBrands(scope: OperationalScope): Flow<List<Brand>> =
+        repository.observe(scope, "brands")
+            .map { records -> records.map { BrandJson.decode(it.id, it.json) } }
+
+    suspend fun loadBrands(scope: OperationalScope): List<Brand> =
+        repository.list(scope, "brands").map { BrandJson.decode(it.id, it.json) }
+
+    suspend fun saveBrand(scope: OperationalScope, brand: Brand, revision: Long = 0) =
+        repository.save(scope, "brands", brand.id, BrandJson.encode(brand), revision)
+
+    /** Brands are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteBrand(scope: OperationalScope, id: String) =
+        repository.delete(scope, "brands", id)
 }

@@ -27,20 +27,22 @@ class ItemsScreenComposeTest {
     private val scope = OperationalScope("tenant-a", "business-a", "device-a")
 
     private class FakeRepository : OperationalBusinessRepository {
-        val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
+        private val tables = mutableMapOf<String, MutableStateFlow<List<OperationalRecord>>>()
+        fun flow(table: String) = tables.getOrPut(table) { MutableStateFlow(emptyList()) }
+        val records get() = flow("products")
         var failSave = false
         val deleted = mutableListOf<String>()
         var saves = 0
-        override fun observe(scope: OperationalScope, table: String) = records
-        override suspend fun list(scope: OperationalScope, table: String) = records.value
+        override fun observe(scope: OperationalScope, table: String) = flow(table)
+        override suspend fun list(scope: OperationalScope, table: String) = flow(table).value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
             if (failSave) throw IllegalStateException("storage unavailable")
             saves++
-            records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
+            flow(table).value = flow(table).value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
         override suspend fun delete(scope: OperationalScope, table: String, id: String) {
             deleted.add(id)
-            records.value = records.value.filterNot { it.id == id }
+            flow(table).value = flow(table).value.filterNot { it.id == id }
         }
     }
 
@@ -138,6 +140,86 @@ class ItemsScreenComposeTest {
         compose.onAllNodesWithText("Delete item?")[1].performClick()
         compose.waitUntil(5000) { fake.deleted.size == 1 }
         compose.runOnIdle { assertEquals(0, fake.records.value.size) }
+    }
+
+    @Test fun categoryLifecycleAssignCountAndOrphanAfterDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // Create the category.
+        compose.onNodeWithText("Categories").performClick()
+        compose.onNodeWithText("No categories yet").assertIsDisplayed()
+        compose.onNodeWithText("Add category").performClick()
+        compose.onNodeWithText("Category name").performTextInput("Oils")
+        compose.onNodeWithText("Save category").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("categories").value.size == 1 }
+        compose.onNodeWithText("Items: 0").assertIsDisplayed()
+        // Back to items; create an item inside the category.
+        compose.onNodeWithText("Back").performClick()
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Castrol Edge")
+        compose.onNodeWithText("Oils").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Category: Oils").assertIsDisplayed()
+        // The category now counts one item.
+        compose.onNodeWithText("Categories").performClick()
+        compose.onNodeWithText("Items: 1").assertIsDisplayed()
+        // Delete the category: the item keeps its link and shows it unresolved.
+        compose.onNodeWithText("Delete Oils").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete category?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete category?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("categories").value.isEmpty() }
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Category: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+    }
+
+    @Test fun subcategoryShowsParentLine() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Categories").performClick()
+        compose.onNodeWithText("Add category").performClick()
+        compose.onNodeWithText("Category name").performTextInput("Oils")
+        compose.onNodeWithText("Save category").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("categories").value.size == 1 }
+        compose.onNodeWithText("Add category").performClick()
+        compose.onNodeWithText("Category name").performTextInput("Engine Oils")
+        compose.onNodeWithText("Oils").performScrollTo().performClick()
+        compose.onNodeWithText("Save category").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("categories").value.size == 2 }
+        compose.onNodeWithText("Parent: Oils").assertIsDisplayed()
+    }
+
+    @Test fun brandLifecycleAssignCountAndOrphanAfterDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // Create the brand.
+        compose.onNodeWithText("Brands").performClick()
+        compose.onNodeWithText("No brands yet").assertIsDisplayed()
+        compose.onNodeWithText("Add brand").performClick()
+        compose.onNodeWithText("Brand name").performTextInput("Shell")
+        compose.onNodeWithText("Save brand").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("brands").value.size == 1 }
+        compose.onNodeWithText("Items: 0").assertIsDisplayed()
+        // Back to items; create an item with the brand.
+        compose.onNodeWithText("Back").performClick()
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Helix Ultra")
+        compose.onNodeWithText("Shell").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Brand: Shell").assertIsDisplayed()
+        // The brand now counts one item.
+        compose.onNodeWithText("Brands").performClick()
+        compose.onNodeWithText("Items: 1").assertIsDisplayed()
+        // Delete the brand: the item keeps its link and shows it unresolved.
+        compose.onNodeWithText("Delete Shell").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete brand?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete brand?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("brands").value.isEmpty() }
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Brand: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
     }
 
     @Test fun emptyStateIsShownWhenNoRecords() {

@@ -136,3 +136,44 @@ head `f2763ce` (pull_request events, PR #24): Native Android CI run
 39932921129 — success; Compose UI Emulator Tests run 39932921298 —
 success; Phase 12 Segmented Verification run 39932921111 — success.
 Package 15.2 ACCEPTED on `f2763ce`.
+
+## Package 15.3 — categories + brands — PENDING CI
+
+What was wired:
+
+- **New record types in the operational store**: `ItemCategory`
+  (id, name, parentId) as "categories" and `Brand` (id, name) as
+  "brands", each with a tolerant codec on the PartyJson pattern
+  (`ItemCategoryJson` / `BrandJson`) — record id beats in-payload
+  "uuid", blank names decode minimal, no org.json.
+- **ViewModel catalog surface** on `ItemsViewModel`:
+  observe/load/save/delete for both tables through the same
+  tombstone delete path items already use; the raw record methods
+  stay untouched.
+- **New** `ItemCatalogFormStates.kt`: category form carries
+  parentId and guards the self-parent case (`toCategory` drops a
+  parentId equal to the category's own id); brand form is
+  name-only. Blank name blocks the save for both.
+- **New** `ItemCatalog.kt`: categories and brands management
+  modes — item counts per category/brand, parent line with the
+  "—" fallback, parent picker excludes the category being edited,
+  and delete dialogs worded with the standing 14.3 orphan policy
+  (deleting never edits referrers; the link stays and renders "—"
+  because sync may resurrect the record).
+- **`ItemsScreen` wired**: category and brand pickers in the item
+  form, "Category: X" / "Brand: X" lines in the list, and a
+  Categories / Brands entry row into the management modes.
+
+Tests:
+
+- **New** `ItemCatalogJsonTest` (5) and `ItemCatalogFormStatesTest`
+  (5: incl. the self-parent guard) and `ItemsViewModelCatalogTest`
+  (3: save/load/delete round-trips per table).
+- **Upgraded** `ItemsScreenComposeTest`: per-table fake (a single
+  shared flow corrupts cross-table observation) plus 3 lifecycle
+  tests — category assign/count/orphan, subcategory parent line,
+  brand assign/count/orphan.
+
+Local evidence: escaped-quote grep = 0, braces balanced, and
+strings.xml parses on every changed file (re-checked after the
+staging copy). First verification is CI, as before.
