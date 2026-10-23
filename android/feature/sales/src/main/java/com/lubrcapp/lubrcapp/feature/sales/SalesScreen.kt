@@ -143,8 +143,6 @@ fun SalesScreen(
                 currency = currency,
                 onFormChange = { form = it },
                 onSave = {
-                    // TEMP-DIAG: prove the lambda runs
-                    error = "SAVE_LAMBDA_RAN"
                     saving = true
                     coroutineScope.launch {
                         try {
@@ -226,8 +224,9 @@ private fun DocumentEditor(
     var pickerLineId by remember(form.existingId) { mutableStateOf<String?>(null) }
     val totals = remember(form, currency) { form.totalsOrNull(currency) }
 
+    Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.weight(1f).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -317,18 +316,6 @@ private fun DocumentEditor(
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onSave,
-                    enabled = !saving && form.isValid,
-                    modifier = Modifier.testTag("salesSaveButton"),
-                ) {
-                    Text(if (saving) stringResource(R.string.sales_saving) else stringResource(R.string.sales_save))
-                }
-                Button(onClick = onCancel, enabled = !saving) {
-                    Text(stringResource(R.string.sales_cancel_edit))
-                }
-            }
         }
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
@@ -378,6 +365,24 @@ private fun DocumentEditor(
                         )
                     )
                 }
+            }
+        }
+    }
+        // Save / Cancel live outside the LazyColumn so the buttons are never
+        // lazily composed with a stale onSave handler.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            Button(
+                onClick = onSave,
+                enabled = !saving && form.isValid,
+                modifier = Modifier.testTag("salesSaveButton").weight(1f),
+            ) {
+                Text(if (saving) stringResource(R.string.sales_saving) else stringResource(R.string.sales_save))
+            }
+            Button(onClick = onCancel, enabled = !saving, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.sales_cancel_edit))
             }
         }
     }

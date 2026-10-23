@@ -88,7 +88,7 @@ class SalesScreenComposeTest {
             } catch (_: AssertionError) {
                 false
             }
-            val errorShown = exists("SAVE_LAMBDA_RAN", substring = true)
+            val errorShown = exists("Unable to save locally", substring = true)
             val saveStillThere = try {
                 compose.onAllNodesWithTag("salesSaveButton").assertCountEquals(1)
                 true
