@@ -472,7 +472,7 @@ CI risks on first run:
   Hilt-graph harness noted under 12B-09, so the guard's UI-level proof
   lands with that wiring while its predicate proof is in unit tests now.
 
-## Package 13.4 — bottom-navigation shape — PENDING CI
+## Package 13.4 — bottom-navigation shape — VERIFIED
 
 What was wired:
 
@@ -538,3 +538,98 @@ CI risks on first run:
 - The new icons dependency is one line, but a BOM/artifact mismatch
   would fail compilation before any test runs — the Native workflow
   arbitrates.
+
+## Package 13.5 — quick actions, FAB, dashboard cards — VERIFIED
+
+What was wired (commit `63996af`):
+
+- **New** `QuickActionsRegistry`: 8 quick actions (+ Sale, + Purchase,
+  + Order, Party, Item, Stock Adjustment, Expense, Income), each targeting
+  a real registry module and gated by BOTH the target module's composed
+  visibility (13.2 configuration + 13.3 capability) AND its own
+  create/manage capability (spec §12). Sales is the orders module, so
+  + Sale and + Order share the sales target with distinct capabilities
+  as registered. Payment In/Out and the distinct document flows
+  (Quotation / Sales Order / Purchase Order / Delivery Challan) stay
+  deliberately unregistered until their surfaces exist (Phases 18/21/22/27)
+  — no dead ends.
+- **New** `QuickActionsSheet`: a quick-actions section on the dashboard
+  and the FAB "+" opening a `ModalBottomSheet` with the same visible
+  actions. The FAB renders only when at least one action is visible and
+  a shell context exists. Taps set the same `selectedFeature` as the
+  list and the bottom bar, so the existing dispatch guards apply
+  unchanged.
+- **New** `DashboardCardsRegistry`: dashboard-card visibility through
+  the same two-gate semantics. Ships the one card whose data exists
+  today — CURRENT_BUSINESS (ungated) — via a new `showCurrentBusinessCard`
+  parameter on `DashboardScreen` (default preserves prior behavior).
+  Financial/indicator cards (Today's Sales etc.) are deliberately NOT
+  fabricated; they join with their data sources in Phases 17–24.
+
+Tests:
+
+- **New** `QuickActionsRegistryTest` (8 unit tests) and
+  `DashboardCardsRegistryTest` (5 unit tests), same gate-mix style as
+  13.2–13.4.
+- **Modified** `MainNavigationComposeTest`: 3 new tests — section+sheet
+  listing counts, capability-denied actions absent, FAB vanishes when
+  no action is visible.
+
+## 2026-10-23 verification — Packages 13.4 and 13.5 ACCEPTED
+
+How the evidence was produced (recorded in full because it was not the
+normal path): from the morning of 2026-10-23, GitHub's event pipeline
+delivered no `pull_request` runs for this branch at all — three pushes
+(`ecce138`, `75c21d1`, `63996af`) and a close/reopen of PR #22 produced
+zero runs, across ~7 hours, while all six workflows showed active
+(GitHub had a multi-day Actions/webhooks event-streaming degradation,
+Oct 21–23). All verdicts below are therefore from owner-triggered
+`workflow_dispatch` runs on the exact heads named — same code, same
+runners, same suites; only the event type differs.
+
+Two enabling changes were needed along the way:
+
+- The branch-only workflow files could not be dispatched at all:
+  GitHub shows the Run button only for workflows present on the default
+  branch. With the owner's explicit approval, byte-identical copies of
+  `phase-12-segments.yml` (blob `ea75ed25`) and
+  `compose-ui-emulator.yml` (blob `e7d16266`) were added to `master`
+  in `8d56b6d`; neither triggers on push, so the commit started no runs.
+- The connector has no Actions tools, so dispatch stayed a manual,
+  owner-side action throughout; code and fixes moved via git SSH as
+  usual.
+
+Failure → fix sequence:
+
+1. Native on `63996af` (run 39904377673) FAILED at
+   `:app:compileDebugKotlin`: `Inventory`, `People`, `MoreHoriz`
+   unresolved in `ShellBottomBar.kt`. The 13.4 section above records
+   the dependency as added — `material-icons-core`; those three icons
+   in fact live in `material-icons-extended` (the designsystem module
+   already uses extended). Fixed in `7a1c51c` by swapping the app
+   module to `-extended` (a superset of `-core`). No code changes.
+2. Native on `7a1c51c` (run 39907540633) — **SUCCESS**.
+   Segmented on `7a1c51c` (run 39909039352) — **SUCCESS**.
+3. Compose on `7a1c51c` (run 39909010279) FAILED before running any
+   test, at `:app:compileDebugAndroidTestKotlin`: 7× unresolved
+   `performClick` in `MainNavigationComposeTest.kt` — in this Compose
+   test version `performClick` is an extension requiring
+   `import androidx.compose.ui.test.performClick`. Fixed in `5f3d113`
+   (one import line; androidTest sources only).
+4. Compose on `5f3d113` (run 39910759999) — **SUCCESS** (8m 28s,
+   emulator suite incl. the updated 13.4 bar tests and the new 13.5
+   quick-action/FAB tests).
+
+Evidence note on heads: Native and Segmented verdicts stand on
+`7a1c51c`; the only delta to the final head `5f3d113` is the single
+androidTest import above, which neither of those workflows compiles
+(Native runs JVM unit tests; Segmented runs segment unit tests), and
+Compose — the one workflow that compiles and runs the androidTest
+sources — is green on `5f3d113` itself. Packages 13.4 and 13.5 are
+therefore ACCEPTED on final head `5f3d113`.
+
+Phase 13 status: 5 of 5 packages accepted (13.1 registry, 13.2
+configuration gating, 13.3 capability gating, 13.4 bottom navigation,
+13.5 quick actions/FAB/dashboard cards). Remaining phase work is the
+close-out sweep only; issue/PR text updates go through the connector
+with owner approval as before.
