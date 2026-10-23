@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.business.DocumentNumbering
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -57,4 +59,38 @@ class SalesViewModel @Inject constructor(
 
     suspend fun saveLine(scope: OperationalScope, line: SalesDocumentLine, revision: Long = 0) =
         repository.save(scope, "order_items", line.id, SalesDocumentLineJson.encode(line), revision)
+
+    // Phase 18.3 numbering surface. The stored record wins; until
+    // one exists the §51 defaults apply. Issuing a number advances
+    // and persists the counter in the same call, and a document
+    // that already has a number keeps it — numbers are assigned
+    // once, on first save.
+
+    suspend fun loadNumberingRecord(scope: OperationalScope, type: SalesDocumentType): NumberingRecord {
+        val stored = repository.list(scope, "numbering_sequences")
+            .firstOrNull { it.id == type.name }
+        return stored?.let { NumberingRecordJson.decode(it.id, it.json) }
+            ?: DocumentNumberDefaults.recordFor(type)
+    }
+
+    suspend fun saveNumberingRecord(scope: OperationalScope, record: NumberingRecord, revision: Long = 0) =
+        repository.save(scope, "numbering_sequences", record.id, NumberingRecordJson.encode(record), revision)
+
+    suspend fun issueDocumentNumber(
+        scope: OperationalScope,
+        document: SalesDocument,
+        date: LocalDate,
+        branchPrefix: String? = null,
+    ): SalesDocument {
+        if (document.number.isNotBlank()) return document
+        val record = loadNumberingRecord(scope, document.type)
+        val issued = DocumentNumbering.issue(
+            record.sequence(),
+            record.state(),
+            date,
+            branchPrefix,
+        )
+        saveNumberingRecord(scope, record.withState(issued.state))
+        return document.copy(number = issued.formatted)
+    }
 }
