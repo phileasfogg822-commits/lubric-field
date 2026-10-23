@@ -180,7 +180,36 @@ Status: NOT STARTED.
 
 ## Package 18.5 — Conversion
 
-Status: NOT STARTED.
+Status: ACCEPTED on `87ff571`.
+
+`SalesDocumentConversion.quotationToSalesOrder` (§43) — pure:
+only an ACCEPTED quotation converts (the one legal path into
+CONVERTED, enforced by the 18.2 rules). The order is an
+unnumbered DRAFT (18.3 numbers it on first save) carrying the
+quotation's party, dates and notes and a convertedFromId
+link; the quotation is returned marked CONVERTED with
+convertedToId set — the links are written both ways. Lines
+are copied in position order with fresh caller-supplied ids,
+their tax snapshots travel with them, lines belonging to
+other documents are ignored, and fulfilledQuantity resets to
+zero: fulfilment is the order's own history, never inherited.
+Persistence orchestration (saving all three results) lands
+with the 18.4 screens, as the converter's contract states.
+Built ahead of 18.4 in staging because it is pure logic over
+18.1 + 18.2; the integration order stayed
+18.1 → 18.2 → 18.3 → 18.5 → 18.4.
+
+Tests (2): the full copy (both-way links, line filtering and
+order, snapshot carriage, fulfilment reset) and the guards
+(a SENT quotation and a non-quotation both throw). Local
+evidence: staged files brace/paren balanced, zero escaped
+quotes; no local JVM/Android SDK, CI is the compiler.
+
+Verification (GitHub Actions on exact head `87ff571`, PR #27):
+Native Android CI run 40001971169 — completed success;
+Compose UI Emulator Tests run 40001971272 — completed success;
+Phase 12 Segmented Verification run 40001971171 — completed
+success. 18.5 ACCEPTED.
 
 ## Package 18.6 — Phase gate
 
