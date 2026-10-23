@@ -81,23 +81,6 @@ fun SalesScreen(
         }
     }
 
-    fun saveCurrentForm() {
-        val current = form ?: return
-        saving = true
-        coroutineScope.launch {
-            try {
-                viewModel.saveForm(scope, current, currency)
-                form = null
-                timeline = emptyList()
-                error = null
-            } catch (e: Exception) {
-                error = saveError
-            } finally {
-                saving = false
-            }
-        }
-    }
-
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -158,7 +141,24 @@ fun SalesScreen(
                 saving = saving,
                 currency = currency,
                 onFormChange = { form = it },
-                onSave = { saveCurrentForm() },
+                onSave = {
+                    // Inline: currentForm is smart-cast non-null here. Do NOT
+                    // route through a local fun that re-reads the nullable
+                    // `form` state — that indirection silently no-ops.
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            viewModel.saveForm(scope, currentForm, currency)
+                            form = null
+                            timeline = emptyList()
+                            error = null
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
                 onCancel = { form = null; timeline = emptyList(); error = null },
                 onStatusChange = { updated ->
                     saving = true
