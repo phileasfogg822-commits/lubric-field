@@ -1,0 +1,76 @@
+package com.lubrcapp.lubrcapp.shell
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.lubrcapp.lubrcapp.R
+
+/**
+ * Phase 13.5 — the two surfaces [QuickActionsRegistry] drives: the
+ * quick-actions section on the dashboard (spec §12 "Home Quick Actions")
+ * and the bottom sheet behind the shell's floating action button
+ * (spec §13 "+"). Both render exactly the actions the registry's
+ * composed visibility returns; selecting one hands its target module id
+ * to the shell's existing dispatch.
+ */
+@Composable
+fun QuickActionsSection(
+    actions: List<QuickAction>,
+    onSelect: (QuickAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.quick_actions_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        actions.forEach { action ->
+            Button(
+                onClick = { onSelect(action) },
+                modifier = Modifier.padding(horizontal = 16.dp),
+            ) { Text(stringResource(action.titleRes)) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickActionsSheet(
+    actions: List<QuickAction>,
+    onSelect: (QuickAction) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.quick_actions_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            actions.forEach { action ->
+                TextButton(
+                    onClick = { onSelect(action) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                ) { Text(stringResource(action.titleRes)) }
+            }
+        }
+    }
+}

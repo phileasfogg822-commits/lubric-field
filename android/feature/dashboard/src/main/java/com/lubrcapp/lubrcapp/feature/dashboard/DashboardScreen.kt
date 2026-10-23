@@ -32,6 +32,11 @@ fun DashboardScreen(
     onSwitchBusiness: (TenantId, BusinessId) -> Unit,
     onOpenAccessControl: () -> Unit,
     modifier: Modifier = Modifier,
+    // Phase 13.5: dashboard cards are configurable (spec section 11).
+    // The shell computes card visibility from its dashboard-card registry
+    // and passes the result in; the default keeps every existing caller
+    // and test rendering the card exactly as before.
+    showCurrentBusinessCard: Boolean = true,
 ) {
     val spacing = LubrcTheme.tokens.contentPadding
 
@@ -71,7 +76,8 @@ fun DashboardScreen(
                 )
             }
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            if (showCurrentBusinessCard) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(spacing),
                     verticalArrangement = Arrangement.spacedBy(spacing),
@@ -94,6 +100,7 @@ fun DashboardScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
                 }
             }
         } ?: Text(

@@ -39,6 +39,7 @@
     <string name="auth_create_account">Create Account</string>
     <string name="auth_forgot_password">Forgot Password?</string>
 
+    <string name="dashboard_current_business_card">Current Business</string>
     <string name="dashboard_today_sales">Today\'s Sales</string>
     <string name="dashboard_today_purchases">Today\'s Purchases</string>
     <string name="dashboard_receivable">Receivable</string>
@@ -50,6 +51,7 @@
     <string name="dashboard_pending_orders">Pending Orders</string>
     <string name="dashboard_overdue_payments">Overdue Payments</string>
 
+    <string name="quick_actions_title">Quick actions</string>
     <string name="quick_add_sale">+ Sale</string>
     <string name="quick_add_purchase">+ Purchase</string>
     <string name="quick_add_order">+ Order</string>

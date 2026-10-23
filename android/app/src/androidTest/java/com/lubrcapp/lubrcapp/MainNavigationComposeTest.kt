@@ -1,9 +1,12 @@
 package com.lubrcapp.lubrcapp
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -431,5 +434,62 @@ class MainNavigationComposeTest {
         awaitText("Purchases")
         grants.value = Capabilities.ALL - Capabilities.PURCHASES_VIEW
         awaitNoText("Purchases")
+    }
+
+    @Test fun quickActionsSectionAndFabSheetListVisibleActions() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context)
+        awaitText("Home")
+        // The dashboard's quick-actions section lists each action once.
+        compose.onAllNodesWithText("+ Sale").assertCountEquals(1)
+        // The FAB (content description "Quick actions") opens the sheet,
+        // which lists every visible action a second time.
+        compose.onNodeWithContentDescription("Quick actions").performClick()
+        compose.waitUntil(5000) {
+            try {
+                compose.onAllNodesWithText("+ Sale").assertCountEquals(2)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+        listOf("+ Purchase", "+ Order", "Party", "Item", "Stock Adjustment", "Expense", "Income")
+            .forEach { label -> compose.onAllNodesWithText(label).assertCountEquals(2) }
+    }
+
+    @Test fun quickActionsHideCapabilitiesTheUserLacks() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // No sales.create: + Sale and + Order appear neither in the
+        // dashboard section nor in the FAB sheet, while the granted
+        // actions still list in both surfaces.
+        val grants = flowOf(Capabilities.ALL - Capabilities.SALES_CREATE)
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Home")
+        compose.onNodeWithContentDescription("Quick actions").performClick()
+        compose.waitUntil(5000) {
+            try {
+                compose.onAllNodesWithText("+ Purchase").assertCountEquals(2)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+        compose.onAllNodesWithText("+ Sale").assertCountEquals(0)
+        compose.onAllNodesWithText("+ Order").assertCountEquals(0)
+    }
+
+    @Test fun fabVanishesWhenNoQuickActionIsVisible() {
+        val context = FakeBusinessContext()
+        context.available.value = listOf(context.alpha)
+        // A member with no capabilities at all: no slotted module passes
+        // its view gate and no action passes its capability gate, so the
+        // FAB is not rendered (no dead buttons) and no action shows.
+        val grants = flowOf(emptySet<CapabilityKey>())
+        showNavigation(setupViewModel(flowOf(readyBootstrap())), context, grants = grants)
+        awaitText("Home")
+        compose.onNodeWithContentDescription("Quick actions").assertDoesNotExist()
+        compose.onAllNodesWithText("+ Sale").assertCountEquals(0)
     }
 }

@@ -30,8 +30,16 @@ import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
 import com.lubrcapp.lubrcapp.feature.settings.AccessControlScreen
 import com.lubrcapp.lubrcapp.shell.AppModuleRegistry
 import com.lubrcapp.lubrcapp.shell.BottomNavSelection
+import com.lubrcapp.lubrcapp.shell.DashboardCardsRegistry
+import com.lubrcapp.lubrcapp.shell.QuickActionsRegistry
+import com.lubrcapp.lubrcapp.shell.QuickActionsSection
+import com.lubrcapp.lubrcapp.shell.QuickActionsSheet
 import com.lubrcapp.lubrcapp.shell.ShellBottomBar
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -59,8 +67,11 @@ import kotlinx.coroutines.flow.collect
  * same composed visibility guards feature dispatch, so a module hidden
  * by either gate never renders its surface. Phase 13.4 puts the ready
  * surface in a Scaffold: the registry-driven bottom navigation (Home /
- * Items / Parties / More) with the full module list under More; the
- * spec's FAB "+" waits for Package 13.5's quick actions.
+ * Items / Parties / More) with the full module list under More. Phase
+ * 13.5 adds the spec's FAB "+" and the quick-actions surfaces (dashboard
+ * section + sheet), both driven by the quick-actions registry through
+ * the same composed gates, and routes dashboard-card visibility through
+ * the dashboard-card registry.
  */
 @Composable
 fun MainNavigation(
@@ -78,6 +89,8 @@ fun MainNavigation(
     // "More" is a shell surface (the module-list overflow), not a registry
     // module: it is a plain boolean beside selectedFeature.
     var showMore by remember { mutableStateOf(false) }
+    // Phase 13.5: the quick-actions sheet behind the FAB is shell state too.
+    var showQuickActions by remember { mutableStateOf(false) }
     // Keep Android system Back consistent with each feature's visible Back button.
     BackHandler(enabled = selectedFeature != null || showAccessControl || showMore) {
         when {
@@ -198,6 +211,18 @@ fun MainNavigation(
             // by: configuration gate AND capability gate.
             val visibleModules =
                 AppModuleRegistry.visibleModules(enabledModuleKeys, grantedCapabilities)
+            // Phase 13.5: quick actions and dashboard cards read the same
+            // composed gates through their registries.
+            val visibleQuickActions =
+                QuickActionsRegistry.visibleQuickActions(
+                    enabledModuleKeys,
+                    grantedCapabilities,
+                )
+            val showCurrentBusinessCard =
+                DashboardCardsRegistry.visibleDashboardCards(
+                    enabledModuleKeys,
+                    grantedCapabilities,
+                ).any { it.id == DashboardCardsRegistry.CURRENT_BUSINESS_ID }
             if (showAccessControl && currentContext != null) {
                 AccessControlScreen(
                     context = currentContext,
@@ -269,6 +294,20 @@ fun MainNavigation(
                             },
                         )
                     },
+                    floatingActionButton = {
+                        // Spec section 13's "+" (Phase 13.5): rendered only
+                        // when at least one quick action is visible — no
+                        // dead buttons, the rule 13.4 set for deferring it.
+                        if (currentContext != null && visibleQuickActions.isNotEmpty()) {
+                            FloatingActionButton(onClick = { showQuickActions = true }) {
+                                Icon(
+                                    Icons.Filled.Add,
+                                    contentDescription =
+                                        stringResource(R.string.quick_actions_title),
+                                )
+                            }
+                        }
+                    },
                 ) { padding ->
                     if (showMore) {
                         Column(
@@ -298,13 +337,34 @@ fun MainNavigation(
                                 onSwitchBusiness = { tenant, business ->
                                     selectedFeature = null
                                     showMore = false
+                                    showQuickActions = false
                                     dashboardViewModel.switchTo(tenant, business)
                                 },
                                 onOpenAccessControl = { showAccessControl = true },
                                 modifier = Modifier.weight(1f, fill = false),
+                                showCurrentBusinessCard = showCurrentBusinessCard,
                             )
+                            if (currentContext != null && visibleQuickActions.isNotEmpty()) {
+                                QuickActionsSection(
+                                    actions = visibleQuickActions,
+                                    onSelect = { action ->
+                                        selectedFeature = action.targetModuleId
+                                    },
+                                )
+                            }
                         }
                     }
+                }
+                if (showQuickActions) {
+                    QuickActionsSheet(
+                        actions = visibleQuickActions,
+                        onSelect = { action ->
+                            showQuickActions = false
+                            showMore = false
+                            selectedFeature = action.targetModuleId
+                        },
+                        onDismiss = { showQuickActions = false },
+                    )
                 }
             }
         }
