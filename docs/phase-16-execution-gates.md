@@ -59,7 +59,7 @@ phase by decision (likely Phase 19 stock ops).
 - **16.6** Phase gate: evidence sweep + close-out + Phase 17
   prep.
 
-## Package 16.1 — units + conversions — PENDING CI
+## Package 16.1 — units + conversions — ACCEPTED
 
 What was wired:
 
@@ -117,5 +117,9 @@ Tests:
 Local evidence: escaped-quote grep = 0, braces balanced, strings
 cross-checked against every R.string reference, and strings.xml
 parses on the staged package (re-verified after integration).
-First verification is CI, as before — the trio fires when the
-Phase 16 draft PR is created.
+
+Verification: PR #25 (opened 2026-10-23) fired the trio on the
+exact head `d3c3033` — Native Android CI 39950141032, Compose UI
+Emulator Tests 39950141011, Phase 12 Segmented Verification
+39950140979 — all completed success. Package 16.1 ACCEPTED on
+`d3c3033`.
