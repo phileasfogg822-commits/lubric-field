@@ -94,7 +94,7 @@ head `adccf4d` (pull_request events, PR #23): Native Android CI run
 success; Phase 12 Segmented Verification run 39913036669 — success.
 Package 14.1 ACCEPTED on `adccf4d`.
 
-## Package 14.2 — party form UI — PENDING CI
+## Package 14.2 — party form UI — ACCEPTED
 
 What was wired:
 
@@ -139,3 +139,13 @@ Tests:
 
 Local evidence: escaped-quote grep = 0 and braces balanced on every
 changed Kotlin file. First verification is CI, as before.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `6ee6ee2` (pull_request events, PR #23): Native Android CI run
+39914565669 — success; Compose UI Emulator Tests run 39914565699 —
+success (emulator log: feature:parties 7/7 tests, 0 failed; :app
+12/12); Phase 12 Segmented Verification run 39914565716 — success.
+Package 14.2 ACCEPTED on `6ee6ee2`. (An interim monitor report
+claimed a Compose failure and a recording commit on this head;
+both were checked against the repo and the Actions list and neither
+exists — the only Compose run on `6ee6ee2` is the success above.)
