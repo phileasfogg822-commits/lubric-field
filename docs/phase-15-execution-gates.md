@@ -137,7 +137,7 @@ head `f2763ce` (pull_request events, PR #24): Native Android CI run
 success; Phase 12 Segmented Verification run 39932921111 — success.
 Package 15.2 ACCEPTED on `f2763ce`.
 
-## Package 15.3 — categories + brands — PENDING CI
+## Package 15.3 — categories + brands — ACCEPTED
 
 What was wired:
 
@@ -177,3 +177,9 @@ Tests:
 Local evidence: escaped-quote grep = 0, braces balanced, and
 strings.xml parses on every changed file (re-checked after the
 staging copy). First verification is CI, as before.
+
+Verification (2026-10-23): all three workflows green on the exact
+head `9812502` (pull_request events, PR #24): Native Android CI run
+39934861069 — success; Compose UI Emulator Tests run 39934861077 —
+success; Phase 12 Segmented Verification run 39934861178 — success.
+Package 15.3 ACCEPTED on `9812502`.
