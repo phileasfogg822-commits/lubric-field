@@ -93,3 +93,40 @@ head `61a0636` (pull_request events, PR #24): Native Android CI run
 39930991390 — success; Compose UI Emulator Tests run 39930991382 —
 success; Phase 12 Segmented Verification run 39930991467 — success.
 Package 15.1 ACCEPTED on `61a0636`.
+
+## Package 15.2 — item form UI — PENDING CI
+
+What was wired:
+
+- **New** `ItemFormState` (text-first, on the party pattern): every
+  field edited as text; blank optionals become null; any non-blank
+  non-numeric decimal field makes `toItem` return null so the save
+  is blocked with a form error, never silently dropped. `categoryId`
+  and `brandId` are carried through edits untouched — their pickers
+  arrive in 15.3 when the entities exist.
+- **`ItemsScreen` rewritten** to list/form modes over the typed
+  ViewModel surface only (org.json is gone from the items feature).
+  The list shows name, §21 type label, "Sale rate: X" and "Opening
+  stock: X" lines when present. The form carries the full §20 field
+  set with a type radio list, and deletion keeps the tombstone path
+  and the confirm dialog.
+- `ItemType.labelRes()` lives in the screen file, as parties did
+  for `PartyType`. Strings extended for the items feature
+  (`items_save` now reads "Save item"; new title / label / line /
+  form-error strings; legacy `items_update` / `items_cancel_edit`
+  stay defined but unused, as parties left theirs).
+
+Tests:
+
+- **New** `ItemFormStateTest` (5): round-trip through toItem;
+  blank optionals drop to null; a bad decimal in any money field
+  blocks the save; type selection survives; category/brand ids
+  carried through an edit.
+- **Rewritten** `ItemsScreenComposeTest` (8, single-table fake):
+  list renders typed facts; save flow writes through the codec;
+  edit prefill; delete dialog confirm path; form error on bad
+  decimal; type radio selection.
+
+Local evidence: escaped-quote grep = 0, braces balanced, and
+strings.xml parses on every changed file (re-checked after the
+staging copy). First verification is CI, as before.
