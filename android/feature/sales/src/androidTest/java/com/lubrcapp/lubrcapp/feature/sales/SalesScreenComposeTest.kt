@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -73,7 +75,7 @@ class SalesScreenComposeTest {
         // project's compose-ui-test version — unresolved reference at
         // compile; assertCountEquals is the proven pattern here.)
         compose.onAllNodesWithText("Grand total: 1170").assertCountEquals(1)
-        compose.onNodeWithText("Save").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithTag("salesSaveButton").performScrollTo().assertIsEnabled().performClick()
         try {
             compose.waitUntil(10000) { fake.orders.value.size == 1 }
         } catch (e: ComposeTimeoutException) {
@@ -87,7 +89,12 @@ class SalesScreenComposeTest {
                 false
             }
             val errorShown = exists("Unable to save locally", substring = true)
-            val saveStillThere = exists("Save")
+            val saveStillThere = try {
+                compose.onAllNodesWithTag("salesSaveButton").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
             val backInList = exists("New quotation")
             throw AssertionError(
                 "Save timed out: orders=${fake.orders.value.size}, " +

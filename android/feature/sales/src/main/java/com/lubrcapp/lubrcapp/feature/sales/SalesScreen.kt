@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -318,7 +319,11 @@ private fun DocumentEditor(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onSave, enabled = !saving && form.isValid) {
+                Button(
+                    onClick = onSave,
+                    enabled = !saving && form.isValid,
+                    modifier = Modifier.testTag("salesSaveButton"),
+                ) {
                     Text(if (saving) stringResource(R.string.sales_saving) else stringResource(R.string.sales_save))
                 }
                 Button(onClick = onCancel, enabled = !saving) {
