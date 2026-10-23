@@ -43,6 +43,7 @@ object ItemJson {
             item.categoryId?.let { put("categoryId", it) }
             item.brandId?.let { put("brandId", it) }
             item.unit?.let { put("unit", it) }
+            item.unitId?.let { put("unitId", it) }
             item.purchaseRate?.let { put("purchaseRate", it.toPlainString()) }
             item.saleRate?.let { put("saleRate", it.toPlainString()) }
             item.wholesaleRate?.let { put("wholesaleRate", it.toPlainString()) }
@@ -74,6 +75,7 @@ object ItemJson {
             categoryId = root.string("categoryId"),
             brandId = root.string("brandId"),
             unit = root.string("unit"),
+            unitId = root.string("unitId"),
             purchaseRate = root.decimal("purchaseRate"),
             saleRate = root.decimal("saleRate"),
             wholesaleRate = root.decimal("wholesaleRate"),

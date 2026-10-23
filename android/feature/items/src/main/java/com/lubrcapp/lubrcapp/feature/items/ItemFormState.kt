@@ -18,6 +18,10 @@ import java.math.BigDecimal
  * through edits untouched, exactly as the party form carried its
  * group link before the group picker existed.
  *
+ * Phase 16.1 adds [unitId]: the item form's unit picker sets it,
+ * while the free-text [unit] name stays editable for records that
+ * predate the unit entity.
+ *
  * Package 15.4 adds the §22 image references, edited as plain text:
  * the main image URI in its own field, additional URIs one per line
  * in [additionalImagesText] (blank lines are dropped on save).
@@ -30,6 +34,7 @@ class ItemFormState {
     var categoryId by mutableStateOf<String?>(null)
     var brandId by mutableStateOf<String?>(null)
     var unit by mutableStateOf("")
+    var unitId by mutableStateOf<String?>(null)
     var purchaseRate by mutableStateOf("")
     var saleRate by mutableStateOf("")
     var wholesaleRate by mutableStateOf("")
@@ -56,6 +61,7 @@ class ItemFormState {
         categoryId = item.categoryId
         brandId = item.brandId
         unit = item.unit.orEmpty()
+        unitId = item.unitId
         purchaseRate = item.purchaseRate?.toPlainString().orEmpty()
         saleRate = item.saleRate?.toPlainString().orEmpty()
         wholesaleRate = item.wholesaleRate?.toPlainString().orEmpty()
@@ -91,6 +97,7 @@ class ItemFormState {
             categoryId = categoryId,
             brandId = brandId,
             unit = unit.trimmedOrNull(),
+            unitId = unitId,
             purchaseRate = purchase.value,
             saleRate = sale.value,
             wholesaleRate = wholesale.value,

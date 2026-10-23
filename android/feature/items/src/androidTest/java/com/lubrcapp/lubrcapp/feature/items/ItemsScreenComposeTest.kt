@@ -258,4 +258,61 @@ class ItemsScreenComposeTest {
             catch (_: AssertionError) { false }
         }
     }
+
+    @Test fun unitLifecycleAssignAndOrphanAfterDelete() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        // Create a unit from the suggested §25 names.
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("No units yet").assertIsDisplayed()
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Carton").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 1 }
+        compose.onNodeWithText("Back").performClick()
+        // Assign it to an item through the form's unit picker.
+        openForm()
+        compose.onNodeWithText("Item name").performTextInput("Oil Carton")
+        compose.onNodeWithText("Carton").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.records.value.size == 1 }
+        compose.onNodeWithText("Unit: Carton").assertIsDisplayed()
+        // The unit counts the item; deleting it leaves the link unresolved.
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("Items: 1").assertIsDisplayed()
+        compose.onNodeWithText("Delete Carton").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Delete unit?").fetchSemanticsNodes().size == 2 }
+        compose.onAllNodesWithText("Delete unit?")[1].performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.isEmpty() }
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Unit: —").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
+    }
+
+    @Test fun conversionLifecycleShowsInUnitsMode() {
+        val fake = FakeRepository()
+        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.onNodeWithText("Units").performClick()
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Carton").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 1 }
+        compose.onNodeWithText("Add unit").performClick()
+        compose.onNodeWithText("Bottle").performClick()
+        compose.onNodeWithText("Save unit").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("units").value.size == 2 }
+        // From = Carton (first list), To = Bottle (second list).
+        compose.onNodeWithText("Add conversion").performClick()
+        compose.onAllNodesWithText("Carton")[0].performClick()
+        compose.onAllNodesWithText("Bottle")[1].performClick()
+        compose.onNodeWithText("Factor").performTextInput("12")
+        compose.onNodeWithText("Save conversion").performScrollTo().performClick()
+        compose.waitUntil(5000) { fake.flow("unit_conversions").value.size == 1 }
+        compose.onNodeWithText("Carton → Bottle: ×12").assertIsDisplayed()
+        compose.runOnIdle {
+            val record = fake.flow("unit_conversions").value.single()
+            val saved = UnitConversionJson.decode(record.id, record.json)
+            assertEquals(BigDecimal("12"), saved.factor)
+        }
+    }
 }

@@ -77,4 +77,39 @@ class ItemsViewModel @Inject constructor(
     /** Brands are nonfinancial master data: soft-delete by tombstone, like items. */
     suspend fun deleteBrand(scope: OperationalScope, id: String) =
         repository.delete(scope, "brands", id)
+
+    // Phase 16.1 — units (§25) and conversions as their own record
+    // types in the same store. Deleting a unit uses the same
+    // tombstone path and never touches the items or conversions
+    // that link to it: their ids stay and render unresolved.
+
+    /** Typed units: every record decoded through [ItemUnitJson]. */
+    fun observeUnits(scope: OperationalScope): Flow<List<ItemUnit>> =
+        repository.observe(scope, "units")
+            .map { records -> records.map { ItemUnitJson.decode(it.id, it.json) } }
+
+    suspend fun loadUnits(scope: OperationalScope): List<ItemUnit> =
+        repository.list(scope, "units").map { ItemUnitJson.decode(it.id, it.json) }
+
+    suspend fun saveUnit(scope: OperationalScope, unit: ItemUnit, revision: Long = 0) =
+        repository.save(scope, "units", unit.id, ItemUnitJson.encode(unit), revision)
+
+    /** Units are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteUnit(scope: OperationalScope, id: String) =
+        repository.delete(scope, "units", id)
+
+    /** Typed conversions: every record decoded through [UnitConversionJson]. */
+    fun observeConversions(scope: OperationalScope): Flow<List<UnitConversion>> =
+        repository.observe(scope, "unit_conversions")
+            .map { records -> records.map { UnitConversionJson.decode(it.id, it.json) } }
+
+    suspend fun loadConversions(scope: OperationalScope): List<UnitConversion> =
+        repository.list(scope, "unit_conversions").map { UnitConversionJson.decode(it.id, it.json) }
+
+    suspend fun saveConversion(scope: OperationalScope, conversion: UnitConversion, revision: Long = 0) =
+        repository.save(scope, "unit_conversions", conversion.id, UnitConversionJson.encode(conversion), revision)
+
+    /** Conversions are nonfinancial master data: soft-delete by tombstone, like items. */
+    suspend fun deleteConversion(scope: OperationalScope, id: String) =
+        repository.delete(scope, "unit_conversions", id)
 }

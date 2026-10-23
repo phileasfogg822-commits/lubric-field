@@ -39,9 +39,10 @@ import kotlinx.coroutines.launch
 /**
  * Offline-first item master data (spec §20/§21/§26), always scoped to
  * the active business. Modes: the item list (name, type, category,
- * brand, sale rate, opening stock), the full §20 form (with §23/§24
- * category and brand pickers), and the category/brand management
- * modes in ItemCatalog.kt. All reads/writes go through the
+ * brand, unit, sale rate, opening stock), the full §20 form (with
+ * §23/§24 category and brand pickers and the §25 unit picker), the
+ * category/brand management modes in ItemCatalog.kt, and the
+ * units/conversions mode in ItemUnits.kt. All reads/writes go through the
  * ViewModel's typed surface; the store stays the Phase 12 "products"
  * table with its tombstone delete semantics. Opening stock is a
  * stored quantity only — the inventory ledger is Phase 19.
@@ -58,10 +59,15 @@ fun ItemsScreen(
         .collectAsState(initial = emptyList())
     val brands by remember(viewModel, scope) { viewModel.observeBrands(scope) }
         .collectAsState(initial = emptyList())
+    val units by remember(viewModel, scope) { viewModel.observeUnits(scope) }
+        .collectAsState(initial = emptyList())
+    val conversions by remember(viewModel, scope) { viewModel.observeConversions(scope) }
+        .collectAsState(initial = emptyList())
     val form = remember(scope) { ItemFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
     var categoriesOpen by remember(scope) { mutableStateOf(false) }
     var brandsOpen by remember(scope) { mutableStateOf(false) }
+    var unitsOpen by remember(scope) { mutableStateOf(false) }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -76,6 +82,7 @@ fun ItemsScreen(
             form = form,
             categories = categories,
             brands = brands,
+            units = units,
             isEditing = editingId != null,
             saving = saving,
             formError = formError,
@@ -119,6 +126,15 @@ fun ItemsScreen(
             viewModel = viewModel,
             onBack = { brandsOpen = false },
         )
+    } else if (unitsOpen) {
+        ItemUnitsMode(
+            scope = scope,
+            items = items,
+            units = units,
+            conversions = conversions,
+            viewModel = viewModel,
+            onBack = { unitsOpen = false },
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -139,6 +155,10 @@ fun ItemsScreen(
                     enabled = !saving,
                     onClick = { brandsOpen = true },
                 ) { Text(stringResource(R.string.items_brands)) }
+                Button(
+                    enabled = !saving,
+                    onClick = { unitsOpen = true },
+                ) { Text(stringResource(R.string.items_units)) }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (items.isEmpty()) {
@@ -164,6 +184,20 @@ fun ItemsScreen(
                                     R.string.items_brand_line,
                                     brands.firstOrNull { it.id == brandId }?.name ?: "—",
                                 ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        item.unitId?.let { unitId ->
+                            Text(
+                                stringResource(
+                                    R.string.items_unit_line,
+                                    units.firstOrNull { it.id == unitId }?.name ?: "—",
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        } ?: item.unit?.let { unitName ->
+                            Text(
+                                stringResource(R.string.items_unit_line, unitName),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -234,6 +268,7 @@ private fun ItemForm(
     form: ItemFormState,
     categories: List<ItemCategory>,
     brands: List<Brand>,
+    units: List<ItemUnit>,
     isEditing: Boolean,
     saving: Boolean,
     formError: Boolean,
@@ -311,7 +346,30 @@ private fun ItemForm(
         }
         ItemTextField(form.sku, { form.sku = it }, R.string.items_sku)
         ItemTextField(form.barcode, { form.barcode = it }, R.string.items_barcode)
-        ItemTextField(form.unit, { form.unit = it }, R.string.items_unit)
+        Text(stringResource(R.string.items_unit), style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth().selectable(
+                selected = form.unitId == null,
+                onClick = { form.unitId = null },
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = form.unitId == null, onClick = { form.unitId = null })
+            Text(stringResource(R.string.items_unit_none))
+        }
+        units.forEach { unit ->
+            Row(
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.unitId == unit.id,
+                    onClick = { form.unitId = unit.id },
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = form.unitId == unit.id, onClick = { form.unitId = unit.id })
+                Text(unit.name)
+            }
+        }
+        ItemTextField(form.unit, { form.unit = it }, R.string.items_unit_free_text)
         ItemTextField(form.purchaseRate, { form.purchaseRate = it }, R.string.items_purchase_rate, KeyboardType.Decimal)
         ItemTextField(form.saleRate, { form.saleRate = it }, R.string.items_sale_rate, KeyboardType.Decimal)
         ItemTextField(form.wholesaleRate, { form.wholesaleRate = it }, R.string.items_wholesale_rate, KeyboardType.Decimal)

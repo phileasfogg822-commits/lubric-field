@@ -58,3 +58,64 @@ phase by decision (likely Phase 19 stock ops).
   honestly in this package.
 - **16.6** Phase gate: evidence sweep + close-out + Phase 17
   prep.
+
+## Package 16.1 — units + conversions — PENDING CI
+
+What was wired:
+
+- **New record types in the operational store**: `ItemUnit` (id,
+  name) as "units" and `UnitConversion` (id, fromUnitId, toUnitId,
+  factor as `BigDecimal`) as "unit_conversions", each with a
+  tolerant codec on the established pattern (`ItemUnitJson` /
+  `UnitConversionJson`). The entity is named ItemUnit so it never
+  shadows `kotlin.Unit` in this package. §25's names (Piece /
+  Bottle / Liter / Carton / Box / Dozen / Kg / Meter) ship as
+  `SUGGESTED_UNIT_NAMES` quick picks in the form — a convenience,
+  not an enum.
+- **Conversion factor semantics**: the factor states how many
+  to-units make one from-unit (1 Carton = 12 Bottles is
+  Carton → Bottle, factor 12). A missing/unreadable stored factor
+  decodes as a zero sentinel; the rule below never converts with
+  a non-positive factor, and the form only saves factors > 0.
+- **New** `UnitConversionMath`: the pure one-hop rule — same unit
+  returns the amount; a direct record multiplies; the same record
+  read backwards divides (10 decimal places, HALF_UP, trailing
+  zeros stripped); anything else returns null. No chaining
+  through a third unit, ever — a missing path is shown as "no
+  conversion", never guessed.
+- **`Item` gains `unitId`** beside the legacy free-text `unit`;
+  the codec round-trips it and pre-16.1 payloads decode with a
+  null unitId. `ItemFormState` carries it; the item form gains a
+  unit picker (the free-text field stays for old records), and
+  the list shows "Unit: X" — the resolved unit name, else the
+  free-text name, else "—" for a dangling link.
+- **ViewModel surface**: observe/load/save/delete for both
+  tables through the same tombstone delete path; **new**
+  `ItemUnitsMode` (ItemUnits.kt) manages units and conversions
+  with item counts, from/to pickers, and orphan-worded delete
+  dialogs, reached from a Units button on the items screen.
+
+Tests:
+
+- **New** `ItemUnitsJsonTest` (6): unit + conversion round-trips;
+  factor as JSON number and with precision; bad/missing factor →
+  zero sentinel; `Item.unitId` round-trips and legacy payloads
+  decode without it.
+- **New** `UnitConversionMathTest` (7): same-unit, direct,
+  inverse exact, inverse precision, missing path → null,
+  non-positive factor → null both directions, no chaining.
+- **New** `ItemUnitsFormStatesTest` (6): name trim; valid build;
+  same-unit, unpicked-side and bad-factor rejections; load drops
+  the zero sentinel and blank ids.
+- **New** `ItemsViewModelUnitsTest` (3): CRUD on the "units" and
+  "unit_conversions" tables through the codecs; legacy payload.
+- **Compose** +2: unit lifecycle (create from a suggested name,
+  assign via the picker, count, delete → "Unit: —") and
+  conversion lifecycle (two units, Carton → Bottle ×12 saved
+  through the codec and shown in the units mode).
+
+Local evidence: escaped-quote grep = 0, braces balanced, strings
+cross-checked against every R.string reference, and strings.xml
+parses on the staged package (re-verified after integration).
+First verification is CI, as before — the trio fires when the
+Phase 16 draft PR is created.
