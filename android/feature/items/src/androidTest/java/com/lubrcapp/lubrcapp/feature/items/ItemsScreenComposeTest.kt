@@ -10,7 +10,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
@@ -429,15 +428,11 @@ class ItemsScreenComposeTest {
         // Exact barcode: only the barcoded item remains.
         compose.onNodeWithText("Search name or barcode").performTextInput("8901234567890")
         compose.onNodeWithText("Engine Oil").assertIsDisplayed()
-        compose.runOnIdle {
-            assertEquals(0, compose.onAllNodesWithText("Oil Filter").fetchSemanticsNodes().size)
-        }
+        compose.onAllNodesWithText("Oil Filter").assertCountEquals(0)
         // Name fragment: only the matching item remains.
         compose.onNodeWithText("Search name or barcode").performTextReplacement("filter")
         compose.onNodeWithText("Oil Filter").assertIsDisplayed()
-        compose.runOnIdle {
-            assertEquals(0, compose.onAllNodesWithText("Engine Oil").fetchSemanticsNodes().size)
-        }
+        compose.onAllNodesWithText("Engine Oil").assertCountEquals(0)
         // No match at all: the empty-search line shows.
         compose.onNodeWithText("Search name or barcode").performTextReplacement("brake pads")
         compose.onNodeWithText("No items match").assertIsDisplayed()
