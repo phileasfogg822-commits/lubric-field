@@ -135,7 +135,44 @@ success. 18.2 ACCEPTED.
 
 ## Package 18.3 — Numbering wiring
 
-Status: NOT STARTED.
+Status: ACCEPTED on `2d796b2`.
+
+The first consumer of the 17.2 contract. `NumberingRecord`
+persists one sequence's configuration + counter as a
+"numbering_sequences" record whose id is the document-type
+key, bridging to `NumberingSequence` / `NumberingState`;
+`NumberingRecordJson` is the tolerant codec; the §51 defaults
+(QT- / SO-, yearly reset, padding 5, start 1) apply until a
+stored record exists. The ViewModel's `issueDocumentNumber`
+assigns a number ONCE — a numbered document keeps its number
+and the counter does not move — and advances + persists the
+counter in the same call. Stated in the code, again:
+"numbering_sequences" is NOT in the sync whitelist, so
+counters are local-only (Phase 30 owns cross-device
+uniqueness). Gradle: + `:domain:business`.
+
+Failure history, recorded honestly: the first head `2a89903`
+failed all three workflows — a compile error in the glue
+(`DocumentNumbering.issue` returns a `Pair<NumberingState,
+String>`; the glue read `.state` / `.formatted` members that
+do not exist; log-verified as unresolved references at
+SalesViewModel.kt:93–94, no test ever ran). Fixed at
+`2d796b2` by destructuring the Pair; the acceptance below is
+on the fix head.
+
+Tests (4): codec round-trip + §51 defaults; per-type counters
+(QT-2026-00001 / …02, SO-2026-00001, stored state verified);
+the already-numbered no-op (no record written); a customised
+stored record (EST, padding 3, reset NEVER) driving the
+format ("EST-001"). Local evidence: staged files
+brace/paren balanced, zero escaped quotes; no local
+JVM/Android SDK, CI is the compiler.
+
+Verification (GitHub Actions on exact head `2d796b2`, PR #27):
+Native Android CI run 39999373290 — completed success;
+Compose UI Emulator Tests run 39999373285 — completed success;
+Phase 12 Segmented Verification run 39999373355 — completed
+success. 18.3 ACCEPTED.
 
 ## Package 18.4 — Quotation / order screens
 
