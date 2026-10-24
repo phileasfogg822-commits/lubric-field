@@ -151,7 +151,62 @@ serial flip 2 — gate recount).
 
 ## Package 21.4 — Returns + credit notes
 
-Status: NOT STARTED.
+Status: ACCEPTED on `71e9e4c` (fix head; package head `7efb6bd`
+failed all three workflows on a compile error, see below).
+
+Record keys, same reuse as invoices: new `SalesDocumentType`
+values SALES_RETURN (prefix SR) and CREDIT_NOTE (prefix CN)
+on whitelisted "orders"/"order_items" — codec unchanged
+(enum-name serialization), numbering branches added to the
+exhaustive `DocumentNumberDefaults.recordFor`, type-filtered
+ViewModel surfaces `observeReturns`/`loadReturns`/
+`observeCreditNotes`/`loadCreditNotes` mirroring invoices.
+
+Return posting builder: `SalesReturnPosting.returnToPosting`
+(SALES_RETURN) and `creditNoteToPosting` (CREDIT_NOTE)
+share one core. The journal swaps sides with positive
+amounts instead of negating invoice lines: Dr Revenue =
+grandTotal − taxTotal, Dr Tax = taxTotal (only with a tax
+account; without one the tax folds into revenue), Cr
+Receivable = grandTotal; zero-total documents post an
+empty journal. A return restores stock with IN movements;
+a credit note is financial only and posts none. The party
+effect is RECEIVABLE with a negative amount (the balance
+falls); nothing persists party effects yet — 20.2's
+postDocument does not write party_ledger rows — so the
+negative amount is safe until Phase 22's ledger. Refund
+settlement (§64 Refund Mode) is Phase 22's payments work:
+21.4 records the documents and postings, not the refund.
+
+Invoice → return conversion: `invoiceToReturn` converts
+only SENT, PAID, PARTIALLY_PAID, or OVERDUE invoices (DRAFT
+sold nothing, CANCELLED is dead) into an unnumbered DRAFT
+return copying party, dates, notes, and lines. Deliberately
+unlike 21.2, the invoice gains no forward link: one invoice
+takes many partial returns, so no single link can name
+them. Serial flip back: pure `flipSerialsToStock`
+(SOLD → IN_STOCK, per item, one per distinct number) and
+`InventoryViewModel.markSerialsReturned` persisting only
+flipped records; a damaged return goes through the
+existing write-off, not here.
+
+Verification (GitHub Actions on exact head `71e9e4c`,
+PR #30): Native Android CI run 40090823906 — completed
+success; Compose UI Emulator Tests run 40090823897 —
+completed success; Phase 12 Segmented Verification run
+40090823894 — completed success. 21.4 ACCEPTED.
+
+Failure history: package head `7efb6bd` failed all three
+(Native 40090474410, Compose 40090474389, Segmented
+40090474388) on one compile error — `invoiceToReturn`
+uses `SalesStatus` without importing it. Fix at `71e9e4c`:
+the import. Lesson, second in a row: staging misses are
+type-resolution misses, which the local static checks
+cannot catch — CI is the compiler here.
+
+Tests: 9 new (posting 4, conversion 2, type filters 1,
+serial flip 2 — gate recount; the SR/CN prefix assertions
+extend an existing numbering test rather than adding one).
 
 ## Package 21.5 — Screens
 
