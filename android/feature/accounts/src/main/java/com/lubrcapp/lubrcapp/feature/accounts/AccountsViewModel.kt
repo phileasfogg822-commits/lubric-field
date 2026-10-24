@@ -4,7 +4,17 @@ import androidx.lifecycle.ViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.accounting.CreditCheck
+import com.lubrcapp.lubrcapp.domain.accounting.DocumentPosting
+import com.lubrcapp.lubrcapp.domain.accounting.PostingEngine
+import com.lubrcapp.lubrcapp.domain.accounting.PostingResult
+import com.lubrcapp.lubrcapp.domain.accounting.PostingViolation
+import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.TenantId
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -65,4 +75,79 @@ class AccountsViewModel @Inject constructor(
     // erasure (Phase 19.6 lesson).
     private fun List<JournalEntryRecord>.sortedJournalEntriesForDisplay(): List<JournalEntryRecord> =
         sortedWith(compareBy({ it.date }, { it.createdAt }, { it.id }))
+
+    // Phase 20.2 — document posting: engine gate, then the
+    // journal record + transaction rows are saved together.
+
+    /** The outcome of posting a document through the engine. */
+    sealed class DocumentPostResult {
+        /** The saved entry and its transaction rows. */
+        data class Posted(
+            val entry: JournalEntryRecord,
+            val transactions: List<AccountTransactionRecord>,
+        ) : DocumentPostResult()
+
+        /** The engine rejected the posting; nothing was saved. */
+        data class Rejected(val violations: List<PostingViolation>) : DocumentPostResult()
+    }
+
+    /**
+     * Post a document: the engine validates (totals, balance,
+     * one-sided lines, §18 credit) and builds the entry; this
+     * layer then saves the journal record AND one
+     * `account_transactions` row per line. Entry and row ids
+     * derive from the transaction id, so re-posting the same
+     * document overwrites the same records instead of
+     * duplicating them. On rejection nothing is saved.
+     */
+    suspend fun postDocument(
+        scope: OperationalScope,
+        posting: DocumentPosting,
+        date: LocalDate,
+        description: String = "${posting.documentType} ${posting.documentNumber}",
+        now: Instant,
+        deviceId: DeviceId,
+        creditCheck: CreditCheck? = null,
+    ): DocumentPostResult {
+        val result = PostingEngine.post(
+            posting = posting,
+            tenantId = TenantId(scope.tenantId),
+            businessId = BusinessId(scope.businessId),
+            date = date,
+            description = description,
+            now = now,
+            deviceId = deviceId,
+            creditCheck = creditCheck,
+        )
+        if (result is PostingResult.Rejected) return DocumentPostResult.Rejected(result.violations)
+        val domainEntry = (result as PostingResult.Posted).entry
+        val entry = JournalEntryRecord(
+            id = domainEntry.id.value,
+            date = domainEntry.date.toString(),
+            description = domainEntry.description,
+            referenceNumber = domainEntry.referenceNumber,
+            lines = domainEntry.lines.map { line ->
+                JournalLineRecord(
+                    accountId = line.accountId.value,
+                    debit = line.debit.amount,
+                    credit = line.credit.amount,
+                    memo = line.memo,
+                )
+            },
+            createdAt = now.toString(),
+        )
+        val transactions = AccountTransactionRecord.fromEntry(entry)
+        saveJournalEntry(scope, entry)
+        transactions.forEach { row ->
+            repository.save(scope, "account_transactions", row.id, AccountTransactionJson.encode(row))
+        }
+        return DocumentPostResult.Posted(entry, transactions)
+    }
+
+    /** Transaction rows for an entry, ledger-sorted by id (stable line order). */
+    suspend fun loadTransactionsForEntry(scope: OperationalScope, entryId: String): List<AccountTransactionRecord> =
+        repository.list(scope, "account_transactions")
+            .map { AccountTransactionJson.decode(it.id, it.json) }
+            .filter { it.entryId == entryId }
+            .sortedBy { it.id }
 }
