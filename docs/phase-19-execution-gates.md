@@ -86,7 +86,13 @@ Verification (GitHub Actions on exact head `93b0e97`, PR #28): Native Android CI
 
 ## Package 19.3 — Inventory screens
 
-Status: NOT STARTED.
+Status: ACCEPTED on `2968f8c`.
+
+The typed §31 inventory screen replaces the raw org.json Phase 12 screen (signature kept for `AppModuleRegistry`). `InventoryReferenceData` reads "products" tolerantly into `ItemStockOption` (name fallback to id, purchaseRate, openingStock) plus named options for "warehouses" / "categories" / "brands" — feature/inventory deliberately does not depend on feature/items. `StockLevelsRecord` + `StockLevelsJson` over "stock_levels" (local-only, not whitelisted): the §33 levels home is its own record keyed by itemId, since the stored Item record carries no min/reorder/max/active fields. `InventorySummaryBuilder` builds rows through the 19.2 `StockLedger` — total balance, or the single selected warehouse's dimension when filtered (opening excluded there); value = balance × purchaseRate, null when no rate. Summary cards: total value (Σ of row values), item count, low-stock count (LOW_STOCK rows only); rows sorted by lowercase name. Filters: status / warehouse / category / brand chips. Item detail shows the balance, §32 status, the movement history, and the §33 levels editor — its Save button sits in a fixed area outside the LazyColumn (the 18.4 stale-handler lesson). `ItemDetail` is a `ColumnScope` extension so `Modifier.weight(1f)` compiles.
+
+Tests (7): InventorySummaryTest (5 — row balance incl. opening, warehouse-dimension balance, value null without a rate, low-stock counting, name sort); InventoryScreenTest (2 Compose — seeded product + SALE movement renders "Engine Oil · 45 · In stock" and the value card "Inventory value: 4500"; detail shows "Balance: 45" and the movement history line).
+
+Verification (GitHub Actions on exact head `2968f8c`, PR #28): Native Android CI run 40050183827 — completed success; Compose UI Emulator Tests run 40050183810 — completed success; Phase 12 Segmented Verification run 40050183865 — completed success. 19.3 ACCEPTED.
 
 ## Package 19.4 — Adjustments + stock count
 
