@@ -44,7 +44,41 @@ typing in scrolling containers, distinct helper names).
 
 ## Package 20.1 — Journal model + codec
 
-Status: NOT STARTED.
+Status: ACCEPTED on `dd686a1`.
+
+`JournalEntryRecord` (id, date, description, referenceNumber?,
+lines embedded, createdAt) + `JournalLineRecord` (accountId,
+debit/credit as plain BigDecimals, memo?) over
+"journal_entries" (local-only, not whitelisted); `isBalanced`
+(BigDecimal totals comparison) and `totalDebits` /
+`totalCredits` report balance without gating — the 20.2
+engine is the gate. `toDomainEntry(tenantId, businessId,
+currency, deviceId, now)` bridges to domain/accounting's
+`JournalEntry` (the 19.1 `toPostingMovement(currency)`
+pattern; line ids deterministic "<entryId>-<index>"). Tolerant
+`JournalEntryJson` codec (unknown/missing → defaults,
+unparseable payload → minimal record with id only, record id
+wins, unparseable amount → ZERO). ViewModel surface:
+`observeJournalEntries` / `loadJournalEntries` (sorted
+date+createdAt+id), `saveJournalEntry`, `postJournalEntry`
+(fresh UUID + timestamp). The `accounts` module gained
+`:domain:accounting` and `kotlinx-serialization-json:1.6.2`
+(the 19.1 dependency-diff lesson, applied before
+integrating). Existing raw accounts surface untouched.
+
+Tests (11): JournalEntryRecordTest (8 — balance math,
+unbalanced report, codec round-trip, garbage/unknown-field
+tolerance, unparseable-amount-as-ZERO + id-wins, domain
+bridge with caller currency, factory stamps) +
+AccountsJournalViewModelTest (3 — save/load round-trip on
+"journal_entries", post stamps fresh id + timestamp, sort by
+date/createdAt/id).
+
+Verification (GitHub Actions on exact head `dd686a1`,
+PR #29): Native Android CI run 40073023834 — completed
+success; Compose UI Emulator Tests run 40073023812 —
+completed success; Phase 12 Segmented Verification run
+40073023822 — completed success. 20.1 ACCEPTED.
 
 ## Package 20.2 — Posting engine
 
