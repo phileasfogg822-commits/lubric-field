@@ -76,7 +76,13 @@ Verification (GitHub Actions on exact head `facc961`, PR #28): Native Android CI
 
 ## Package 19.2 — Ledger engine
 
-Status: NOT STARTED.
+Status: ACCEPTED on `93b0e97`.
+
+`StockLedger` in domain/inventory (pure rules, no Gradle changes): `balances` grouped per (item, warehouse, batch) from signed `LedgerMovement`s, with the per-item opening constant applied to the warehouse-less, batch-less dimension only — never a fabricated OPENING movement, and the 16.4 stored batch quantity is never summed in. `totalFor` / `balanceFor` for the item total and one exact dimension. §32 `status` — INACTIVE (caller-flagged) first, then OUT_OF_STOCK at/below zero, OVERSTOCK above a set maximum, LOW_STOCK at/below the §33 minimum. §33 `needsReorder` at/below the reorder level, falling back to the minimum when no reorder level is set. §175 `checkNegative` takes the policy as an input (NEVER_ALLOW → BLOCKED, WARN → ALLOWED_WITH_WARNING, ALLOW → ALLOWED) — no behaviour is hard-coded.
+
+Tests (6): the §180 worked example (Opening +100, Purchase +20, Sale −5, Return +1, Adjustment −2 = 114), opening-constant placement, warehouse/batch split, §32 derivation incl. inactive and no-levels cases, reorder fallback, the policy matrix.
+
+Verification (GitHub Actions on exact head `93b0e97`, PR #28): Native Android CI run 40048747861 — completed success; Compose UI Emulator Tests run 40048747857 — completed success; Phase 12 Segmented Verification run 40048747863 — completed success. 19.2 ACCEPTED.
 
 ## Package 19.3 — Inventory screens
 
