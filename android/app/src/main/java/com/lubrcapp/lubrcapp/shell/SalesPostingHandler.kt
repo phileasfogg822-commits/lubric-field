@@ -124,12 +124,17 @@ object SalesPostingHandler {
                 .groupBy { it.itemId!! }
             for ((itemId, itemLines) in byItem) {
                 val numbers = itemLines.flatMap { it.serialNumbers }.distinct()
-                val flip = if (document.type == SalesDocumentType.INVOICE) {
-                    inventoryViewModel.markSerialsSold(scope, itemId, numbers)
+                // The two flip results are unrelated types that
+                // happen to share a `flipped` shape — an if/else
+                // over them resolves to Any and `.flipped` does
+                // not compile. Branch the call, not the value.
+                if (document.type == SalesDocumentType.INVOICE) {
+                    val flip = inventoryViewModel.markSerialsSold(scope, itemId, numbers)
+                    flipped += flip.flipped.map { it.serialNumber }
                 } else {
-                    inventoryViewModel.markSerialsReturned(scope, itemId, numbers)
+                    val flip = inventoryViewModel.markSerialsReturned(scope, itemId, numbers)
+                    flipped += flip.flipped.map { it.serialNumber }
                 }
-                flipped += flip.flipped.map { it.serialNumber }
             }
         }
         return SalesPostResult.Posted(document.number, flipped)
