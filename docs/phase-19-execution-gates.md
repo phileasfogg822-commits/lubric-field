@@ -96,7 +96,15 @@ Verification (GitHub Actions on exact head `2968f8c`, PR #28): Native Android CI
 
 ## Package 19.4 — Adjustments + stock count
 
-Status: NOT STARTED.
+Status: ACCEPTED on `e75cf9a`.
+
+`StockAdjustment.kt`: `StockAdjustmentKind` (OPENING_STOCK→OPENING, STOCK_IN→ADJUSTMENT_IN, STOCK_OUT/DAMAGE/EXPIRED/LOST→ADJUSTMENT_OUT, FOUND→ADJUSTMENT_IN, MANUAL_CORRECTION→null with direction chosen via `manualInbound`), `StockAdjustmentFormState` (valid ⇔ item chosen, quantity parses > 0, reason non-blank — the §36 requirement; optional attachmentUri), `AdjustmentResult` sealed (Posted(movement, warning) / BlockedByPolicy), `StockCountRow` (§37: variance = counted − expected; varianceMovementType null at zero/unparseable). `StockMovementRecord` + codec extended additively with optional `attachmentUri`; `postMovement` gained the parameter. ViewModel `postAdjustment(scope, form, policy = WARN)` and `postCountVariance(scope, itemId, variance, warehouseId, date, reason, policy = WARN)` share a private `postChecked`: for outbound types it loads movements + the item's opening, computes the balance of the exact dimension (total incl. opening when no warehouse), runs `StockLedger.checkNegative` (BLOCKED → BlockedByPolicy; warning flagged), then posts with referenceType "STOCK_ADJUSTMENT". Screens gained LIST/ADJUST/COUNT modes: Adjust mode = clickable item rows, kind chips, manual direction toggle, quantity/date/reason/attachment fields, warehouse radios, Post button outside any lazy container; Count mode = one reason field, per-item Expected text / Counted field / Variance text, per-row "Adjust stock" shown only when varianceMovementType != null.
+
+Tests (9): StockAdjustmentTest (6 unit — kind mapping, form validity incl. blank-reason rejection, postChecked posts signed movement, NEVER_ALLOW blocks outbound, count variance sign mapping, attachmentUri round-trip) + InventoryScreenComposeTest.adjustFlowPostsAMovement (clicks "Adjust stock", item row "Engine Oil", types Quantity 3 / Reason "Leaking cans", clicks "Post adjustment"; asserts "Adjustment posted" and saved quantity +3 with the reason — alongside the 19.3 tests still green).
+
+Failure history: first head `342a027` went Segmented-green but Compose failed on adjustFlowPostsAMovement with "Failed to perform text input"; fix head `19d1baf` (added performScrollTo) failed again in Compose — the scroll hypothesis disproved. Root cause proven from the run's compose-ui-emulator-reports artifact XML: `Action performScrollTo() failed ... could not find any node ... 'Quantity'` — LazyColumn does not compose below-fold items, so the adjust form's fields were absent from the semantics tree (recorded as a new AGENTS.md lesson). Real fix head `e75cf9a` converted the form container from LazyColumn to a vertically scrolling Column so every node stays composed.
+
+Verification (GitHub Actions on exact head `e75cf9a`, PR #28): Native Android CI run 40054664091 — completed success; Compose UI Emulator Tests run 40054664112 — completed success; Phase 12 Segmented Verification run 40054664101 — completed success. 19.4 ACCEPTED.
 
 ## Package 19.5 — Transfers
 
