@@ -123,11 +123,46 @@ No code change was made for the flake.
 
 ## Package 22.3 — Party ledger rows from posting effects
 
-Status: NOT STARTED.
+Status: ACCEPTED on `cf138d2` (2026-10-25). Trio green:
+Native 40124055752, Compose 40124055756, Segmented
+40124055758. 5 files, +514 (package head `74ed57c`)
+plus a test-only fix head `cf138d2` (+9/−1). 11 new
+tests (all in `PartyLedgerTest`).
 
-Includes the backfill decision for the 21.x postings that
-already happened — backfill, or an explicit decision not
-to.
+Contents: `PartyLedgerRecord` + tolerant `PartyLedgerJson`
+over `party_ledger` (whitelisted, INSERT_ONLY — the
+table 20.2 left unwritten); `AccountsViewModel.postDocument`
+now persists the posting's party effect in the same save
+(completing the job 20.2 left to Phase 22 — a posting
+without an effect records nothing, a rejection saves
+nothing); row id is the journal entry id
+(`je-<transactionId>`), so a re-post overwrites the
+same row; `PartyLedgerBalance` net-sums signed
+RECEIVABLE / PAYABLE amounts per party per currency,
+ignoring unknown direction text, and a negative net
+stays a credit balance instead of being clamped.
+
+Backfill decision: YES — backfill party_ledger rows
+for the 21.x postings already done, through this same
+writer, idempotent by transaction id (prep decision 5).
+The trigger / app-layer orchestration that finds the
+21.x postings and rebuilds their effects is NOT in
+22.3's core; it lands with 22.5's ledger surfaces.
+
+Failure history: package head `74ed57c` went 2/3 green
+(Segmented 40123162170, Compose 40123162257) with
+Native 40123162319 failing at step 15.3 on exactly 3
+tests, all in the new `PartyLedgerTest`, all test bugs
+— production code untouched: (1) the test helper built
+postings with a party effect but no party id, so the
+validator rightly rejected them (PARTY_EFFECT_MISMATCH)
+and no ledger row was saved — `postDocumentSavesLedgerRow`
+and `repostOverwritesSameLedgerRow` failed; (2) the
+`fromPostingMapsEffectAndIds` amount assertion used
+raw `BigDecimal.equals`, which is scale-sensitive
+against Money's normalized 1E+5. Fix head `cf138d2`
+sets the posting party from the effect and uses a
+compareTo amount assertion; nothing else changed.
 
 ## Package 22.4 — Refund settlement
 
