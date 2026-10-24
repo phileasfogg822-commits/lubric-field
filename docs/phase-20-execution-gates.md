@@ -137,7 +137,34 @@ completed success; Phase 12 Segmented Verification run
 
 ## Package 20.3 — Chart of Accounts
 
-Status: NOT STARTED.
+Status: ACCEPTED on `ece4a06`.
+
+`AccountRecord` (id, code, name, type §74, parentId?,
+isActive, createdAt) + tolerant `AccountJson` codec over
+"accounts" (sync-whitelisted master data, NOT insert-only —
+unlike the local-only journal entries). Documented codec
+migrations: a missing or unknown type decodes as
+OTHER_INCOME (the catch-all class), and a missing name
+falls back to the legacy Phase 12 "description" field, so
+pre-20.3 rows keep displaying. `toDomainAccount(tenantId,
+businessId, deviceId, now)` bridges to domain/accounting's
+`Account`. ViewModel surface: `observeAccounts` /
+`loadAccounts` (sorted code+name+id), `loadActiveAccounts`,
+`saveAccount`, `deactivateAccount` (master data is never
+deleted, so historical journal lines stay resolvable; no-op
+for an unknown id). The raw observe/load/save surface
+stays for the legacy screen until 20.4 replaces it.
+
+Tests (6): AccountRecordTest — codec round-trip,
+garbage/unknown-type tolerance, legacy-description name
+fallback, domain bridge, save/load/deactivate round-trip,
+sort by code then name.
+
+Verification (GitHub Actions on exact head `ece4a06`,
+PR #29): Native Android CI run 40076172375 — completed
+success; Compose UI Emulator Tests run 40076172374 —
+completed success; Phase 12 Segmented Verification run
+40076172393 — completed success. 20.3 ACCEPTED.
 
 ## Package 20.4 — Screens
 
