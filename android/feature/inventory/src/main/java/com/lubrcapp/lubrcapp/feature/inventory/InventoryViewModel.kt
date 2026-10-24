@@ -451,4 +451,19 @@ class InventoryViewModel @Inject constructor(
         saveSerial(scope, updated)
         return updated
     }
+
+    /**
+     * The 21.3 sale posting flip: IN_STOCK → SOLD for the named
+     * serial numbers of one item, through saveSerial the way
+     * removeSerial writes off. Only flipped records are saved.
+     */
+    suspend fun markSerialsSold(
+        scope: OperationalScope,
+        itemId: String,
+        serialNumbers: List<String>,
+    ): FlipSoldResult {
+        val result = flipSerialsToSold(loadSerials(scope), itemId, serialNumbers)
+        result.flipped.forEach { saveSerial(scope, it) }
+        return result
+    }
 }

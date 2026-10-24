@@ -92,4 +92,34 @@ class StockSerialTest {
         assertEquals(2, all.size)
         assertEquals(1, all.count { it.status == SerialStatus.IN_STOCK })
     }
+
+    @Test
+    fun flipSoldFlipsOnlyMatchingInStockSerials() {
+        val serials = listOf(
+            StockSerialRecord(id = "s-1", itemId = "tv", serialNumber = "SN1"),
+            StockSerialRecord(id = "s-2", itemId = "tv", serialNumber = "SN2"),
+            StockSerialRecord(id = "s-3", itemId = "tv", serialNumber = "SN3", status = SerialStatus.SOLD),
+            StockSerialRecord(id = "s-4", itemId = "radio", serialNumber = "SN1"),
+        )
+        val result = flipSerialsToSold(serials, "tv", listOf("SN1", "SN3", "SN9", "SN1"))
+        assertEquals(listOf("SN1"), result.flipped.map { it.serialNumber })
+        assertEquals(SerialStatus.SOLD, result.updatedSerials.first { it.id == "s-1" }.status)
+        assertEquals(SerialStatus.IN_STOCK, result.updatedSerials.first { it.id == "s-2" }.status)
+        assertEquals(listOf("SN3", "SN9"), result.notFlippedNumbers)
+        // The radio's SN1 is untouched: matching is per item.
+        assertEquals(SerialStatus.IN_STOCK, result.updatedSerials.first { it.id == "s-4" }.status)
+    }
+
+    @Test
+    fun markSerialsSoldPersistsOnlyFlippedRecords() = runBlocking {
+        val vm = InventoryViewModel(FakeRepository())
+        vm.addSerial(scope, "tv", "SN1")
+        vm.addSerial(scope, "tv", "SN2")
+        val result = vm.markSerialsSold(scope, "tv", listOf("SN1", "SN9"))
+        assertEquals(1, result.flipped.size)
+        assertEquals(listOf("SN9"), result.notFlippedNumbers)
+        val all = vm.loadSerialsForItem(scope, "tv")
+        assertEquals(SerialStatus.SOLD, all.first { it.serialNumber == "SN1" }.status)
+        assertEquals(SerialStatus.IN_STOCK, all.first { it.serialNumber == "SN2" }.status)
+    }
 }

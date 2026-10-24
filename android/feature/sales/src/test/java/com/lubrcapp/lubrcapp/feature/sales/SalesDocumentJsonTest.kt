@@ -86,6 +86,30 @@ class SalesDocumentJsonTest {
     }
 
     @Test
+    fun lineSerialNumbersRoundTripAndTolerateMissing() {
+        val line = SalesDocumentLine(
+            id = "line-1",
+            orderId = "doc-1",
+            quantity = BigDecimal("1"),
+            rate = BigDecimal("100"),
+            serialNumbers = listOf("SN1", "SN2"),
+        )
+        assertEquals(line, SalesDocumentLineJson.decode("line-1", SalesDocumentLineJson.encode(line)))
+
+        val missing = SalesDocumentLineJson.decode(
+            "line-1",
+            """{"orderId":"doc-1","quantity":"1","rate":"100"}""",
+        )
+        assertEquals(emptyList<String>(), missing.serialNumbers)
+
+        val nonArray = SalesDocumentLineJson.decode("line-1", """{"serialNumbers":"SN1"}""")
+        assertEquals(emptyList<String>(), nonArray.serialNumbers)
+
+        val blanks = SalesDocumentLineJson.decode("line-1", """{"serialNumbers":["SN1","","SN2"]}""")
+        assertEquals(listOf("SN1", "SN2"), blanks.serialNumbers)
+    }
+
+    @Test
     fun lineDecodeAcceptsJsonNumbersAndDropsDamagedTaxComponents() {
         val decoded = SalesDocumentLineJson.decode(
             "line-9",

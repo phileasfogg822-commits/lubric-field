@@ -70,4 +70,6 @@ data class SalesDocumentLine(
     val batchId: String? = null,
     /** §44 fulfilment state; the rules over it land in 18.2. */
     val fulfilledQuantity: BigDecimal = BigDecimal.ZERO,
+    /** Serial numbers sold on this line (§30); picked at sale time, flipped SOLD by 21.3. */
+    val serialNumbers: List<String> = emptyList(),
 )
