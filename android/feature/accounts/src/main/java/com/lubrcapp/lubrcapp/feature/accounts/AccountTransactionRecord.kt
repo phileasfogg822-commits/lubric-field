@@ -25,8 +25,8 @@ import java.math.BigDecimal
 data class AccountTransactionRecord(
     val id: String,
     /** The journal entry this row belongs to. */
-    val entryId: String,
-    val accountId: String,
+    val entryId: String = "",
+    val accountId: String = "",
     val debit: BigDecimal = BigDecimal.ZERO,
     val credit: BigDecimal = BigDecimal.ZERO,
     /** ISO date text as entered (yyyy-MM-dd); no calendar math in this layer. */
