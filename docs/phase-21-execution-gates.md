@@ -19,17 +19,46 @@ domain/sales `Sales.kt` (`SalesInvoice`, `SalesInvoiceLine`,
 CANCELLED), Phase 17 numbering/totals/posting contract,
 Phase 18 `DocumentStatus` fulfilment rules, Phase 19 ledger.
 
-Open pins (resolve before package 21.1): invoice record key
-(reuse whitelisted "orders"/"order_items" or a new key —
-whitelists are NOT edited inside a feature phase, so a new
-key stays local-only unless already whitelisted); returns /
-credit-notes record keys + whitelist status; fulfilment
-state machine vs `SalesStatus`; credit-note posting through
-the 20.2 engine (validator acceptance on negative amounts).
+Open pins (resolved at 21.1): invoice record key = REUSE
+whitelisted "orders"/"order_items" — an invoice is an
+"orders" record with type INVOICE, so invoices sync with no
+whitelist edit; returns / credit-notes record keys decided
+at 21.4 (same reuse logic applies); fulfilment state
+machine vs `SalesStatus` = SPLIT AXES — payment lifecycle
+on the header, delivery derived from lines via the §44
+rules (21.2); credit-note validator acceptance checked at
+21.4.
 
 ## Package 21.1 — Invoice model + codec
 
-Status: NOT STARTED.
+Status: ACCEPTED on `51ee332`.
+
+Pin resolved: invoices are "orders" records with a new
+`SalesDocumentType.INVOICE` value — same whitelisted
+table, same lines table, same numbering/conversion-link
+machinery. The codec needed no change (enum-name
+serialization + the existing unknown-type → SALES_ORDER
+fallback). The one compile risk the pin caught: the
+numbering defaults use an exhaustive `when` over the
+document type, so it gained an INVOICE branch with prefix
+"INV" (matching the 17.2 "INV-2026-00001" pattern) —
+without it the build would have failed.
+
+ViewModel surface: `observeInvoices` / `loadInvoices`
+(type-filtered views over "orders"). Invoice-specific
+stored fields: none yet — number, party, dates, notes,
+conversion links, and status text already cover the
+header; paidAmount/balanceDue derive from Phase 22
+payments, not stored here.
+
+Tests (3): invoice codec round-trip, invoice-only
+filtering, INV prefix default.
+
+Verification (GitHub Actions on exact head `51ee332`,
+PR #30): Native Android CI run 40084450910 — completed
+success; Compose UI Emulator Tests run 40084450906 —
+completed success; Phase 12 Segmented Verification run
+40084450987 — completed success. 21.1 ACCEPTED.
 
 ## Package 21.2 — Convert-to-Invoice + fulfilment + reservations
 
