@@ -383,13 +383,13 @@ class InventoryViewModel @Inject constructor(
 
     fun observeSerials(scope: OperationalScope): Flow<List<StockSerialRecord>> =
         repository.observe(scope, "serial_numbers").map { records ->
-            records.map { StockSerialJson.decode(it.id, it.json) }.sortedForDisplay()
+            records.map { StockSerialJson.decode(it.id, it.json) }.sortedSerialsForDisplay()
         }
 
     suspend fun loadSerials(scope: OperationalScope): List<StockSerialRecord> =
         repository.list(scope, "serial_numbers")
             .map { StockSerialJson.decode(it.id, it.json) }
-            .sortedForDisplay()
+            .sortedSerialsForDisplay()
 
     suspend fun loadSerialsForItem(scope: OperationalScope, itemId: String): List<StockSerialRecord> =
         loadSerials(scope).filter { it.itemId == itemId }
@@ -397,7 +397,7 @@ class InventoryViewModel @Inject constructor(
     suspend fun saveSerial(scope: OperationalScope, serial: StockSerialRecord) =
         repository.save(scope, "serial_numbers", serial.id, StockSerialJson.encode(serial), 0)
 
-    private fun List<StockSerialRecord>.sortedForDisplay(): List<StockSerialRecord> =
+    private fun List<StockSerialRecord>.sortedSerialsForDisplay(): List<StockSerialRecord> =
         sortedWith(compareBy({ it.itemId }, { it.serialNumber }, { it.id }))
 
     /**
