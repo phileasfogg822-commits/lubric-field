@@ -58,19 +58,19 @@ class AccountsScreenComposeTest {
         compose.onNodeWithText("ASSET").performScrollTo().performClick()
         compose.onNodeWithText("Save account").performScrollTo().performClick()
         compose.waitUntil(5000) { fake.state.value.any { it.first == "accounts" } }
-        compose.onNodeWithText("1000 · Cash · ASSET").assertIsDisplayed()
+        compose.onNodeWithText("1000 · Cash · ASSET").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun chartDeactivateMarksRowInactive() {
         val fake = FakeRepository()
         fake.seedAccount(AccountRecord("acc-1", "1000", "Cash", AccountType.ASSET, null, true, ""))
         compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
-        compose.onNodeWithText("1000 · Cash · ASSET").assertIsDisplayed()
+        compose.onNodeWithText("1000 · Cash · ASSET").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Deactivate").performScrollTo().performClick()
         compose.waitUntil(5000) {
             fake.state.value.any { it.first == "accounts" && !AccountJson.decode(it.second.id, it.second.json).isActive }
         }
-        compose.onNodeWithText("1000 · Cash · ASSET · Inactive").assertIsDisplayed()
+        compose.onNodeWithText("1000 · Cash · ASSET · Inactive").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun journalTrialBalanceAndDetailFlow() {
@@ -106,9 +106,9 @@ class AccountsScreenComposeTest {
         val fake = FakeRepository()
         var backCount = 0
         compose.setContent { AccountsScreen(scope, onBack = { backCount++ }, viewModel = AccountsViewModel(fake)) }
-        compose.onNodeWithText("No accounts yet").assertIsDisplayed()
+        compose.onNodeWithText("No accounts yet").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Journal").performClick()
-        compose.onNodeWithText("No journal entries yet").assertIsDisplayed()
+        compose.onNodeWithText("No journal entries yet").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
         compose.runOnIdle { assertEquals(1, backCount) }
     }

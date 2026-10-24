@@ -1,6 +1,7 @@
 package com.lubrcapp.lubrcapp.feature.accounts
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,15 +58,24 @@ fun AccountsScreen(
                 Text(stringResource(R.string.accounts_mode_journal))
             }
         }
-        when (mode) {
-            AccountsMode.CHART -> ChartContent(scope, accounts, viewModel)
-            AccountsMode.JOURNAL -> JournalContent(
-                entries = entries,
-                accounts = accounts,
-                selectedEntry = selectedEntry,
-                onSelectEntry = { selectedEntry = it },
-                onBackToList = { selectedEntry = null },
-            )
+        // weight(1f), NOT fillMaxSize, for the scrolling content: a
+        // fillMaxSize child inside a Column takes the whole Column height
+        // (not the remaining height), so its tail would extend below the
+        // window and could never be scrolled into view — the below-fold
+        // rows the 20.4 tests assert on. The weighted Box gives the inner
+        // scrolling Column exactly the remaining height, so every row is
+        // reachable by scroll.
+        Box(modifier = Modifier.weight(1f)) {
+            when (mode) {
+                AccountsMode.CHART -> ChartContent(scope, accounts, viewModel)
+                AccountsMode.JOURNAL -> JournalContent(
+                    entries = entries,
+                    accounts = accounts,
+                    selectedEntry = selectedEntry,
+                    onSelectEntry = { selectedEntry = it },
+                    onBackToList = { selectedEntry = null },
+                )
+            }
         }
     }
 }
