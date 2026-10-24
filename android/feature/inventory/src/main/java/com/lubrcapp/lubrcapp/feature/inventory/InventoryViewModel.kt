@@ -184,6 +184,33 @@ class InventoryViewModel @Inject constructor(
         )
     }
 
+    /**
+     * The §175 decision for one outbound movement of [quantity]
+     * from the exact dimension it leaves: the item total (with
+     * the opening constant) when no warehouse is named, else
+     * that warehouse/batch dimension's ledger balance.
+     */
+    private suspend fun outboundDecision(
+        scope: OperationalScope,
+        itemId: String,
+        warehouseId: String?,
+        batchId: String?,
+        quantity: BigDecimal,
+        policy: NegativeStockPolicy,
+    ): NegativeStockDecision {
+        val movements = loadMovements(scope)
+        val ledgerMovements = movements.map {
+            LedgerMovement(itemId = it.itemId, warehouseId = it.warehouseId, batchId = it.batchId, quantity = it.quantity)
+        }
+        val opening = loadItems(scope).firstOrNull { it.id == itemId }?.openingStock ?: BigDecimal.ZERO
+        val balance = if (warehouseId == null) {
+            StockLedger.totalFor(ledgerMovements, itemId, opening)
+        } else {
+            StockLedger.balanceFor(ledgerMovements, itemId, warehouseId = warehouseId, batchId = batchId)
+        }
+        return StockLedger.checkNegative(policy, balance, quantity)
+    }
+
     private suspend fun postChecked(
         scope: OperationalScope,
         itemId: String,
@@ -198,17 +225,7 @@ class InventoryViewModel @Inject constructor(
     ): AdjustmentResult {
         var warning = false
         if (!type.isInbound) {
-            val movements = loadMovements(scope)
-            val ledgerMovements = movements.map {
-                LedgerMovement(itemId = it.itemId, warehouseId = it.warehouseId, batchId = it.batchId, quantity = it.quantity)
-            }
-            val opening = loadItems(scope).firstOrNull { it.id == itemId }?.openingStock ?: BigDecimal.ZERO
-            val balance = if (warehouseId == null) {
-                StockLedger.totalFor(ledgerMovements, itemId, opening)
-            } else {
-                StockLedger.balanceFor(ledgerMovements, itemId, warehouseId = warehouseId, batchId = batchId)
-            }
-            when (StockLedger.checkNegative(policy, balance, quantity)) {
+            when (outboundDecision(scope, itemId, warehouseId, batchId, quantity, policy)) {
                 NegativeStockDecision.BLOCKED -> return AdjustmentResult.BlockedByPolicy
                 NegativeStockDecision.ALLOWED_WITH_WARNING -> warning = true
                 NegativeStockDecision.ALLOWED -> Unit
@@ -227,5 +244,135 @@ class InventoryViewModel @Inject constructor(
             attachmentUri = attachmentUri,
         )
         return AdjustmentResult.Posted(movement, warning)
+    }
+
+    // Phase 19.5 transfers (§35) over "stock_transfers"
+    // (local-only header with embedded lines — see
+    // StockTransferRecord). Status actions post the paired
+    // movements through postMovement with referenceType
+    // "STOCK_TRANSFER" and the transfer id as referenceId, so the
+    // ledger alone explains every unit that moved.
+
+    fun observeTransfers(scope: OperationalScope): Flow<List<StockTransferRecord>> =
+        repository.observe(scope, "stock_transfers").map { records ->
+            records.map { StockTransferJson.decode(it.id, it.json) }.sortedForDisplay()
+        }
+
+    suspend fun loadTransfers(scope: OperationalScope): List<StockTransferRecord> =
+        repository.list(scope, "stock_transfers")
+            .map { StockTransferJson.decode(it.id, it.json) }
+            .sortedForDisplay()
+
+    suspend fun saveTransfer(scope: OperationalScope, transfer: StockTransferRecord) =
+        repository.save(scope, "stock_transfers", transfer.id, StockTransferJson.encode(transfer), 0)
+
+    private fun List<StockTransferRecord>.sortedForDisplay(): List<StockTransferRecord> =
+        sortedWith(compareBy({ it.date }, { it.createdAt }, { it.id }))
+
+    /** Save a new transfer as a DRAFT; null when the form is not postable. */
+    suspend fun createTransfer(
+        scope: OperationalScope,
+        form: StockTransferFormState,
+    ): StockTransferRecord? {
+        if (!form.isValid) return null
+        val transfer = StockTransferRecord(
+            id = UUID.randomUUID().toString(),
+            fromWarehouseId = form.fromWarehouseId!!,
+            toWarehouseId = form.toWarehouseId!!,
+            status = TransferStatus.DRAFT,
+            date = form.date,
+            note = form.note,
+            lines = form.validLines,
+            createdAt = Instant.now().toString(),
+        )
+        saveTransfer(scope, transfer)
+        return transfer
+    }
+
+    /**
+     * DRAFT → DISPATCHED: posts TRANSFER_OUT at the source for
+     * every line. All lines are §175-checked BEFORE any posting —
+     * a blocked line blocks the whole dispatch, so a transfer is
+     * never half-dispatched. Lines are grouped per item first:
+     * the check must see the total leaving, not line-by-line
+     * slices of it.
+     */
+    suspend fun dispatchTransfer(
+        scope: OperationalScope,
+        transferId: String,
+        policy: NegativeStockPolicy = NegativeStockPolicy.WARN,
+    ): TransferResult {
+        val transfer = loadTransfers(scope).firstOrNull { it.id == transferId }
+            ?: return TransferResult.InvalidState
+        if (transfer.status != TransferStatus.DRAFT) return TransferResult.InvalidState
+        val totalsByItem = transfer.lines
+            .filter { it.quantity.signum() > 0 }
+            .groupBy { it.itemId }
+            .mapValues { (_, lines) -> lines.fold(BigDecimal.ZERO) { acc, line -> acc.add(line.quantity) } }
+        var warning = false
+        for ((itemId, total) in totalsByItem) {
+            when (outboundDecision(scope, itemId, transfer.fromWarehouseId, null, total, policy)) {
+                NegativeStockDecision.BLOCKED -> return TransferResult.BlockedByPolicy
+                NegativeStockDecision.ALLOWED_WITH_WARNING -> warning = true
+                NegativeStockDecision.ALLOWED -> Unit
+            }
+        }
+        for (line in transfer.lines) {
+            if (line.quantity.signum() <= 0) continue
+            postMovement(
+                scope = scope,
+                itemId = line.itemId,
+                type = MovementType.TRANSFER_OUT,
+                quantity = line.quantity,
+                warehouseId = transfer.fromWarehouseId,
+                referenceType = "STOCK_TRANSFER",
+                referenceId = transfer.id,
+                date = transfer.date,
+                reason = transfer.note,
+            )
+        }
+        val updated = transfer.copy(status = TransferStatus.DISPATCHED)
+        saveTransfer(scope, updated)
+        return TransferResult.Done(updated, warning)
+    }
+
+    /** DISPATCHED → RECEIVED: posts TRANSFER_IN at the destination for every line. */
+    suspend fun receiveTransfer(
+        scope: OperationalScope,
+        transferId: String,
+    ): TransferResult {
+        val transfer = loadTransfers(scope).firstOrNull { it.id == transferId }
+            ?: return TransferResult.InvalidState
+        if (transfer.status != TransferStatus.DISPATCHED) return TransferResult.InvalidState
+        for (line in transfer.lines) {
+            if (line.quantity.signum() <= 0) continue
+            postMovement(
+                scope = scope,
+                itemId = line.itemId,
+                type = MovementType.TRANSFER_IN,
+                quantity = line.quantity,
+                warehouseId = transfer.toWarehouseId,
+                referenceType = "STOCK_TRANSFER",
+                referenceId = transfer.id,
+                date = transfer.date,
+                reason = transfer.note,
+            )
+        }
+        val updated = transfer.copy(status = TransferStatus.RECEIVED)
+        saveTransfer(scope, updated)
+        return TransferResult.Done(updated)
+    }
+
+    /** DRAFT → CANCELLED only: a dispatched transfer must be received (see StockTransferRecord). */
+    suspend fun cancelTransfer(
+        scope: OperationalScope,
+        transferId: String,
+    ): TransferResult {
+        val transfer = loadTransfers(scope).firstOrNull { it.id == transferId }
+            ?: return TransferResult.InvalidState
+        if (transfer.status != TransferStatus.DRAFT) return TransferResult.InvalidState
+        val updated = transfer.copy(status = TransferStatus.CANCELLED)
+        saveTransfer(scope, updated)
+        return TransferResult.Done(updated)
     }
 }

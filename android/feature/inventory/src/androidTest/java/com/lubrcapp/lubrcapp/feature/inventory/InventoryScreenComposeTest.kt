@@ -90,4 +90,47 @@ class InventoryScreenComposeTest {
         assertEquals(0, BigDecimal("3").compareTo(saved.quantity))
         assertEquals("Leaking cans", saved.reason)
     }
+
+    @Test fun transferDispatchFlowPostsOutMovement() {
+        val fake = FakeRepository()
+        fake.seed(
+            "products",
+            listOf(OperationalRecord("oil", """{"name":"Engine Oil"}""")),
+        )
+        fake.seed(
+            "warehouses",
+            listOf(
+                OperationalRecord("wh-main", """{"name":"Main Warehouse"}"""),
+                OperationalRecord("wh-branch", """{"name":"Islamabad Branch"}"""),
+            ),
+        )
+        val stocked = StockMovementRecord.of(
+            id = "mv-in", itemId = "oil", type = MovementType.PURCHASE,
+            quantity = BigDecimal("50"), warehouseId = "wh-main", date = "2026-10-24",
+        )
+        fake.seed("stock_movements", listOf(OperationalRecord("mv-in", StockMovementJson.encode(stocked))))
+        val transfer = StockTransferRecord(
+            id = "tr-1",
+            fromWarehouseId = "wh-main",
+            toWarehouseId = "wh-branch",
+            status = TransferStatus.DRAFT,
+            date = "2026-10-24",
+            lines = listOf(StockTransferLine("oil", BigDecimal("20"))),
+        )
+        fake.seed("stock_transfers", listOf(OperationalRecord("tr-1", StockTransferJson.encode(transfer))))
+        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        compose.onNodeWithText("Transfers").performClick()
+        compose.onNodeWithText("Main Warehouse → Islamabad Branch · Draft").assertIsDisplayed()
+        compose.onNodeWithText("Main Warehouse → Islamabad Branch · Draft").performClick()
+        compose.onNodeWithText("Engine Oil · 20").assertIsDisplayed()
+        compose.onNodeWithText("Dispatch").performClick()
+        compose.waitUntil(5000) { (fake.flowFor("stock_movements").value.size) == 2 }
+        compose.onNodeWithText("Transfer dispatched").assertIsDisplayed()
+        val saved = fake.flowFor("stock_movements").value
+            .map { StockMovementJson.decode(it.id, it.json) }
+            .first { it.type == MovementType.TRANSFER_OUT }
+        assertEquals(0, BigDecimal("-20").compareTo(saved.quantity))
+        assertEquals("wh-main", saved.warehouseId)
+        assertEquals("tr-1", saved.referenceId)
+    }
 }

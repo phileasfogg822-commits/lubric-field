@@ -35,14 +35,15 @@ import java.math.BigDecimal
 import kotlinx.coroutines.launch
 
 /**
- * Phase 19.3/19.4 — the inventory module screen. List mode is
- * the §31 summary (computed cards, filters, ledger-derived
+ * Phase 19.3/19.4/19.5 — the inventory module screen. List mode
+ * is the §31 summary (computed cards, filters, ledger-derived
  * rows); an item's detail shows its movement history and §33
- * levels editor. Adjust mode posts §36 adjustments and Count
- * mode runs the §37 physical count — both write through the
- * ViewModel's §175-checked posting surface, never directly.
+ * levels editor. Adjust mode posts §36 adjustments, Count mode
+ * runs the §37 physical count, and Transfers mode runs the §35
+ * transfer flow — all write through the ViewModel's
+ * §175-checked posting surface, never directly.
  */
-private enum class InventoryMode { LIST, ADJUST, COUNT }
+private enum class InventoryMode { LIST, ADJUST, COUNT, TRANSFERS }
 
 @Composable
 fun InventoryScreen(
@@ -61,6 +62,8 @@ fun InventoryScreen(
     val categories by remember(viewModel, scope) { viewModel.observeCategories(scope) }
         .collectAsState(initial = emptyList())
     val brands by remember(viewModel, scope) { viewModel.observeBrands(scope) }
+        .collectAsState(initial = emptyList())
+    val transfers by remember(viewModel, scope) { viewModel.observeTransfers(scope) }
         .collectAsState(initial = emptyList())
 
     var mode by remember(scope) { mutableStateOf(InventoryMode.LIST) }
@@ -125,6 +128,62 @@ fun InventoryScreen(
                     }
                 },
             )
+            InventoryMode.TRANSFERS -> StockTransfersMode(
+                items = items,
+                warehouses = warehouses,
+                transfers = transfers,
+                saving = saving,
+                onDone = { mode = InventoryMode.LIST },
+                onCreate = { form, onResult ->
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            onResult(viewModel.createTransfer(scope, form))
+                        } catch (_: Exception) {
+                            error = saveError
+                            onResult(null)
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+                onDispatch = { transferId, onResult ->
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            onResult(viewModel.dispatchTransfer(scope, transferId))
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+                onReceive = { transferId, onResult ->
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            onResult(viewModel.receiveTransfer(scope, transferId))
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+                onCancel = { transferId, onResult ->
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            onResult(viewModel.cancelTransfer(scope, transferId))
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+            )
             InventoryMode.LIST -> {
                 if (selectedRow == null) {
                     InventoryList(
@@ -146,6 +205,7 @@ fun InventoryScreen(
                         onSelect = { selectedItemId = it },
                         onAdjust = { mode = InventoryMode.ADJUST },
                         onCount = { mode = InventoryMode.COUNT },
+                        onTransfers = { mode = InventoryMode.TRANSFERS },
                     )
                 } else {
                     ItemDetail(
@@ -195,12 +255,14 @@ private fun ColumnScope.InventoryList(
     onSelect: (String) -> Unit,
     onAdjust: () -> Unit,
     onCount: () -> Unit,
+    onTransfers: () -> Unit,
 ) {
     Button(onClick = onBack) { Text(stringResource(R.string.inventory_back)) }
     Text(stringResource(R.string.inventory_title), style = MaterialTheme.typography.headlineMedium)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = onAdjust) { Text(stringResource(R.string.inventory_adjust_stock)) }
         Button(onClick = onCount) { Text(stringResource(R.string.inventory_stock_count)) }
+        Button(onClick = onTransfers) { Text(stringResource(R.string.inventory_transfers)) }
     }
     Text(
         stringResource(R.string.inventory_value_card, summary.totalValue.toPlainString()),
@@ -568,6 +630,265 @@ private fun ColumnScope.StockCountMode(
             }
         }
     }
+}
+
+@Composable
+private fun ColumnScope.StockTransfersMode(
+    items: List<ItemStockOption>,
+    warehouses: List<NamedOption>,
+    transfers: List<StockTransferRecord>,
+    saving: Boolean,
+    onDone: () -> Unit,
+    onCreate: (StockTransferFormState, (StockTransferRecord?) -> Unit) -> Unit,
+    onDispatch: (String, (TransferResult) -> Unit) -> Unit,
+    onReceive: (String, (TransferResult) -> Unit) -> Unit,
+    onCancel: (String, (TransferResult) -> Unit) -> Unit,
+) {
+    var selectedId by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf(false) }
+    val selected = transfers.firstOrNull { it.id == selectedId }
+
+    when {
+        editing -> TransferEditor(
+            items = items,
+            warehouses = warehouses,
+            saving = saving,
+            onBack = { editing = false },
+            onCreate = { form, onResult ->
+                onCreate(form) { created ->
+                    if (created != null) {
+                        editing = false
+                        selectedId = created.id
+                    }
+                    onResult(created)
+                }
+            },
+        )
+        selected != null -> TransferDetail(
+            transfer = selected,
+            items = items,
+            warehouses = warehouses,
+            saving = saving,
+            onBack = { selectedId = null },
+            onDispatch = onDispatch,
+            onReceive = onReceive,
+            onCancel = onCancel,
+        )
+        else -> {
+            Button(onClick = onDone) { Text(stringResource(R.string.inventory_back_to_list)) }
+            Text(stringResource(R.string.inventory_transfer_title), style = MaterialTheme.typography.headlineSmall)
+            Button(onClick = { editing = true }) { Text(stringResource(R.string.inventory_transfer_new)) }
+            if (transfers.isEmpty()) {
+                Text(stringResource(R.string.inventory_transfer_empty))
+            }
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(transfers, key = { it.id }) { transfer ->
+                    Button(
+                        onClick = { selectedId = transfer.id },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.inventory_transfer_row,
+                                warehouseName(warehouses, transfer.fromWarehouseId),
+                                warehouseName(warehouses, transfer.toWarehouseId),
+                                stringResource(transferStatusLabel(transfer.status)),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.TransferEditor(
+    items: List<ItemStockOption>,
+    warehouses: List<NamedOption>,
+    saving: Boolean,
+    onBack: () -> Unit,
+    onCreate: (StockTransferFormState, (StockTransferRecord?) -> Unit) -> Unit,
+) {
+    var form by remember { mutableStateOf(StockTransferFormState()) }
+
+    Button(onClick = onBack) { Text(stringResource(R.string.inventory_back_to_list)) }
+    Text(stringResource(R.string.inventory_transfer_new), style = MaterialTheme.typography.headlineSmall)
+
+    // A vertically scrolling Column for the same reason as
+    // StockAdjustmentMode: the per-item quantity fields must stay
+    // composed so they can be scrolled to and typed into.
+    Column(
+        modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(R.string.inventory_transfer_from), style = MaterialTheme.typography.titleSmall)
+        warehouses.forEach { warehouse ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { form = form.copy(fromWarehouseId = warehouse.id) },
+            ) {
+                RadioButton(
+                    selected = form.fromWarehouseId == warehouse.id,
+                    onClick = { form = form.copy(fromWarehouseId = warehouse.id) },
+                )
+                Text(warehouse.name)
+            }
+        }
+        Text(stringResource(R.string.inventory_transfer_to), style = MaterialTheme.typography.titleSmall)
+        warehouses.forEach { warehouse ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { form = form.copy(toWarehouseId = warehouse.id) },
+            ) {
+                RadioButton(
+                    selected = form.toWarehouseId == warehouse.id,
+                    onClick = { form = form.copy(toWarehouseId = warehouse.id) },
+                )
+                Text(warehouse.name)
+            }
+        }
+        OutlinedTextField(
+            value = form.date,
+            onValueChange = { form = form.copy(date = it) },
+            label = { Text(stringResource(R.string.inventory_field_date)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.note,
+            onValueChange = { form = form.copy(note = it) },
+            label = { Text(stringResource(R.string.inventory_field_note)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
+        items.forEach { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(item.name, style = MaterialTheme.typography.titleSmall)
+                OutlinedTextField(
+                    value = form.quantityByItem[item.id] ?: "",
+                    onValueChange = { form = form.copy(quantityByItem = form.quantityByItem + (item.id to it)) },
+                    label = { Text(stringResource(R.string.inventory_field_quantity)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    // Save button outside the scroll (Phase 18.4 lesson).
+    Button(
+        onClick = { onCreate(form) { } },
+        enabled = !saving && form.isValid,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(stringResource(R.string.inventory_transfer_save))
+    }
+}
+
+@Composable
+private fun ColumnScope.TransferDetail(
+    transfer: StockTransferRecord,
+    items: List<ItemStockOption>,
+    warehouses: List<NamedOption>,
+    saving: Boolean,
+    onBack: () -> Unit,
+    onDispatch: (String, (TransferResult) -> Unit) -> Unit,
+) {
+    var resultText by remember(transfer.id) { mutableStateOf<String?>(null) }
+    val dispatchedText = stringResource(R.string.inventory_transfer_dispatched)
+    val receivedText = stringResource(R.string.inventory_transfer_received)
+    val cancelledText = stringResource(R.string.inventory_transfer_cancelled)
+    val warningText = stringResource(R.string.inventory_adjust_warning)
+    val blockedText = stringResource(R.string.inventory_adjust_blocked)
+    val invalidText = stringResource(R.string.inventory_transfer_invalid)
+
+    Button(onClick = onBack) { Text(stringResource(R.string.inventory_back_to_list)) }
+    Text(
+        stringResource(
+            R.string.inventory_transfer_row,
+            warehouseName(warehouses, transfer.fromWarehouseId),
+            warehouseName(warehouses, transfer.toWarehouseId),
+            stringResource(transferStatusLabel(transfer.status)),
+        ),
+        style = MaterialTheme.typography.headlineSmall,
+    )
+    resultText?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth().weight(1f),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(transfer.lines, key = { it.itemId }) { line ->
+            Text(
+                stringResource(
+                    R.string.inventory_transfer_line,
+                    items.firstOrNull { it.id == line.itemId }?.name ?: line.itemId,
+                    line.quantity.toPlainString(),
+                )
+            )
+        }
+    }
+
+    // Status actions outside the LazyColumn (Phase 18.4 lesson).
+    when (transfer.status) {
+        TransferStatus.DRAFT -> {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        onDispatch(transfer.id) { result ->
+                            resultText = when (result) {
+                                is TransferResult.Done ->
+                                    if (result.warning) warningText else dispatchedText
+                                TransferResult.BlockedByPolicy -> blockedText
+                                TransferResult.InvalidState -> invalidText
+                            }
+                        }
+                    },
+                    enabled = !saving,
+                ) { Text(stringResource(R.string.inventory_transfer_dispatch)) }
+                Button(
+                    onClick = {
+                        onCancel(transfer.id) { result ->
+                            resultText = when (result) {
+                                is TransferResult.Done -> cancelledText
+                                TransferResult.BlockedByPolicy -> blockedText
+                                TransferResult.InvalidState -> invalidText
+                            }
+                        }
+                    },
+                    enabled = !saving,
+                ) { Text(stringResource(R.string.inventory_transfer_cancel)) }
+            }
+        }
+        TransferStatus.DISPATCHED -> {
+            Button(
+                onClick = {
+                    onReceive(transfer.id) { result ->
+                        resultText = when (result) {
+                            is TransferResult.Done -> receivedText
+                            TransferResult.BlockedByPolicy -> blockedText
+                            TransferResult.InvalidState -> invalidText
+                        }
+                    }
+                },
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.inventory_transfer_receive)) }
+        }
+        TransferStatus.RECEIVED, TransferStatus.CANCELLED -> Unit
+    }
+}
+
+private fun warehouseName(warehouses: List<NamedOption>, id: String): String =
+    warehouses.firstOrNull { it.id == id }?.name ?: id
+
+private fun transferStatusLabel(status: TransferStatus): Int = when (status) {
+    TransferStatus.DRAFT -> R.string.inventory_transfer_status_draft
+    TransferStatus.DISPATCHED -> R.string.inventory_transfer_status_dispatched
+    TransferStatus.RECEIVED -> R.string.inventory_transfer_status_received
+    TransferStatus.CANCELLED -> R.string.inventory_transfer_status_cancelled
 }
 
 private fun statusLabel(status: StockStatus): Int = when (status) {

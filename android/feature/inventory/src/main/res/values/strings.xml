@@ -63,4 +63,25 @@
     <string name="inventory_count_variance">Variance: %1$s</string>
     <string name="inventory_count_adjust">Adjust stock</string>
     <string name="inventory_count_default_reason">Stock count variance</string>
+    <string name="inventory_transfers">Transfers</string>
+    <string name="inventory_transfer_title">Stock transfers</string>
+    <string name="inventory_transfer_new">New transfer</string>
+    <string name="inventory_transfer_from">From warehouse</string>
+    <string name="inventory_transfer_to">To warehouse</string>
+    <string name="inventory_field_note">Note</string>
+    <string name="inventory_transfer_save">Save transfer</string>
+    <string name="inventory_transfer_empty">No transfers yet</string>
+    <string name="inventory_transfer_row">%1$s → %2$s · %3$s</string>
+    <string name="inventory_transfer_line">%1$s · %2$s</string>
+    <string name="inventory_transfer_status_draft">Draft</string>
+    <string name="inventory_transfer_status_dispatched">Dispatched</string>
+    <string name="inventory_transfer_status_received">Received</string>
+    <string name="inventory_transfer_status_cancelled">Cancelled</string>
+    <string name="inventory_transfer_dispatch">Dispatch</string>
+    <string name="inventory_transfer_receive">Receive</string>
+    <string name="inventory_transfer_cancel">Cancel transfer</string>
+    <string name="inventory_transfer_dispatched">Transfer dispatched</string>
+    <string name="inventory_transfer_received">Transfer received</string>
+    <string name="inventory_transfer_cancelled">Transfer cancelled</string>
+    <string name="inventory_transfer_invalid">That action is not available now</string>
 </resources>
