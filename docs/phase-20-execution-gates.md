@@ -225,4 +225,37 @@ completed success; Phase 12 Segmented Verification run
 
 ## Package 20.5 — Phase gate
 
-Status: NOT STARTED.
+Status: ACCEPTED.
+
+Sweep vs Phase 19 head `10f7359`: 20 files changed,
++2142/−78 (19 code/test/build files + this gates doc).
+Packages: 20.1 ACCEPTED on `dd686a1` (docs `889391d`),
+20.2 ACCEPTED on `d72958f` (docs `b0b75e7`), 20.3
+ACCEPTED on `ece4a06` (docs `9224047`), 20.4 ACCEPTED on
+`df06d01` (docs `e3d72cf`). New tests: 37 total (20.1: 10,
+20.2: 12, 20.3: 6, 20.4: 9). Test-count correction at this
+gate: the 20.1 and 20.2 entries originally claimed 11 and
+13; a per-file @Test recount at the gate proved 10
+(JournalEntryRecordTest 7, not 8 — the eighth `fun` is a
+private helper) and 12 (AccountTransactionTest 6, not 7),
+corrected at `f8eb340`. Lesson carried forward: recount
+@Test per file at the gate, never trust the package-time
+claim.
+
+Deferred from Phase 20 (unchanged from earlier phases):
+§213 stock reservations → Phases 21/22; sale-time serial
+SOLD flip → Phase 21; currency wiring through
+AppModuleRegistry still shell work (totals preview
+defaults); 12C-05(b) arrival-order-wins intent still
+Umar's call at §12.7. Phase 20 adds no new deferrals: the
+full trial-balance report engine stays Phase 24's job —
+20.4 ships the preview only.
+
+Phase 21 prep: Sales Fulfilment / Invoices / Returns /
+Credit Notes. It is the first consumer of the 20.2 posting
+engine for real documents (via `postDocument`), of the
+19.x inventory ledger (§213 reservations, serial SOLD
+flip), and of domain/sales' invoice lifecycle. Prep doc:
+`agent_notes/phase-21-prep.md` in the goal workspace.
+
+Phase 20 COMPLETE 4/4 + gate.
