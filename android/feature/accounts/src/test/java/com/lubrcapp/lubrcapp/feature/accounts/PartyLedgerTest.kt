@@ -62,6 +62,11 @@ class PartyLedgerTest {
             transactionId = TransactionId("tx-1"),
             documentType = "INVOICE",
             documentNumber = "INV-2026-00001",
+            // The posting's party must match the effect's party:
+            // the validator rejects an effect without a party
+            // (PARTY_EFFECT_MISMATCH), exactly as real 21.3
+            // postings carry both from the invoice.
+            partyId = effect?.partyId,
             totals = DocumentTotals(
                 lines = listOf(line),
                 charges = emptyList(),
@@ -137,7 +142,10 @@ class PartyLedgerTest {
         assertEquals("je-tx-1", mapped?.entryId)
         assertEquals("party-1", mapped?.partyId)
         assertEquals("RECEIVABLE", mapped?.direction)
-        assertEquals(BigDecimal("100000"), mapped?.amount)
+        // CompareTo, not equals: Money normalizes 100000 to
+        // 1E+5, and raw BigDecimal.equals is scale-sensitive
+        // (the project's standing trap).
+        assertEquals(0, BigDecimal("100000").compareTo(mapped?.amount))
         assertEquals("PKR", mapped?.currency)
         assertEquals("tx-1", mapped?.transactionId)
     }
