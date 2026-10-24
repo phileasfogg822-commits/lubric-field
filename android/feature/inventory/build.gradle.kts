@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":domain:item"))
     implementation(project(":domain:inventory"))
     implementation(project(":domain:purchase"))
+    implementation(project(":domain:accounting"))
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
