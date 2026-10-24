@@ -168,7 +168,60 @@ completed success; Phase 12 Segmented Verification run
 
 ## Package 20.4 — Screens
 
-Status: NOT STARTED.
+Status: ACCEPTED on `df06d01`.
+
+`TrialBalance.kt` — pure `trialBalance(entries, accounts)`:
+per-account debit/credit totals; rows in accounts order for
+ids seen in lines, unknown ids appended sorted with name =
+id fallback; grand totals; `isBalanced`. `AccountsScreen.kt`
+FULL REWRITE (the org.json raw Phase 12 screen is removed):
+signature `AccountsScreen(scope, onBack, viewModel =
+hiltViewModel())` kept for `AppModuleRegistry.kt:157`;
+private `AccountsMode` CHART/JOURNAL; both modes use a
+scrolling `Column` (19.4/19.6 lessons — all nodes composed,
+tests scroll-first). CHART = code/name fields + AccountType
+chips (`AccountType.entries`, enum `.name` as chip text —
+data, not a literal) + Save button (enabled ⇔ code+name
+non-blank, not saving) + account rows
+(`"%1$s · %2$s · %3$s"` code·name·type, inactive rows get
+"· Inactive" variant) with per-row Deactivate button (tests
+seed exactly ONE account so "Deactivate" is unique).
+JOURNAL = trial-balance card (rows format
+`"%1$s: Dr %2$s, Cr %3$s"` — deliberately distinct from
+line rows `"%1$s · Dr %2$s / Cr %3$s"` to avoid
+duplicate-text collisions) + entry rows
+`"%1$s · %2$s · Dr %3$s / Cr %4$s"` + detail view (lines
+with account names resolved, unknown id → id; entry totals
+reuse the trial debit/credit strings) + "Back to journal".
+`strings.xml` rewritten: 24 strings (accounts_back/title
+kept; old keys accounts_entry_label/edit/cancel_edit
+dropped, no stale references).
+
+Tests (9): TrialBalanceTest (4) + AccountsScreenComposeTest
+REWRITTEN (5: chartAddAccountFlow, chartDeactivateMarksRow-
+Inactive, journalTrialBalanceAndDetailFlow, emptyStatesAnd-
+BackNavigation, saveButtonDisabledUntilCodeAndNameEntered;
+fake repo is table-aware with a single
+`MutableStateFlow<List<Pair<String, OperationalRecord>>>`).
+
+Failure history: first head `74e0611` — Native ✅,
+Segmented ✅, Compose ❌ (3 failures, all
+AccountsScreenComposeTest: chartAddAccountFlow,
+chartDeactivateMarksRowInactive, emptyStatesAndBack-
+Navigation — every failure "found but not displayed": the
+chart form pushes account rows and the empty state below
+the fold, and the tests asserted them visible without
+scrolling first). Fix head `df06d01`: the scrolling
+content sits in a weighted `Box` (remaining height, not a
+fillMaxSize child of a fixed Column) and the tests
+`performScrollTo()` before every below-fold
+`assertIsDisplayed` (the 19.6 test-fix pattern).
+
+Verification (GitHub Actions on exact head `df06d01`,
+PR #29): Native Android CI run 40079039896 — completed
+success; Compose UI Emulator Tests run 40079039902 —
+completed success; Phase 12 Segmented Verification run
+40079039906 — completed success. 20.4 ACCEPTED.
 
 ## Package 20.5 — Phase gate
 
