@@ -7,6 +7,7 @@ import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.business.DocumentNumbering
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -205,5 +206,114 @@ class SalesViewModel @Inject constructor(
         saveDocumentWithLines(scope, result.order, result.orderLines)
         saveDocument(scope, result.convertedQuotation)
         return result.order
+    }
+
+    /**
+     * The 21.2 conversion, orchestrated: load the order and its
+     * lines, convert with fresh ids, persist the invoice (with
+     * its lines) and the converted order, and return the invoice.
+     */
+    suspend fun convertOrderToInvoice(scope: OperationalScope, orderId: String): SalesDocument {
+        val order = loadDocuments(scope).firstOrNull { it.id == orderId }
+            ?: throw NoSuchElementException("No document $orderId")
+        val lines = loadLines(scope, orderId)
+        val result = SalesDocumentConversion.salesOrderToInvoice(
+            order,
+            lines,
+            newDocumentId = java.util.UUID.randomUUID().toString(),
+            newLineId = { java.util.UUID.randomUUID().toString() },
+        )
+        saveDocumentWithLines(scope, result.invoice, result.invoiceLines)
+        saveDocument(scope, result.convertedOrder)
+        return result.invoice
+    }
+
+    /**
+     * The 21.2 delivery, orchestrated: load the order and its
+     * lines, record the delivery, persist the updated lines and
+     * document, and return the updated document.
+     */
+    suspend fun recordDelivery(
+        scope: OperationalScope,
+        orderId: String,
+        lineId: String,
+        quantity: BigDecimal,
+    ): SalesDocument {
+        val order = loadDocuments(scope).firstOrNull { it.id == orderId }
+            ?: throw NoSuchElementException("No document $orderId")
+        val lines = loadLines(scope, orderId)
+        val result = SalesDocumentStatus.recordDelivery(order, lines, lineId, quantity)
+        saveDocumentWithLines(scope, result.document, result.lines)
+        return result.document
+    }
+
+    // Phase 21.2 §213 reservations surface. Reservations are
+    // released by status, never deleted (the store refuses
+    // delete on "reservations").
+
+    fun observeReservations(scope: OperationalScope): Flow<List<StockReservationRecord>> =
+        repository.observe(scope, "reservations").map { records ->
+            records.map { StockReservationJson.decode(it.id, it.json) }
+        }
+
+    suspend fun loadReservations(scope: OperationalScope): List<StockReservationRecord> =
+        repository.list(scope, "reservations").map { StockReservationJson.decode(it.id, it.json) }
+
+    suspend fun loadReservationsForOrder(scope: OperationalScope, orderId: String): List<StockReservationRecord> =
+        loadReservations(scope).filter { it.orderId == orderId }
+
+    suspend fun saveReservation(scope: OperationalScope, reservation: StockReservationRecord, revision: Long = 0) =
+        repository.save(scope, "reservations", reservation.id, StockReservationJson.encode(reservation), revision)
+
+    /**
+     * Reserve an order's lines under [policy]: NEVER reserves
+     * nothing; otherwise one ACTIVE reservation per line that
+     * names an item (service lines carry no stock and are
+     * skipped). Lines already actively reserved are left alone
+     * — this call never double-reserves. Returns the
+     * reservations now active for the order. The caller chooses
+     * the moment (on save for ON_SUBMIT, on confirm for
+     * ON_CONFIRM).
+     */
+    suspend fun reserveForOrder(
+        scope: OperationalScope,
+        orderId: String,
+        policy: ReservationPolicy,
+        now: String,
+    ): List<StockReservationRecord> {
+        if (policy == ReservationPolicy.NEVER) {
+            return loadReservationsForOrder(scope, orderId)
+                .filter { it.status == ReservationStatus.ACTIVE }
+        }
+        val lines = loadLines(scope, orderId)
+        val reservedLineIds = loadReservationsForOrder(scope, orderId)
+            .filter { it.status == ReservationStatus.ACTIVE }
+            .map { it.lineId }.toSet()
+        val fresh = lines.mapNotNull { line ->
+            val itemId = line.itemId ?: return@mapNotNull null
+            if (line.id in reservedLineIds) return@mapNotNull null
+            StockReservationRecord(
+                id = java.util.UUID.randomUUID().toString(),
+                orderId = orderId,
+                lineId = line.id,
+                itemId = itemId,
+                warehouseId = line.warehouseId,
+                batchId = line.batchId,
+                quantity = line.quantity,
+                status = ReservationStatus.ACTIVE,
+                createdAt = now,
+            )
+        }
+        fresh.forEach { saveReservation(scope, it) }
+        return loadReservationsForOrder(scope, orderId)
+            .filter { it.status == ReservationStatus.ACTIVE }
+    }
+
+    /** Release every ACTIVE reservation for an order (cancel / fulfilment-complete). */
+    suspend fun releaseForOrder(scope: OperationalScope, orderId: String): List<StockReservationRecord> {
+        val active = loadReservationsForOrder(scope, orderId)
+            .filter { it.status == ReservationStatus.ACTIVE }
+        active.forEach { saveReservation(scope, it.copy(status = ReservationStatus.RELEASED)) }
+        return loadReservationsForOrder(scope, orderId)
     }
 }
