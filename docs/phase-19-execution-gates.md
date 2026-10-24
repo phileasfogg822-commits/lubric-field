@@ -64,7 +64,15 @@ an input and never hard-codes one behaviour.
 
 ## Package 19.1 — Movement model + codec
 
-Status: NOT STARTED.
+Status: ACCEPTED on `facc961` (fix head).
+
+`StockMovementRecord` over "stock_movements" — signed quantity (the §180 ledger convention), `MovementType` (OPENING / PURCHASE / SALE / RETURN / ADJUSTMENT_IN / ADJUSTMENT_OUT / TRANSFER_IN / TRANSFER_OUT) with `isInbound` direction, warehouse/batch dimensions, reference document type + id, rate, reason, createdAt; `of()` applies the sign from the type so writers cannot write a positive SALE. `StockMovementJson` tolerant codec: unknown/missing type → ADJUSTMENT_IN with quantity ZERO (historical Phase 12 raw rows change no balance, and the type is never guessed). `toPostingMovement(currency)` bridges to the 17.4 vocabulary (positive quantity, kind from type). `InventoryViewModel` gains the typed surface (observe/load movements sorted for the ledger, per-item load) and `postMovement` — the append-only write API 19.4/19.5/Phase 21 post through. There is deliberately no movement update/delete (§181: corrections are reversing movements). feature/inventory gains the `:domain:accounting` dependency.
+
+Tests (10): StockMovementRecordTest (7 — codec round-trip, record id wins, garbage → zero movement, unknown-type neutrality, sign-from-type, posting bridge, sign-mismatch detection); InventoryMovementViewModelTest (3 — save/load round trip, postMovement signs/stamps/appends, per-item filter + ledger sort).
+
+Failure history: first head `de5ed51` failed all three workflows at `:feature:inventory:compileDebugKotlin` — StockMovementJson's kotlinx symbols unresolved: feature/sales declares `kotlinx-serialization-json:1.6.2` explicitly and inventory never did. Fix head `facc961` adds the same line.
+
+Verification (GitHub Actions on exact head `facc961`, PR #28): Native Android CI run 40047134040 — completed success; Compose UI Emulator Tests run 40047134042 — completed success; Phase 12 Segmented Verification run 40047134079 — completed success. 19.1 ACCEPTED.
 
 ## Package 19.2 — Ledger engine
 
