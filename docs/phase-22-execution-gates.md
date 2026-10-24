@@ -91,7 +91,35 @@ not forced.
 
 ## Package 22.2 — Payment posting + invoice status moves
 
-Status: NOT STARTED.
+Status: ACCEPTED on `85eb9f8` (2026-10-24). Trio green:
+Native 40117230445, Compose 40117230472 (attempt-2
+re-run after attempt 1 failed on an unrelated inventory
+test — see below), Segmented 40117230449. 5 files,
++334, 11 new tests (builder validator test 1,
+status-move tests 10).
+
+Contents: `SalesPaymentPosting.paymentToPosting`
+(Dr Cash/Bank, Cr Receivable; one synthetic totals line
+— the payment itself — so PostingValidator passes with
+no validator change; partyEffect RECEIVABLE negative;
+no stock movements; transactionId from the payment id)
+and `SalesDocumentStatus.applyPayment` (SENT /
+PARTIALLY_PAID / OVERDUE take payments; remaining == 0
+→ PAID, else PARTIALLY_PAID; same-state and zero
+applications return unchanged). `:domain:payment`
+dependency added to feature/sales.
+
+Failure history: attempt 1's Compose run failed on
+exactly one test — `InventoryScreenComposeTest.
+adjustFlowPostsAMovement` ("Adjustment posted" not
+displayed). The 22.2 diff touches no inventory files
+(only feature/sales + gates doc) and the same test
+passed on the 22.1 trio under an hour earlier, so it
+was diagnosed as a timing flake, not a regression;
+attempt 2 (failed-jobs re-run only, website route)
+went green, and the previously unjudged sales/parties/
+purchases/accounts connected tests ran in the re-run.
+No code change was made for the flake.
 
 ## Package 22.3 — Party ledger rows from posting effects
 
