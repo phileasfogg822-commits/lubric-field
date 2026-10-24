@@ -1,16 +1,15 @@
 package com.lubrcapp.lubrcapp.feature.inventory
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import java.math.BigDecimal
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -23,57 +22,48 @@ class InventoryScreenComposeTest {
     private val scope = OperationalScope("tenant-a", "business-a", "device-a")
 
     private class FakeRepository : OperationalBusinessRepository {
-        val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
-        var failSave = false
-        var saves = 0
-        override fun observe(scope: OperationalScope, table: String) = records
-        override suspend fun list(scope: OperationalScope, table: String) = records.value
+        val tables = mutableMapOf<String, MutableStateFlow<List<OperationalRecord>>>()
+        fun flowFor(table: String) = tables.getOrPut(table) { MutableStateFlow(emptyList()) }
+        fun seed(table: String, records: List<OperationalRecord>) {
+            flowFor(table).value = records
+        }
+        override fun observe(scope: OperationalScope, table: String): Flow<List<OperationalRecord>> = flowFor(table)
+        override suspend fun list(scope: OperationalScope, table: String) = flowFor(table).value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
-            if (failSave) throw IllegalStateException("storage unavailable")
-            saves++
-            records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
+            val flow = flowFor(table)
+            flow.value = flow.value.filterNot { it.id == id } + OperationalRecord(id, json)
         }
     }
 
-    @Test fun emptyFormAndBackNavigation() {
+    @Test fun cardsAndBackNavigation() {
         val fake = FakeRepository()
         var backCount = 0
         compose.setContent { InventoryScreen(scope, onBack = { backCount++ }, viewModel = InventoryViewModel(fake)) }
-        compose.onNodeWithText("Save stock movement").assertIsNotEnabled()
+        compose.onNodeWithText("Inventory value: 0").assertIsDisplayed()
+        compose.onNodeWithText("Items: 0").assertIsDisplayed()
+        compose.onNodeWithText("No items yet").assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
         compose.runOnIdle { assertEquals(1, backCount) }
     }
 
-    @Test fun createAndEditRecordOffline() {
+    @Test fun itemRowShowsLedgerBalanceAndDetailShowsHistory() {
         val fake = FakeRepository()
+        fake.seed(
+            "products",
+            listOf(OperationalRecord("oil", """{"name":"Engine Oil","purchaseRate":"100","openingStock":"50"}""")),
+        )
+        val movement = StockMovementRecord.of(
+            id = "mv-1", itemId = "oil", type = MovementType.SALE,
+            quantity = BigDecimal("5"), date = "2026-10-24", reason = "Sold",
+        )
+        fake.seed("stock_movements", listOf(OperationalRecord("mv-1", StockMovementJson.encode(movement))))
         compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
-        compose.onNodeWithText("Stock movement").performTextInput("Sample")
-        compose.onNodeWithText("Save stock movement").assertIsEnabled().performClick()
-        compose.waitUntil(5000) { fake.records.value.size == 1 }
-        compose.onNodeWithText("Edit Sample").performClick()
-        compose.onNodeWithText("Cancel edit").performClick()
-        compose.runOnIdle { assertEquals(1, fake.saves) }
-        compose.onNodeWithText("Edit Sample").performClick()
-        compose.onNodeWithText("Save stock movement").performClick()
-        compose.waitUntil(5000) { fake.saves == 2 }
-        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
-    }
-
-    @Test fun emptyStateIsShownWhenNoRecords() {
-        val fake = FakeRepository()
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
-        compose.onNodeWithText("No stock movements yet").assertIsDisplayed()
-    }
-
-    @Test fun saveFailureShowsError() {
-        val fake = FakeRepository()
-        fake.failSave = true
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
-        compose.onNodeWithText("Stock movement").performTextInput("Sample")
-        compose.onNodeWithText("Save stock movement").performClick()
-        compose.waitUntil(5000) {
-            try { compose.onNodeWithText("Unable to save stock movement locally").assertIsDisplayed(); true }
-            catch (_: AssertionError) { false }
-        }
+        compose.onNodeWithText("Engine Oil · 45 · In stock").assertIsDisplayed()
+        compose.onNodeWithText("Inventory value: 4500").assertIsDisplayed()
+        compose.onNodeWithText("Engine Oil · 45 · In stock").performClick()
+        compose.onNodeWithText("Balance: 45").assertIsDisplayed()
+        compose.onNodeWithText("2026-10-24 · SALE · -5").assertIsDisplayed()
+        compose.onNodeWithText("Back to list").performClick()
+        compose.onNodeWithText("Engine Oil · 45 · In stock").assertIsDisplayed()
     }
 }

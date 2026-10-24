@@ -89,4 +89,36 @@ class InventoryViewModel @Inject constructor(
 
     private fun List<StockMovementRecord>.sortedForLedger(): List<StockMovementRecord> =
         sortedWith(compareBy({ it.date }, { it.createdAt }, { it.id }))
+
+    // Phase 19.3 screen surface: reference data for the §31
+    // summary and the §33 levels records ("stock_levels",
+    // local-only — see StockLevelsRecord). Levels are keyed by
+    // item id, so saving is a plain upsert of that item's record.
+
+    fun observeItems(scope: OperationalScope): Flow<List<ItemStockOption>> =
+        repository.observe(scope, "products").map { InventoryReferenceData.itemOptions(it) }
+
+    suspend fun loadItems(scope: OperationalScope): List<ItemStockOption> =
+        InventoryReferenceData.itemOptions(repository.list(scope, "products"))
+
+    fun observeWarehouses(scope: OperationalScope): Flow<List<NamedOption>> =
+        repository.observe(scope, "warehouses").map { InventoryReferenceData.namedOptions(it) }
+
+    fun observeCategories(scope: OperationalScope): Flow<List<NamedOption>> =
+        repository.observe(scope, "categories").map { InventoryReferenceData.namedOptions(it) }
+
+    fun observeBrands(scope: OperationalScope): Flow<List<NamedOption>> =
+        repository.observe(scope, "brands").map { InventoryReferenceData.namedOptions(it) }
+
+    fun observeLevels(scope: OperationalScope): Flow<Map<String, StockLevelsRecord>> =
+        repository.observe(scope, "stock_levels").map { records ->
+            records.associate { it.id to StockLevelsJson.decode(it.id, it.json) }
+        }
+
+    suspend fun loadLevels(scope: OperationalScope): Map<String, StockLevelsRecord> =
+        repository.list(scope, "stock_levels")
+            .associate { it.id to StockLevelsJson.decode(it.id, it.json) }
+
+    suspend fun saveLevels(scope: OperationalScope, levels: StockLevelsRecord) =
+        repository.save(scope, "stock_levels", levels.itemId, StockLevelsJson.encode(levels), 0)
 }
