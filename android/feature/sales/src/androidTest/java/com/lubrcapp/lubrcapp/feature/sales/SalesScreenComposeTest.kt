@@ -160,6 +160,16 @@ class SalesScreenComposeTest {
         }
         compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
         compose.onNodeWithText("SO-2026-00003 · Sales order · CONFIRMED · 2026-10-24").performClick()
+        // The editor opens asynchronously (openDocument loads
+        // lines in a coroutine): wait for it before scrolling.
+        compose.waitUntil(10000) {
+            try {
+                compose.onAllNodesWithText("Convert to invoice").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
         compose.onNodeWithText("Convert to invoice").performScrollTo().performClick()
         compose.waitUntil(10000) {
             try {
@@ -200,6 +210,16 @@ class SalesScreenComposeTest {
             )
         }
         compose.onNodeWithText("INV-2026-00001 · Invoice · SENT · 2026-10-24").performClick()
+        // The editor opens asynchronously: wait for it before
+        // reaching for the Post button.
+        compose.waitUntil(10000) {
+            try {
+                compose.onAllNodesWithText("Post invoice").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
         compose.onNodeWithText("Post invoice").performScrollTo().performClick()
         compose.waitUntil(10000) {
             try {

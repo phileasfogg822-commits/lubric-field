@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -345,11 +347,16 @@ private fun DocumentEditor(
     val totals = remember(form, currency) { form.totalsOrNull(currency) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-    LazyColumn(
-        modifier = Modifier.weight(1f).fillMaxWidth(),
+    // Phase 21.5 — a vertically scrolling Column, not a
+    // LazyColumn: every node stays composed, so the action
+    // buttons and picker rows are always reachable. A
+    // LazyColumn never composes below-fold items, which hid
+    // the editor actions from the 21.5 tests (the 19.4 lesson).
+    Column(
+        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item {
+        run {
             Text(
                 stringResource(
                     when (form.type) {
@@ -367,7 +374,7 @@ private fun DocumentEditor(
             }
             Text(stringResource(R.string.sales_status, form.status))
         }
-        item {
+        run {
             OutlinedTextField(
                 value = form.date,
                 onValueChange = { onFormChange(form.copy(date = it)) },
@@ -387,7 +394,7 @@ private fun DocumentEditor(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        item {
+        run {
             Text(stringResource(R.string.sales_party), style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
@@ -397,7 +404,7 @@ private fun DocumentEditor(
                 Text(stringResource(R.string.sales_no_party))
             }
         }
-        items(parties, key = { "party-" + it.id }) { party ->
+        parties.forEach { party ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = form.partyId == party.id,
@@ -406,10 +413,10 @@ private fun DocumentEditor(
                 Text(party.name)
             }
         }
-        item {
+        run {
             Text(stringResource(R.string.sales_lines), style = MaterialTheme.typography.titleMedium)
         }
-        items(form.lines, key = { it.id }) { draft ->
+        form.lines.forEach { draft ->
             LineEditor(
                 draft = draft,
                 items = items,
@@ -423,7 +430,7 @@ private fun DocumentEditor(
                 },
             )
         }
-        item {
+        run {
             Button(
                 onClick = {
                     onFormChange(
@@ -441,13 +448,13 @@ private fun DocumentEditor(
         }
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
-            item {
+            run {
                 Text(stringResource(R.string.sales_actions), style = MaterialTheme.typography.titleMedium)
             }
             val document = form.toDocument(form.existingId)
             if (form.type == SalesDocumentType.QUOTATION) {
                 val from = SalesDocumentStatus.quotationStatus(document)
-                items(QuotationStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }) { target ->
+                QuotationStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }.forEach { target ->
                     Button(
                         onClick = { onStatusChange(SalesDocumentStatus.transition(document, target)) },
                         enabled = !saving,
@@ -461,7 +468,7 @@ private fun DocumentEditor(
                 // order transitions — offering them would let an
                 // invoice be "marked CONFIRMED" like an order.
                 val from = SalesDocumentStatus.orderStatus(document)
-                items(SalesOrderStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }) { target ->
+                SalesOrderStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }.forEach { target ->
                     Button(
                         onClick = { onStatusChange(SalesDocumentStatus.transition(document, target)) },
                         enabled = !saving,
@@ -472,7 +479,7 @@ private fun DocumentEditor(
             if (form.type == SalesDocumentType.QUOTATION &&
                 SalesDocumentStatus.quotationStatus(document) == QuotationStatus.ACCEPTED
             ) {
-                item {
+                run {
                     Button(onClick = onConvert, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.sales_convert_to_order))
                     }
@@ -484,7 +491,7 @@ private fun DocumentEditor(
                     orderStatus == SalesOrderStatus.PARTIALLY_FULFILLED ||
                     orderStatus == SalesOrderStatus.FULFILLED
                 ) {
-                    item {
+                    run {
                         Button(onClick = onConvertToInvoice, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.sales_convert_to_invoice))
                         }
@@ -496,7 +503,7 @@ private fun DocumentEditor(
                 if (invoiceStatus == SalesStatus.SENT || invoiceStatus == SalesStatus.PAID ||
                     invoiceStatus == SalesStatus.PARTIALLY_PAID || invoiceStatus == SalesStatus.OVERDUE
                 ) {
-                    item {
+                    run {
                         Button(onClick = onConvertToReturn, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.sales_convert_to_return))
                         }
@@ -509,7 +516,7 @@ private fun DocumentEditor(
                     form.type == SalesDocumentType.SALES_RETURN ||
                     form.type == SalesDocumentType.CREDIT_NOTE)
             ) {
-                item {
+                run {
                     Button(
                         onClick = { showPostingPicker = true },
                         enabled = !saving,
@@ -527,18 +534,18 @@ private fun DocumentEditor(
                     }
                 }
                 if (showPostingPicker) {
-                    item {
+                    run {
                         Text(stringResource(R.string.sales_posting_accounts), style = MaterialTheme.typography.titleMedium)
                     }
                     if (accountOptions.isEmpty()) {
-                        item {
+                        run {
                             Text(stringResource(R.string.sales_posting_no_accounts))
                         }
                     } else {
-                        item {
+                        run {
                             Text(stringResource(R.string.sales_posting_receivable), style = MaterialTheme.typography.titleMedium)
                         }
-                        items(accountOptions, key = { "recv-" + it.id }) { option ->
+                        accountOptions.forEach { option ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = receivableId == option.id,
@@ -547,10 +554,10 @@ private fun DocumentEditor(
                                 Text(option.name)
                             }
                         }
-                        item {
+                        run {
                             Text(stringResource(R.string.sales_posting_revenue), style = MaterialTheme.typography.titleMedium)
                         }
-                        items(accountOptions, key = { "rev-" + it.id }) { option ->
+                        accountOptions.forEach { option ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = revenueId == option.id,
@@ -559,10 +566,10 @@ private fun DocumentEditor(
                                 Text(option.name)
                             }
                         }
-                        item {
+                        run {
                             Text(stringResource(R.string.sales_posting_tax), style = MaterialTheme.typography.titleMedium)
                         }
-                        item {
+                        run {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = taxId == null,
@@ -571,7 +578,7 @@ private fun DocumentEditor(
                                 Text(stringResource(R.string.sales_posting_no_tax))
                             }
                         }
-                        items(accountOptions, key = { "tax-" + it.id }) { option ->
+                        accountOptions.forEach { option ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = taxId == option.id,
@@ -581,7 +588,7 @@ private fun DocumentEditor(
                             }
                         }
                     }
-                    item {
+                    run {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
@@ -612,10 +619,10 @@ private fun DocumentEditor(
                 }
             }
             if (timeline.isNotEmpty()) {
-                item {
+                run {
                     Text(stringResource(R.string.sales_timeline), style = MaterialTheme.typography.titleMedium)
                 }
-                items(timeline, key = { "tl-" + it.id }) { entry ->
+                timeline.forEach { entry ->
                     Text(
                         stringResource(
                             R.string.sales_timeline_entry,
