@@ -210,7 +210,59 @@ extend an existing numbering test rather than adding one).
 
 ## Package 21.5 — Screens
 
-Status: NOT STARTED.
+Status: ACCEPTED on `c596370` (trio green: Native
+40106249885, Compose 40106249903, Segmented 40106249911).
+9 files, +911/−26 vs `36b7cb8`. 9 new tests (VM
+orchestration 1, Compose 4, app handler 4).
+
+Contents: the sales screen now shows invoice, return, and
+credit-note type labels in the list and the editor (they
+previously all read as "Sales order"); order → invoice and
+invoice → return conversions in the editor, gated on the
+21.2/21.4 statuses; status buttons scoped to quotations and
+sales orders only (invoices, returns, and credit notes get
+none — their lifecycle moves through posting and payments,
+not order transitions); and the app-layer posting join.
+`SalesViewModel.convertInvoiceToReturn` orchestrates the
+21.4 conversion (no forward link on the invoice). The
+shell wires the screen's posting callback to
+`SalesPostingHandler`, the one place that sees all three
+ViewModels: build the posting with the 21.3/21.4 builders,
+post through `AccountsViewModel.postDocument`, then only
+on Posted persist the posting's stock movements (SALE
+outbound negative, RETURN inbound positive, keyed by the
+document as referenceId; skipped when the document already
+has rows, so a retry cannot double-count) and flip serials
+(SOLD for invoices, back to stock for returns). The screen
+asks the user to pick the posting accounts (receivable +
+revenue required, tax optional — no invented mapping);
+posting does not change the document's status, and a
+POSTED timeline entry is written on success.
+
+Failure history: package head `9f0a276` failed all three
+on two compile errors — the handler shared one if/else
+value over the unrelated `FlipSoldResult`/`FlipStockResult`
+types (resolving to Any, so `.flipped` did not compile)
+and the orchestration test used `assertNull` without
+importing it. Fix `0ddf658` cleared both; its trio went
+2/3 (Native + Segmented green, Compose red on 3 new
+Compose tests). The editor's actions lived in LazyColumn
+items, which never compose below-fold nodes — the 19.4
+lesson, relearned: fix `59661e5` made the editor a
+vertically scrolling Column and added waits for the
+editor to open. That trio went 2/3 (Compose red on the
+post-picker test only): the picker rows were a bare
+radio dot beside a name, so taps on the name silently
+did nothing, the picks never registered, Confirm stayed
+disabled, and the Posted notice never appeared. Fix
+`c596370` made every picker row a selectable row (role
+RadioButton) with a display-only dot. Known
+inconsistency left for a later pass: the party picker
+rows still use the bare dot-plus-name pattern.
+
+Deferred: availability-aware stock checks and refund
+settlement stay with Phase 22; currency wiring through
+AppModuleRegistry is still shell work.
 
 ## Package 21.6 — Phase gate
 
