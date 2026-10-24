@@ -2,16 +2,23 @@ package com.lubrcapp.lubrcapp.shell
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.R
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.user.Capabilities
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
 import com.lubrcapp.lubrcapp.feature.accounts.AccountsScreen
+import com.lubrcapp.lubrcapp.feature.accounts.AccountsViewModel
 import com.lubrcapp.lubrcapp.feature.inventory.InventoryScreen
+import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
 import com.lubrcapp.lubrcapp.feature.items.ItemsScreen
 import com.lubrcapp.lubrcapp.feature.parties.PartiesScreen
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasesScreen
+import com.lubrcapp.lubrcapp.feature.sales.PostingAccountOption
 import com.lubrcapp.lubrcapp.feature.sales.SalesScreen
+import com.lubrcapp.lubrcapp.feature.sales.SalesViewModel
 import com.lubrcapp.lubrcapp.feature.syncstatus.CloudSyncScreen
 import com.lubrcapp.lubrcapp.whitelist.featureflags.FeatureFlagKeys
 
@@ -138,7 +145,38 @@ object AppModuleRegistry {
             configKey = FeatureFlagKeys.MODULE_ORDERS,
             viewCapability = Capabilities.SALES_VIEW,
             selectable = true,
-            content = { scope, back -> SalesScreen(scope, back) },
+            // Phase 21.5 — the posting join: the shell alone can
+            // see all three ViewModels, so it wires the screen's
+            // posting callback to SalesPostingHandler and projects
+            // the active accounts into picker options. The screen
+            // keeps its own SalesViewModel instance so the handler
+            // loads the same repository the screen displays.
+            content = { scope, back ->
+                val salesViewModel: SalesViewModel = hiltViewModel()
+                val accountsViewModel: AccountsViewModel = hiltViewModel()
+                val inventoryViewModel: InventoryViewModel = hiltViewModel()
+                val accounts by accountsViewModel.observeAccounts(scope)
+                    .collectAsState(initial = emptyList())
+                SalesScreen(
+                    scope = scope,
+                    onBack = back,
+                    viewModel = salesViewModel,
+                    accountOptions = accounts
+                        .filter { it.isActive }
+                        .map { PostingAccountOption(it.id, it.name) },
+                    onPostDocument = { document, postingAccounts, currency ->
+                        SalesPostingHandler.postDocument(
+                            scope = scope,
+                            document = document,
+                            accounts = postingAccounts,
+                            currency = currency,
+                            salesViewModel = salesViewModel,
+                            accountsViewModel = accountsViewModel,
+                            inventoryViewModel = inventoryViewModel,
+                        )
+                    },
+                )
+            },
         ),
         AppModule(
             id = PURCHASES_ID,
