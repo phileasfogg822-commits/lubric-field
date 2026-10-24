@@ -1,12 +1,18 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
+import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
@@ -17,63 +23,88 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Phase 18.4 — replaces the Phase 12 raw-record screen tests:
+ * the raw screen is gone, and with it the description-only
+ * flows those tests pinned.
+ */
 @RunWith(AndroidJUnit4::class)
 class SalesScreenComposeTest {
     @get:Rule val compose = createComposeRule()
     private val scope = OperationalScope("tenant-a", "business-a", "device-a")
 
     private class FakeRepository : OperationalBusinessRepository {
-        val records = MutableStateFlow<List<OperationalRecord>>(emptyList())
-        var failSave = false
-        var saves = 0
-        override fun observe(scope: OperationalScope, table: String) = records
-        override suspend fun list(scope: OperationalScope, table: String) = records.value
+        private val tables = mutableMapOf<String, MutableStateFlow<List<OperationalRecord>>>()
+        fun flow(table: String) = tables.getOrPut(table) { MutableStateFlow(emptyList()) }
+        val orders get() = flow("orders")
+        override fun observe(scope: OperationalScope, table: String) = flow(table)
+        override suspend fun list(scope: OperationalScope, table: String) = flow(table).value
         override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) {
-            if (failSave) throw IllegalStateException("storage unavailable")
-            saves++
-            records.value = records.value.filterNot { it.id == id } + OperationalRecord(id, json)
+            flow(table).value = flow(table).value.filterNot { it.id == id } + OperationalRecord(id, json)
+        }
+        override suspend fun delete(scope: OperationalScope, table: String, id: String) {
+            flow(table).value = flow(table).value.filterNot { it.id == id }
         }
     }
 
-    @Test fun emptyFormAndBackNavigation() {
+    @Test fun listShowsCreateActionsAndBackNavigation() {
         val fake = FakeRepository()
-        var backCount = 0
-        compose.setContent { SalesScreen(scope, onBack = { backCount++ }, viewModel = SalesViewModel(fake)) }
-        compose.onNodeWithText("Save order").assertIsNotEnabled()
+        var backs = 0
+        compose.setContent { SalesScreen(scope, onBack = { backs++ }, viewModel = SalesViewModel(fake)) }
+        compose.onNodeWithText("New quotation").assertIsDisplayed()
+        compose.onNodeWithText("New sales order").assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
-        compose.runOnIdle { assertEquals(1, backCount) }
+        compose.runOnIdle { assertEquals(1, backs) }
     }
 
-    @Test fun createAndEditRecordOffline() {
+    @Test fun createQuotationShowsLiveTotalsAndSavesNumbered() {
         val fake = FakeRepository()
         compose.setContent { SalesScreen(scope, onBack = {}, viewModel = SalesViewModel(fake)) }
-        compose.onNodeWithText("Order").performTextInput("Sample")
-        compose.onNodeWithText("Save order").assertIsEnabled().performClick()
-        compose.waitUntil(5000) { fake.records.value.size == 1 }
-        compose.onNodeWithText("Edit Sample").performClick()
-        compose.onNodeWithText("Cancel edit").performClick()
-        compose.runOnIdle { assertEquals(1, fake.saves) }
-        compose.onNodeWithText("Edit Sample").performClick()
-        compose.onNodeWithText("Save order").performClick()
-        compose.waitUntil(5000) { fake.saves == 2 }
-        compose.runOnIdle { assertEquals(1, fake.records.value.size) }
-    }
-
-    @Test fun emptyStateIsShownWhenNoRecords() {
-        val fake = FakeRepository()
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = SalesViewModel(fake)) }
-        compose.onNodeWithText("No orders yet").assertIsDisplayed()
-    }
-
-    @Test fun saveFailureShowsError() {
-        val fake = FakeRepository()
-        fake.failSave = true
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = SalesViewModel(fake)) }
-        compose.onNodeWithText("Order").performTextInput("Sample")
-        compose.onNodeWithText("Save order").performClick()
-        compose.waitUntil(5000) {
-            try { compose.onNodeWithText("Unable to save order locally").assertIsDisplayed(); true }
-            catch (_: AssertionError) { false }
+        compose.onNodeWithText("New quotation").performClick()
+        compose.onNodeWithText("Date (yyyy-MM-dd)").performTextInput("2026-10-23")
+        compose.onNodeWithText("Description").performScrollTo().performTextInput("Engine Oil")
+        compose.onNodeWithText("Quantity").performScrollTo().performTextReplacement("2")
+        compose.onNodeWithText("Rate").performScrollTo().performTextInput("500")
+        compose.onNodeWithText("Tax %").performScrollTo().performTextInput("17")
+        // 2 x 500 exclusive + 17% tax = 1170, computed live by the engine
+        // (Money strips trailing zeros; the app displays toPlainString).
+        // assertCountEquals, not assertIsDisplayed: the exact text match
+        // proves the engine totals are live; on-screen visibility flaps
+        // against the focused text field's bring-into-view fighting the
+        // test's scroll. (assertExists is not importable in this
+        // project's compose-ui-test version — unresolved reference at
+        // compile; assertCountEquals is the proven pattern here.)
+        compose.onAllNodesWithText("Grand total: 1170").assertCountEquals(1)
+        compose.onNodeWithTag("salesSaveButton").assertIsEnabled().performClick()
+        try {
+            compose.waitUntil(10000) { fake.orders.value.size == 1 }
+        } catch (e: ComposeTimeoutException) {
+            // Diagnostic: pinpoint the UI state when the save stalls.
+            // (fetchSemanticsNodes is not in this project's compose-ui-test;
+            // use assertCountEquals probes in try/catch instead.)
+            fun exists(text: String, substring: Boolean = false): Boolean = try {
+                compose.onAllNodesWithText(text, substring = substring).assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+            val errorShown = exists("Unable to save locally", substring = true)
+            val saveStillThere = try {
+                compose.onAllNodesWithTag("salesSaveButton").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+            val backInList = exists("New quotation")
+            throw AssertionError(
+                "Save timed out: orders=${fake.orders.value.size}, " +
+                "numbering_sequences=${fake.flow("numbering_sequences").value.size}, " +
+                "order_items=${fake.flow("order_items").value.size}, " +
+                "timeline_entries=${fake.flow("timeline_entries").value.size}; " +
+                "errorShown=$errorShown, saveStillThere=$saveStillThere, backInList=$backInList"
+            )
         }
+        // Back in list mode, the saved row carries the issued number.
+        compose.onNodeWithText("QT-2026-00001 · Quotation · DRAFT · 2026-10-23").assertIsDisplayed()
     }
 }

@@ -4,9 +4,15 @@ import androidx.lifecycle.ViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.business.DocumentNumbering
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Offline-first sales feature: observes Room and queues writes without network access. */
 @HiltViewModel
@@ -21,4 +27,171 @@ class SalesViewModel @Inject constructor(
 
     suspend fun save(scope: OperationalScope, id: String, payloadJson: String, revision: Long = 0) =
         repository.save(scope, "orders", id, payloadJson, revision)
+
+    // Phase 18.1 typed document surface. The raw record methods
+    // above stay as the low-level passthrough (pinned by
+    // SalesViewModelTest); everything document-shaped goes through
+    // these. There is deliberately NO document delete here:
+    // documents are financial records, and the repository contract
+    // reserves soft-delete for nonfinancial records — a document
+    // is cancelled by status (18.2), never tombstoned.
+
+    fun observeDocuments(scope: OperationalScope): Flow<List<SalesDocument>> =
+        repository.observe(scope, "orders").map { records ->
+            records.map { SalesDocumentJson.decode(it.id, it.json) }
+        }
+
+    suspend fun loadDocuments(scope: OperationalScope): List<SalesDocument> =
+        repository.list(scope, "orders").map { SalesDocumentJson.decode(it.id, it.json) }
+
+    suspend fun saveDocument(scope: OperationalScope, document: SalesDocument, revision: Long = 0) =
+        repository.save(scope, "orders", document.id, SalesDocumentJson.encode(document), revision)
+
+    fun observeLines(scope: OperationalScope, orderId: String): Flow<List<SalesDocumentLine>> =
+        repository.observe(scope, "order_items").map { records ->
+            records.map { SalesDocumentLineJson.decode(it.id, it.json) }
+                .filter { it.orderId == orderId }
+                .sortedBy { it.position }
+        }
+
+    suspend fun loadLines(scope: OperationalScope, orderId: String): List<SalesDocumentLine> =
+        repository.list(scope, "order_items")
+            .map { SalesDocumentLineJson.decode(it.id, it.json) }
+            .filter { it.orderId == orderId }
+            .sortedBy { it.position }
+
+    suspend fun saveLine(scope: OperationalScope, line: SalesDocumentLine, revision: Long = 0) =
+        repository.save(scope, "order_items", line.id, SalesDocumentLineJson.encode(line), revision)
+
+    // Phase 18.3 numbering surface. The stored record wins; until
+    // one exists the §51 defaults apply. Issuing a number advances
+    // and persists the counter in the same call, and a document
+    // that already has a number keeps it — numbers are assigned
+    // once, on first save.
+
+    suspend fun loadNumberingRecord(scope: OperationalScope, type: SalesDocumentType): NumberingRecord {
+        val stored = repository.list(scope, "numbering_sequences")
+            .firstOrNull { it.id == type.name }
+        return stored?.let { NumberingRecordJson.decode(it.id, it.json) }
+            ?: DocumentNumberDefaults.recordFor(type)
+    }
+
+    suspend fun saveNumberingRecord(scope: OperationalScope, record: NumberingRecord, revision: Long = 0) =
+        repository.save(scope, "numbering_sequences", record.id, NumberingRecordJson.encode(record), revision)
+
+    suspend fun issueDocumentNumber(
+        scope: OperationalScope,
+        document: SalesDocument,
+        date: LocalDate,
+        branchPrefix: String? = null,
+    ): SalesDocument {
+        if (document.number.isNotBlank()) return document
+        val record = loadNumberingRecord(scope, document.type)
+        val (advancedState, formatted) = DocumentNumbering.issue(
+            record.sequence(),
+            record.state(),
+            date,
+            branchPrefix,
+        )
+        saveNumberingRecord(scope, record.withState(advancedState))
+        return document.copy(number = formatted)
+    }
+
+    // Phase 18.4 timeline + reference surface. The timeline is
+    // written by the editor's save/convert flows; the reference
+    // lists feed its party and item pickers.
+
+    suspend fun saveTimelineEntry(scope: OperationalScope, entry: TimelineEntry, revision: Long = 0) =
+        repository.save(scope, "timeline_entries", entry.id, TimelineEntryJson.encode(entry), revision)
+
+    suspend fun loadTimeline(scope: OperationalScope, documentId: String): List<TimelineEntry> =
+        repository.list(scope, "timeline_entries")
+            .map { TimelineEntryJson.decode(it.id, it.json) }
+            .filter { it.documentId == documentId }
+            .sortedBy { it.timestamp }
+
+    fun observeParties(scope: OperationalScope): Flow<List<PartyOption>> =
+        repository.observe(scope, "customers").map { SalesReferenceData.partyOptions(it) }
+
+    fun observeItems(scope: OperationalScope): Flow<List<ItemOption>> =
+        repository.observe(scope, "products").map { SalesReferenceData.itemOptions(it) }
+
+    /**
+     * Save a document and its full line set together: lines
+     * that existed before but are absent from [lines] are
+     * removed through the store's delete path, so an edited
+     * document's totals can never be haunted by orphan lines.
+     * (The document HEADER is never deleted — see the 18.1
+     * note; its lines are editable components of a draft.)
+     */
+    suspend fun saveDocumentWithLines(
+        scope: OperationalScope,
+        document: SalesDocument,
+        lines: List<SalesDocumentLine>,
+    ) {
+        val keep = lines.map { it.id }.toSet()
+        loadLines(scope, document.id)
+            .filter { it.id !in keep }
+            .forEach { repository.delete(scope, "order_items", it.id) }
+        saveDocument(scope, document)
+        lines.forEach { saveLine(scope, it) }
+    }
+
+    /**
+     * The 18.4 form save, as a ViewModel operation (not a composable-local
+     * function): numbers the document if blank, persists header + lines,
+     * and appends the SAVED timeline entry. Returns the saved document.
+     * UI state (form clearing, error display) stays with the caller.
+     */
+    suspend fun saveForm(
+        scope: OperationalScope,
+        form: SalesDocumentFormState,
+        currency: CurrencyCode,
+    ): SalesDocument {
+        val id = form.existingId ?: UUID.randomUUID().toString()
+        var document = form.toDocument(id)
+        if (document.number.isBlank()) {
+            val date = runCatching { LocalDate.parse(document.date) }
+                .getOrDefault(LocalDate.now())
+            document = issueDocumentNumber(scope, document, date)
+        }
+        val lines = form.toLines(id)
+        saveDocumentWithLines(scope, document, lines)
+        val total = SalesDocumentEngine.totals(lines, currency).grandTotal
+        saveTimelineEntry(
+            scope,
+            TimelineEntry(
+                id = UUID.randomUUID().toString(),
+                documentId = document.id,
+                documentType = document.type.name,
+                documentNumber = document.number,
+                partyId = document.partyId,
+                action = "SAVED",
+                grandTotal = total.amount.toPlainString(),
+                timestamp = Instant.now().toString(),
+            ),
+        )
+        return document
+    }
+
+    /**
+     * The 18.5 conversion, orchestrated: load the quotation and
+     * its lines, convert with fresh ids, persist the order (with
+     * its lines) and the converted quotation, and return the
+     * new order.
+     */
+    suspend fun convertQuotationToOrder(scope: OperationalScope, quotationId: String): SalesDocument {
+        val quotation = loadDocuments(scope).firstOrNull { it.id == quotationId }
+            ?: throw NoSuchElementException("No document $quotationId")
+        val lines = loadLines(scope, quotationId)
+        val result = SalesDocumentConversion.quotationToSalesOrder(
+            quotation,
+            lines,
+            newDocumentId = java.util.UUID.randomUUID().toString(),
+            newLineId = { java.util.UUID.randomUUID().toString() },
+        )
+        saveDocumentWithLines(scope, result.order, result.orderLines)
+        saveDocument(scope, result.convertedQuotation)
+        return result.order
+    }
 }
