@@ -399,125 +399,133 @@ private fun ColumnScope.ItemDetail(
     val serialInvalidText = stringResource(R.string.inventory_serial_invalid)
     val inStockSerials = serials.filter { it.status == SerialStatus.IN_STOCK }
 
-    Button(onClick = onBackToList) { Text(stringResource(R.string.inventory_back_to_list)) }
-    Text(row.item.name, style = MaterialTheme.typography.headlineSmall)
-    Text(stringResource(R.string.inventory_detail_balance, row.balance.toPlainString()))
-    Text(stringResource(R.string.inventory_detail_status, stringResource(statusLabel(row.status))))
-    if (row.needsReorder) {
-        Text(stringResource(R.string.inventory_reorder_due), color = MaterialTheme.colorScheme.error)
-    }
-    row.value?.let {
-        Text(stringResource(R.string.inventory_detail_value, it.toPlainString()))
-    }
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-    Text(stringResource(R.string.inventory_history_title), style = MaterialTheme.typography.titleMedium)
-    if (movements.isEmpty()) {
-        Text(stringResource(R.string.inventory_history_empty))
-    }
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().weight(1f),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    // A vertically scrolling Column, not a fixed Column with an
+    // inner LazyColumn: the 19.6 additions made the fixed content
+    // tall enough to squeeze the history list to zero height on
+    // small screens (nodes present in the tree but not displayed).
+    // Every row stays composed here, so the test can always find
+    // and interact with the fields.
+    Column(
+        modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(movements, key = { it.id }) { movement ->
-            Text(
-                stringResource(
-                    R.string.inventory_history_row,
-                    movement.date,
-                    movement.type.name,
-                    movement.quantity.toPlainString(),
+
+        Button(onClick = onBackToList) { Text(stringResource(R.string.inventory_back_to_list)) }
+        Text(row.item.name, style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.inventory_detail_balance, row.balance.toPlainString()))
+        Text(stringResource(R.string.inventory_detail_status, stringResource(statusLabel(row.status))))
+        if (row.needsReorder) {
+            Text(stringResource(R.string.inventory_reorder_due), color = MaterialTheme.colorScheme.error)
+        }
+        row.value?.let {
+            Text(stringResource(R.string.inventory_detail_value, it.toPlainString()))
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        Text(stringResource(R.string.inventory_history_title), style = MaterialTheme.typography.titleMedium)
+        if (movements.isEmpty()) {
+            Text(stringResource(R.string.inventory_history_empty))
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            movements.forEach { movement ->
+                Text(
+                    stringResource(
+                        R.string.inventory_history_row,
+                        movement.date,
+                        movement.type.name,
+                        movement.quantity.toPlainString(),
+                    )
                 )
-            )
-        }
-        // §30 serials ride in the same scrolling area as
-        // display rows — their Remove buttons act on the row's
-        // own immutable id only; the stateful Add form stays in
-        // the fixed area below (the Phase 18.4 lesson).
-        item {
+            }
+            // §30 serials ride in the same scrolling area as
+            // display rows — their Remove buttons act on the row's
+            // own immutable id only; the stateful Add form stays in
+            // the fixed area below (the Phase 18.4 lesson).
             Text(stringResource(R.string.inventory_serials_title), style = MaterialTheme.typography.titleMedium)
-        }
-        if (inStockSerials.isEmpty()) {
-            item {
+            if (inStockSerials.isEmpty()) {
                 Text(stringResource(R.string.inventory_serial_empty))
             }
-        }
-        items(inStockSerials, key = { "serial-" + it.id }) { serial ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(serial.serialNumber)
-                Button(onClick = { onRemoveSerial(serial.id) }, enabled = !saving) {
-                    Text(stringResource(R.string.inventory_serial_remove))
+            inStockSerials.forEach { serial ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(serial.serialNumber)
+                    Button(onClick = { onRemoveSerial(serial.id) }, enabled = !saving) {
+                        Text(stringResource(R.string.inventory_serial_remove))
+                    }
                 }
             }
         }
-    }
 
-    // §33 levels editor — outside the LazyColumn so its Save
-    // button is always composed with the current handler
-    // (the Phase 18.4 lesson).
-    Text(stringResource(R.string.inventory_levels_title), style = MaterialTheme.typography.titleMedium)
-    OutlinedTextField(
-        value = minimumText,
-        onValueChange = { minimumText = it },
-        label = { Text(stringResource(R.string.inventory_level_minimum)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = reorderText,
-        onValueChange = { reorderText = it },
-        label = { Text(stringResource(R.string.inventory_level_reorder)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = maximumText,
-        onValueChange = { maximumText = it },
-        label = { Text(stringResource(R.string.inventory_level_maximum)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Button(
-        onClick = {
-            onSaveLevels(
-                StockLevelsRecord(
-                    itemId = row.item.id,
-                    minimum = minimumText.toDecimalOrNull(),
-                    reorderLevel = reorderText.toDecimalOrNull(),
-                    maximum = maximumText.toDecimalOrNull(),
+        // §33 levels editor — every node stays composed in the
+        // scrolling Column, so its Save button always carries the
+        // current handler (the Phase 18.4 lesson).
+        Text(stringResource(R.string.inventory_levels_title), style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(
+            value = minimumText,
+            onValueChange = { minimumText = it },
+            label = { Text(stringResource(R.string.inventory_level_minimum)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = reorderText,
+            onValueChange = { reorderText = it },
+            label = { Text(stringResource(R.string.inventory_level_reorder)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = maximumText,
+            onValueChange = { maximumText = it },
+            label = { Text(stringResource(R.string.inventory_level_maximum)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            onClick = {
+                onSaveLevels(
+                    StockLevelsRecord(
+                        itemId = row.item.id,
+                        minimum = minimumText.toDecimalOrNull(),
+                        reorderLevel = reorderText.toDecimalOrNull(),
+                        maximum = maximumText.toDecimalOrNull(),
+                    )
                 )
-            )
-        },
-        enabled = !saving,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(stringResource(R.string.inventory_levels_save))
-    }
+            },
+            enabled = !saving,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.inventory_levels_save))
+        }
 
-    // §30 receive flow — fixed area, like the levels Save.
-    serialMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-    OutlinedTextField(
-        value = serialText,
-        onValueChange = { serialText = it },
-        label = { Text(stringResource(R.string.inventory_serial_field)) },
-        modifier = Modifier.fillMaxWidth(),
-    )
-    Button(
-        onClick = {
-            onAddSerial(serialText) { result ->
-                serialMessage = when (result) {
-                    is SerialAddResult.Added -> serialAddedText
-                    SerialAddResult.Duplicate -> serialDuplicateText
-                    SerialAddResult.Invalid -> serialInvalidText
+        // §30 receive flow — fixed area, like the levels Save.
+        serialMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        OutlinedTextField(
+            value = serialText,
+            onValueChange = { serialText = it },
+            label = { Text(stringResource(R.string.inventory_serial_field)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            onClick = {
+                onAddSerial(serialText) { result ->
+                    serialMessage = when (result) {
+                        is SerialAddResult.Added -> serialAddedText
+                        SerialAddResult.Duplicate -> serialDuplicateText
+                        SerialAddResult.Invalid -> serialInvalidText
+                    }
+                    if (result is SerialAddResult.Added) {
+                        serialText = ""
+                    }
                 }
-                if (result is SerialAddResult.Added) {
-                    serialText = ""
-                }
-            }
-        },
-        enabled = !saving && serialText.isNotBlank(),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(stringResource(R.string.inventory_serial_add))
+            },
+            enabled = !saving && serialText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.inventory_serial_add))
+        }
     }
 }
 
