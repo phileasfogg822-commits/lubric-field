@@ -34,6 +34,7 @@ import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.domain.sales.DocumentStatusRules
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
+import com.lubrcapp.lubrcapp.domain.sales.SalesStatus
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -58,6 +59,8 @@ fun SalesScreen(
     onBack: () -> Unit,
     currencyCode: String = "XXX",
     viewModel: SalesViewModel = hiltViewModel(),
+    accountOptions: List<PostingAccountOption> = emptyList(),
+    onPostDocument: (suspend (SalesDocument, InvoicePostingAccounts, CurrencyCode) -> SalesPostResult)? = null,
 ) {
     val documents by remember(viewModel, scope) { viewModel.observeDocuments(scope) }
         .collectAsState(initial = emptyList())
@@ -69,8 +72,11 @@ fun SalesScreen(
     var timeline by remember(scope) { mutableStateOf<List<TimelineEntry>>(emptyList()) }
     var saving by remember(scope) { mutableStateOf(false) }
     var error by remember(scope) { mutableStateOf<String?>(null) }
+    var notice by remember(scope) { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.sales_error)
+    val postedTemplate = stringResource(R.string.sales_posted)
+    val postingRejectedTemplate = stringResource(R.string.sales_posting_rejected)
     val currency = remember(currencyCode) { CurrencyCode.of(currencyCode) }
 
     fun openDocument(document: SalesDocument) {
@@ -79,6 +85,43 @@ fun SalesScreen(
             timeline = viewModel.loadTimeline(scope, document.id)
             form = SalesDocumentFormState.fromDocument(document, lines)
             error = null
+            notice = null
+        }
+    }
+
+    fun postDocument(document: SalesDocument, accounts: InvoicePostingAccounts) {
+        val handler = onPostDocument ?: return
+        saving = true
+        coroutineScope.launch {
+            try {
+                when (val result = handler(document, accounts, currency)) {
+                    is SalesPostResult.Posted -> {
+                        notice = postedTemplate.format(result.documentNumber)
+                        viewModel.saveTimelineEntry(
+                            scope,
+                            TimelineEntry(
+                                id = UUID.randomUUID().toString(),
+                                documentId = document.id,
+                                documentType = document.type.name,
+                                documentNumber = document.number,
+                                partyId = document.partyId,
+                                action = "POSTED",
+                                grandTotal = "",
+                                timestamp = Instant.now().toString(),
+                            ),
+                        )
+                        timeline = viewModel.loadTimeline(scope, document.id)
+                        error = null
+                    }
+                    is SalesPostResult.Rejected -> {
+                        error = postingRejectedTemplate.format(result.reasons.joinToString(", "))
+                    }
+                }
+            } catch (_: Exception) {
+                error = saveError
+            } finally {
+                saving = false
+            }
         }
     }
 
@@ -89,6 +132,7 @@ fun SalesScreen(
         Button(onClick = onBack) { Text(stringResource(R.string.sales_back)) }
         Text(stringResource(R.string.sales_title), style = MaterialTheme.typography.headlineMedium)
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        notice?.let { Text(it) }
 
         val currentForm = form
         if (currentForm == null) {
@@ -120,10 +164,12 @@ fun SalesScreen(
                                 R.string.sales_document_row,
                                 document.number.ifBlank { stringResource(R.string.sales_unnumbered) },
                                 stringResource(
-                                    if (document.type == SalesDocumentType.QUOTATION) {
-                                        R.string.sales_type_quotation
-                                    } else {
-                                        R.string.sales_type_order
+                                    when (document.type) {
+                                        SalesDocumentType.QUOTATION -> R.string.sales_type_quotation
+                                        SalesDocumentType.SALES_ORDER -> R.string.sales_type_order
+                                        SalesDocumentType.INVOICE -> R.string.sales_type_invoice
+                                        SalesDocumentType.SALES_RETURN -> R.string.sales_type_return
+                                        SalesDocumentType.CREDIT_NOTE -> R.string.sales_type_credit_note
                                     }
                                 ),
                                 document.status,
@@ -157,7 +203,7 @@ fun SalesScreen(
                         }
                     }
                 },
-                onCancel = { form = null; timeline = emptyList(); error = null },
+                onCancel = { form = null; timeline = emptyList(); error = null; notice = null },
                 onStatusChange = { updated ->
                     saving = true
                     coroutineScope.launch {
@@ -202,6 +248,72 @@ fun SalesScreen(
                         }
                     }
                 },
+                onConvertToInvoice = {
+                    val orderId = currentForm.existingId ?: return@DocumentEditor
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            val invoice = viewModel.convertOrderToInvoice(scope, orderId)
+                            viewModel.saveTimelineEntry(
+                                scope,
+                                TimelineEntry(
+                                    id = UUID.randomUUID().toString(),
+                                    documentId = orderId,
+                                    documentType = SalesDocumentType.SALES_ORDER.name,
+                                    documentNumber = currentForm.number,
+                                    partyId = currentForm.partyId,
+                                    action = "CONVERTED",
+                                    grandTotal = "",
+                                    timestamp = Instant.now().toString(),
+                                ),
+                            )
+                            form = null
+                            timeline = emptyList()
+                            error = null
+                            openDocument(invoice)
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+                onConvertToReturn = {
+                    val invoiceId = currentForm.existingId ?: return@DocumentEditor
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            val returnDocument = viewModel.convertInvoiceToReturn(scope, invoiceId)
+                            viewModel.saveTimelineEntry(
+                                scope,
+                                TimelineEntry(
+                                    id = UUID.randomUUID().toString(),
+                                    documentId = invoiceId,
+                                    documentType = SalesDocumentType.INVOICE.name,
+                                    documentNumber = currentForm.number,
+                                    partyId = currentForm.partyId,
+                                    action = "CONVERTED",
+                                    grandTotal = "",
+                                    timestamp = Instant.now().toString(),
+                                ),
+                            )
+                            form = null
+                            timeline = emptyList()
+                            error = null
+                            openDocument(returnDocument)
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
+                accountOptions = accountOptions,
+                onPostDocument = if (onPostDocument == null) {
+                    null
+                } else {
+                    { document, accounts -> postDocument(document, accounts) }
+                },
             )
         }
     }
@@ -220,8 +332,16 @@ private fun DocumentEditor(
     onCancel: () -> Unit,
     onStatusChange: (SalesDocument) -> Unit,
     onConvert: () -> Unit,
+    onConvertToInvoice: () -> Unit,
+    onConvertToReturn: () -> Unit,
+    accountOptions: List<PostingAccountOption>,
+    onPostDocument: ((SalesDocument, InvoicePostingAccounts) -> Unit)?,
 ) {
     var pickerLineId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var showPostingPicker by remember(form.existingId) { mutableStateOf(false) }
+    var receivableId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var revenueId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var taxId by remember(form.existingId) { mutableStateOf<String?>(null) }
     val totals = remember(form, currency) { form.totalsOrNull(currency) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -232,10 +352,12 @@ private fun DocumentEditor(
         item {
             Text(
                 stringResource(
-                    if (form.type == SalesDocumentType.QUOTATION) {
-                        R.string.sales_type_quotation
-                    } else {
-                        R.string.sales_type_order
+                    when (form.type) {
+                        SalesDocumentType.QUOTATION -> R.string.sales_type_quotation
+                        SalesDocumentType.SALES_ORDER -> R.string.sales_type_order
+                        SalesDocumentType.INVOICE -> R.string.sales_type_invoice
+                        SalesDocumentType.SALES_RETURN -> R.string.sales_type_return
+                        SalesDocumentType.CREDIT_NOTE -> R.string.sales_type_credit_note
                     }
                 ),
                 style = MaterialTheme.typography.titleLarge,
@@ -332,7 +454,12 @@ private fun DocumentEditor(
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.sales_mark_status, target.name)) }
                 }
-            } else {
+            } else if (form.type == SalesDocumentType.SALES_ORDER) {
+                // Invoices, returns, and credit notes get no status
+                // buttons here: their lifecycle moves through
+                // posting and payments (Phase 22), not through the
+                // order transitions — offering them would let an
+                // invoice be "marked CONFIRMED" like an order.
                 val from = SalesDocumentStatus.orderStatus(document)
                 items(SalesOrderStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }) { target ->
                     Button(
@@ -348,6 +475,139 @@ private fun DocumentEditor(
                 item {
                     Button(onClick = onConvert, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.sales_convert_to_order))
+                    }
+                }
+            }
+            if (form.type == SalesDocumentType.SALES_ORDER) {
+                val orderStatus = SalesDocumentStatus.orderStatus(document)
+                if (orderStatus == SalesOrderStatus.CONFIRMED ||
+                    orderStatus == SalesOrderStatus.PARTIALLY_FULFILLED ||
+                    orderStatus == SalesOrderStatus.FULFILLED
+                ) {
+                    item {
+                        Button(onClick = onConvertToInvoice, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.sales_convert_to_invoice))
+                        }
+                    }
+                }
+            }
+            if (form.type == SalesDocumentType.INVOICE) {
+                val invoiceStatus = SalesDocumentStatus.invoiceStatus(document)
+                if (invoiceStatus == SalesStatus.SENT || invoiceStatus == SalesStatus.PAID ||
+                    invoiceStatus == SalesStatus.PARTIALLY_PAID || invoiceStatus == SalesStatus.OVERDUE
+                ) {
+                    item {
+                        Button(onClick = onConvertToReturn, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.sales_convert_to_return))
+                        }
+                    }
+                }
+            }
+            val postDocument = onPostDocument
+            if (postDocument != null &&
+                (form.type == SalesDocumentType.INVOICE ||
+                    form.type == SalesDocumentType.SALES_RETURN ||
+                    form.type == SalesDocumentType.CREDIT_NOTE)
+            ) {
+                item {
+                    Button(
+                        onClick = { showPostingPicker = true },
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                when (form.type) {
+                                    SalesDocumentType.INVOICE -> R.string.sales_post_invoice
+                                    SalesDocumentType.SALES_RETURN -> R.string.sales_post_return
+                                    else -> R.string.sales_post_credit_note
+                                }
+                            )
+                        )
+                    }
+                }
+                if (showPostingPicker) {
+                    item {
+                        Text(stringResource(R.string.sales_posting_accounts), style = MaterialTheme.typography.titleMedium)
+                    }
+                    if (accountOptions.isEmpty()) {
+                        item {
+                            Text(stringResource(R.string.sales_posting_no_accounts))
+                        }
+                    } else {
+                        item {
+                            Text(stringResource(R.string.sales_posting_receivable), style = MaterialTheme.typography.titleMedium)
+                        }
+                        items(accountOptions, key = { "recv-" + it.id }) { option ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = receivableId == option.id,
+                                    onClick = { receivableId = option.id },
+                                )
+                                Text(option.name)
+                            }
+                        }
+                        item {
+                            Text(stringResource(R.string.sales_posting_revenue), style = MaterialTheme.typography.titleMedium)
+                        }
+                        items(accountOptions, key = { "rev-" + it.id }) { option ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = revenueId == option.id,
+                                    onClick = { revenueId = option.id },
+                                )
+                                Text(option.name)
+                            }
+                        }
+                        item {
+                            Text(stringResource(R.string.sales_posting_tax), style = MaterialTheme.typography.titleMedium)
+                        }
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = taxId == null,
+                                    onClick = { taxId = null },
+                                )
+                                Text(stringResource(R.string.sales_posting_no_tax))
+                            }
+                        }
+                        items(accountOptions, key = { "tax-" + it.id }) { option ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = taxId == option.id,
+                                    onClick = { taxId = option.id },
+                                )
+                                Text(option.name)
+                            }
+                        }
+                    }
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    val receivable = receivableId
+                                    val revenue = revenueId
+                                    if (receivable != null && revenue != null) {
+                                        showPostingPicker = false
+                                        postDocument(
+                                            document,
+                                            InvoicePostingAccounts(
+                                                receivableAccountId = receivable,
+                                                revenueAccountId = revenue,
+                                                taxAccountId = taxId,
+                                            ),
+                                        )
+                                    }
+                                },
+                                enabled = !saving && receivableId != null && revenueId != null,
+                                modifier = Modifier.weight(1f),
+                            ) { Text(stringResource(R.string.sales_posting_confirm)) }
+                            Button(
+                                onClick = { showPostingPicker = false },
+                                enabled = !saving,
+                                modifier = Modifier.weight(1f),
+                            ) { Text(stringResource(R.string.sales_posting_cancel)) }
+                        }
                     }
                 }
             }

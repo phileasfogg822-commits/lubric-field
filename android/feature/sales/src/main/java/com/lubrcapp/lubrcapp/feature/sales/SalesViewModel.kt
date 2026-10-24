@@ -248,6 +248,28 @@ class SalesViewModel @Inject constructor(
     }
 
     /**
+     * The 21.4 conversion, orchestrated: load the invoice and
+     * its lines, convert with fresh ids, persist the return
+     * (with its lines), and return the return document. The
+     * invoice itself is NOT saved back: 21.4 gives it no
+     * forward link, because one invoice takes many partial
+     * returns and no single link can name them.
+     */
+    suspend fun convertInvoiceToReturn(scope: OperationalScope, invoiceId: String): SalesDocument {
+        val invoice = loadDocuments(scope).firstOrNull { it.id == invoiceId }
+            ?: throw NoSuchElementException("No document $invoiceId")
+        val lines = loadLines(scope, invoiceId)
+        val result = SalesDocumentConversion.invoiceToReturn(
+            invoice,
+            lines,
+            newDocumentId = java.util.UUID.randomUUID().toString(),
+            newLineId = { java.util.UUID.randomUUID().toString() },
+        )
+        saveDocumentWithLines(scope, result.returnDocument, result.returnLines)
+        return result.returnDocument
+    }
+
+    /**
      * The 21.2 delivery, orchestrated: load the order and its
      * lines, record the delivery, persist the updated lines and
      * document, and return the updated document.

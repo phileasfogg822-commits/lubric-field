@@ -103,6 +103,29 @@ class SalesViewModelOrchestrationTest {
     }
 
     @Test
+    fun invoiceToReturnConversionPersistsReturnAndLeavesTheInvoiceUnlinked() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val invoice = SalesDocument(
+            id = "inv-1",
+            type = SalesDocumentType.INVOICE,
+            number = "INV-2026-00001",
+            status = "SENT",
+        )
+        vm.saveDocumentWithLines(scope, invoice, listOf(line("l-1", "inv-1", 0)))
+
+        val returnDocument = vm.convertInvoiceToReturn(scope, "inv-1")
+        assertEquals(SalesDocumentType.SALES_RETURN, returnDocument.type)
+        assertEquals("inv-1", returnDocument.convertedFromId)
+        assertEquals(1, vm.loadLines(scope, returnDocument.id).size)
+
+        // No forward link: the invoice takes many partial returns.
+        val storedInvoice = vm.loadDocuments(scope).first { it.id == "inv-1" }
+        assertNull(storedInvoice.convertedToId)
+        assertEquals("SENT", storedInvoice.status)
+    }
+
+    @Test
     fun deliveryPersistsUpdatedLinesAndDerivedStatus() = runBlocking {
         val fake = FakeRepository()
         val vm = SalesViewModel(fake)
