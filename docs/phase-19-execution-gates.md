@@ -132,4 +132,27 @@ Verification (GitHub Actions on exact head `ead5f69`, PR #28): Native Android CI
 
 ## Package 19.7 — Phase gate
 
-Status: NOT STARTED.
+Status: ACCEPTED.
+
+Evidence sweep vs Phase 18 head `42ddb48`: 22 files changed, +3534/−84.
+New tests: 44 (39 unit + 5 Compose) — StockLedgerTest 6, InventoryMovementViewModelTest 3,
+InventorySummaryTest 5, StockAdjustmentTest 6, StockMovementRecordTest 7, StockSerialTest 4,
+StockTransferTest 8, InventoryScreenComposeTest 5. Every package accepted on a green
+trio at its exact head: 19.1 `facc961`, 19.2 `93b0e97`, 19.3 `2968f8c`, 19.4 `e75cf9a`,
+19.5 `6aaf3c4`, 19.6 `ead5f69`.
+
+Deferred items carried forward:
+- §213 stock reservations → Phases 21/22 (document posting).
+- Sale-time serial SOLD flip → Phase 21 (19.6 shipped the registry + status surface).
+- Currency wiring via AppModuleRegistry (totals preview defaults "XXX") — still shell work.
+- 12C-05(b): arrival-order-wins on already-synced editable records — Umar's call at §12.7.
+
+Phase 20 prep drafted at `agent_notes/phase-20-prep.md` (goal workspace, not the repo):
+Accounting Core & Posting Engine — journal model + codec, posting engine on the 17.4
+contract, Chart of Accounts, journal/chart screens with trial-balance preview (reports
+proper stay Phase 24). Open pin: whether the engine writes `account_transactions`
+(whitelisted, INSERT_ONLY) alongside the local journal records — recommended yes,
+mirroring 19.5's header-local/movements-sync split.
+
+Verification: gate is a docs + sweep package; all six feature packages carry green
+trios above. Phase 19 COMPLETE 6/6.
