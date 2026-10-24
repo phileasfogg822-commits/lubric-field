@@ -54,6 +54,24 @@ class SalesViewModelDocumentsTest {
     }
 
     @Test
+    fun invoicesLoadFilteredToInvoiceTypeOnly() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val quotation = SalesDocument(id = "doc-q", type = SalesDocumentType.QUOTATION, date = "2026-10-24")
+        val order = SalesDocument(id = "doc-o", type = SalesDocumentType.SALES_ORDER, date = "2026-10-24")
+        val invoice = SalesDocument(
+            id = "inv-1",
+            type = SalesDocumentType.INVOICE,
+            number = "INV-2026-00001",
+            date = "2026-10-24",
+        )
+        vm.saveDocument(scope, quotation)
+        vm.saveDocument(scope, order)
+        vm.saveDocument(scope, invoice)
+        assertEquals(listOf(invoice), vm.loadInvoices(scope))
+    }
+
+    @Test
     fun linesSaveToOrderItemsAndLoadFilteredAndSortedByPosition() = runBlocking {
         val fake = FakeRepository()
         val vm = SalesViewModel(fake)

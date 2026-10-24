@@ -25,6 +25,23 @@ class SalesDocumentJsonTest {
     }
 
     @Test
+    fun invoiceTypeRoundTripsExactly() {
+        val document = SalesDocument(
+            id = "inv-1",
+            type = SalesDocumentType.INVOICE,
+            number = "INV-2026-00001",
+            partyId = "party-1",
+            date = "2026-10-24",
+            dueDate = "2026-11-23",
+            status = "SENT",
+            notes = "Converted from order doc-2",
+            convertedFromId = "doc-2",
+            convertedToId = null,
+        )
+        assertEquals(document, SalesDocumentJson.decode("inv-1", SalesDocumentJson.encode(document)))
+    }
+
+    @Test
     fun headerDecodeIsTolerantAndTheRecordIdWins() {
         val decoded = SalesDocumentJson.decode(
             "record-id",

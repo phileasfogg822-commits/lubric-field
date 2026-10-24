@@ -54,5 +54,10 @@ object DocumentNumberDefaults {
             documentType = type.name,
             prefix = "SO",
         )
+        SalesDocumentType.INVOICE -> NumberingRecord(
+            id = type.name,
+            documentType = type.name,
+            prefix = "INV",
+        )
     }
 }

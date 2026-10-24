@@ -44,6 +44,18 @@ class SalesViewModel @Inject constructor(
     suspend fun loadDocuments(scope: OperationalScope): List<SalesDocument> =
         repository.list(scope, "orders").map { SalesDocumentJson.decode(it.id, it.json) }
 
+    // Phase 21.1 invoice surface: invoices are "orders" records
+    // with type INVOICE (same whitelisted table), filtered here
+    // so callers never see quotations or orders mixed in.
+
+    fun observeInvoices(scope: OperationalScope): Flow<List<SalesDocument>> =
+        observeDocuments(scope).map { documents ->
+            documents.filter { it.type == SalesDocumentType.INVOICE }
+        }
+
+    suspend fun loadInvoices(scope: OperationalScope): List<SalesDocument> =
+        loadDocuments(scope).filter { it.type == SalesDocumentType.INVOICE }
+
     suspend fun saveDocument(scope: OperationalScope, document: SalesDocument, revision: Long = 0) =
         repository.save(scope, "orders", document.id, SalesDocumentJson.encode(document), revision)
 

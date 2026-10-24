@@ -3,10 +3,14 @@ package com.lubrcapp.lubrcapp.feature.sales
 import java.math.BigDecimal
 
 /**
- * Phase 18.1 — the typed sales document: a quotation or a sales
- * order. The header is an "orders" record; each line is an
- * "order_items" record carrying the header's id (both table names
- * are in the Phase 12 sync whitelist, so these documents sync).
+ * Phase 18.1 — the typed sales document: a quotation, a sales
+ * order, and (from 21.1) an invoice. The header is an "orders"
+ * record; each line is an "order_items" record carrying the
+ * header's id (both table names are in the Phase 12 sync
+ * whitelist, so these documents sync). An invoice is an
+ * "orders" record with type INVOICE — same table, so invoices
+ * sync without any whitelist edit — reusing the header, lines,
+ * numbering, and conversion-link machinery.
  *
  * Amounts are [BigDecimal] end to end and serialize as plain
  * strings, so a stored document round-trips exactly — totals are
@@ -16,6 +20,7 @@ import java.math.BigDecimal
 enum class SalesDocumentType {
     QUOTATION,
     SALES_ORDER,
+    INVOICE,
 }
 
 data class SalesDocument(
