@@ -104,7 +104,50 @@ was an arithmetic slip, 2+4+3+3 = 12).
 
 ## Package 21.3 — postDocument wiring + serial SOLD flip
 
-Status: NOT STARTED.
+Status: ACCEPTED on `183f0ee` (fix head; package head `ed1382a`
+failed all three workflows on a compile error, see below).
+
+Invoice posting builder: `SalesInvoicePosting.invoiceToPosting`
+turns an invoice (header + lines) into a `DocumentPosting`
+for the Phase 20 engine — totals from `SalesDocumentEngine`
+so validator reconciliation is automatic; journal Dr
+Receivable = grandTotal, Cr Revenue = grandTotal − taxTotal,
+Cr Tax = taxTotal only with a tax account (without one the
+tax folds into revenue, journal still balances); zero-total
+invoices post an empty journal; one OUT stock movement per
+stocked positive line; transaction id = invoice id, so
+re-posting overwrites instead of double-posting. Refuses
+non-invoices, empty lines, and negative lines (returns are
+21.4). The app-layer join (screens → postDocument +
+markSerialsSold) lands in 21.5: feature modules do not
+depend on each other.
+
+Serial numbers on lines: `SalesDocumentLine.serialNumbers`
+(default empty, additive) with a tolerant codec (missing /
+non-array → empty, blanks dropped). Sale-time SOLD flip:
+pure `flipSerialsToSold` matches (itemId, serialNumber)
+IN_STOCK records, one per distinct number, and reports the
+rest as not-flipped; `InventoryViewModel.markSerialsSold`
+persists only flipped records through `saveSerial`, the
+way `removeSerial` writes off.
+
+Verification (GitHub Actions on exact head `183f0ee`,
+PR #30): Native Android CI run 40087838685 — completed
+success; Compose UI Emulator Tests run 40087838622 —
+completed success; Phase 12 Segmented Verification run
+40087838569 — completed success. 21.3 ACCEPTED.
+
+Failure history: package head `ed1382a` failed all three
+(Native 40087058432, Compose 40087058423, Segmented
+40087058439) on one compile error —
+`SalesDocumentLineJson.kt:50`, bare `add(it)` for a String
+inside `buildJsonArray` does not resolve in this setup.
+Fix at `183f0ee`: `add(JsonPrimitive(it))`, the pattern
+`ItemJson` already uses. Lesson: string elements into a
+`buildJsonArray` always go through `JsonPrimitive`.
+
+Tests: 8 new (posting 5, line serialNumbers codec 1,
+serial flip 2 — gate recount).
 
 ## Package 21.4 — Returns + credit notes
 
