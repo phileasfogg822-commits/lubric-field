@@ -375,4 +375,80 @@ class InventoryViewModel @Inject constructor(
         saveTransfer(scope, updated)
         return TransferResult.Done(updated)
     }
+
+    // Phase 19.6 serials (§30) over "serial_numbers"
+    // (local-only registry — see StockSerialRecord). Serials are
+    // never deleted: they leave by status, and the IN_STOCK set
+    // for an item is what its detail screen lists.
+
+    fun observeSerials(scope: OperationalScope): Flow<List<StockSerialRecord>> =
+        repository.observe(scope, "serial_numbers").map { records ->
+            records.map { StockSerialJson.decode(it.id, it.json) }.sortedForDisplay()
+        }
+
+    suspend fun loadSerials(scope: OperationalScope): List<StockSerialRecord> =
+        repository.list(scope, "serial_numbers")
+            .map { StockSerialJson.decode(it.id, it.json) }
+            .sortedForDisplay()
+
+    suspend fun loadSerialsForItem(scope: OperationalScope, itemId: String): List<StockSerialRecord> =
+        loadSerials(scope).filter { it.itemId == itemId }
+
+    suspend fun saveSerial(scope: OperationalScope, serial: StockSerialRecord) =
+        repository.save(scope, "serial_numbers", serial.id, StockSerialJson.encode(serial), 0)
+
+    private fun List<StockSerialRecord>.sortedForDisplay(): List<StockSerialRecord> =
+        sortedWith(compareBy({ it.itemId }, { it.serialNumber }, { it.id }))
+
+    /**
+     * The receive flow: register one serial as IN_STOCK. The
+     * same serial may exist once per item on the shelf — a
+     * second IN_STOCK registration for the same item is a
+     * Duplicate; re-registering after it left (SOLD / REMOVED)
+     * is a new record, preserving the audit trail.
+     */
+    suspend fun addSerial(
+        scope: OperationalScope,
+        itemId: String,
+        serialNumber: String,
+        warehouseId: String? = null,
+        date: String = "",
+    ): SerialAddResult {
+        val trimmed = serialNumber.trim()
+        if (trimmed.isEmpty()) return SerialAddResult.Invalid
+        val duplicate = loadSerials(scope).any {
+            it.itemId == itemId && it.serialNumber == trimmed && it.status == SerialStatus.IN_STOCK
+        }
+        if (duplicate) return SerialAddResult.Duplicate
+        val record = StockSerialRecord(
+            id = UUID.randomUUID().toString(),
+            itemId = itemId,
+            serialNumber = trimmed,
+            status = SerialStatus.IN_STOCK,
+            warehouseId = warehouseId,
+            date = date,
+            createdAt = Instant.now().toString(),
+        )
+        saveSerial(scope, record)
+        return SerialAddResult.Added(record)
+    }
+
+    /**
+     * The adjust flow's write-off: IN_STOCK → REMOVED with the
+     * reason kept on the record. Returns the updated record, or
+     * null when the serial is unknown or no longer in stock.
+     * Phase 21's sale posting will flip IN_STOCK → SOLD through
+     * saveSerial the same way.
+     */
+    suspend fun removeSerial(
+        scope: OperationalScope,
+        serialId: String,
+        reason: String,
+    ): StockSerialRecord? {
+        val serial = loadSerials(scope).firstOrNull { it.id == serialId } ?: return null
+        if (serial.status != SerialStatus.IN_STOCK) return null
+        val updated = serial.copy(status = SerialStatus.REMOVED, note = reason)
+        saveSerial(scope, updated)
+        return updated
+    }
 }

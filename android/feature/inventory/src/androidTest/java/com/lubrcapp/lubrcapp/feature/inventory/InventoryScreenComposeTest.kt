@@ -1,7 +1,9 @@
 package com.lubrcapp.lubrcapp.feature.inventory
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -132,5 +134,28 @@ class InventoryScreenComposeTest {
         assertEquals(0, BigDecimal("-20").compareTo(saved.quantity))
         assertEquals("wh-main", saved.warehouseId)
         assertEquals("tr-1", saved.referenceId)
+    }
+
+    @Test fun serialAddAndRemoveFromItemDetail() {
+        val fake = FakeRepository()
+        fake.seed(
+            "products",
+            listOf(OperationalRecord("tv", """{"name":"Samsung TV"}""")),
+        )
+        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        compose.onNodeWithText("Samsung TV · 0 · Out of stock").performClick()
+        compose.onNodeWithText("Serial number").performTextInput("SN28282")
+        compose.onNodeWithText("Add serial").performClick()
+        compose.waitUntil(5000) { (fake.flowFor("serial_numbers").value.size) == 1 }
+        compose.onNodeWithText("Serial added").assertIsDisplayed()
+        compose.onAllNodesWithText("SN28282").assertCountEquals(1)
+        compose.onNodeWithText("Remove").performClick()
+        compose.waitUntil(5000) {
+            StockSerialJson.decode(
+                fake.flowFor("serial_numbers").value[0].id,
+                fake.flowFor("serial_numbers").value[0].json,
+            ).status == SerialStatus.REMOVED
+        }
+        compose.onAllNodesWithText("SN28282").assertCountEquals(0)
     }
 }

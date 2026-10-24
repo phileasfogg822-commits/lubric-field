@@ -35,13 +35,14 @@ import java.math.BigDecimal
 import kotlinx.coroutines.launch
 
 /**
- * Phase 19.3/19.4/19.5 — the inventory module screen. List mode
- * is the §31 summary (computed cards, filters, ledger-derived
- * rows); an item's detail shows its movement history and §33
- * levels editor. Adjust mode posts §36 adjustments, Count mode
- * runs the §37 physical count, and Transfers mode runs the §35
- * transfer flow — all write through the ViewModel's
- * §175-checked posting surface, never directly.
+ * Phase 19.3/19.4/19.5/19.6 — the inventory module screen. List
+ * mode is the §31 summary (computed cards, filters,
+ * ledger-derived rows); an item's detail shows its movement
+ * history, §33 levels editor, and §30 serial registry. Adjust
+ * mode posts §36 adjustments, Count mode runs the §37 physical
+ * count, and Transfers mode runs the §35 transfer flow — all
+ * write through the ViewModel's §175-checked posting surface,
+ * never directly.
  */
 private enum class InventoryMode { LIST, ADJUST, COUNT, TRANSFERS }
 
@@ -65,6 +66,9 @@ fun InventoryScreen(
         .collectAsState(initial = emptyList())
     val transfers by remember(viewModel, scope) { viewModel.observeTransfers(scope) }
         .collectAsState(initial = emptyList())
+    val serials by remember(viewModel, scope) { viewModel.observeSerials(scope) }
+        .collectAsState(initial = emptyList())
+    val serialWriteoffReason = stringResource(R.string.inventory_serial_writeoff_reason)
 
     var mode by remember(scope) { mutableStateOf(InventoryMode.LIST) }
     var selectedItemId by remember(scope) { mutableStateOf<String?>(null) }
@@ -212,6 +216,7 @@ fun InventoryScreen(
                         row = selectedRow,
                         movements = movements.filter { it.itemId == selectedRow.item.id },
                         levels = levels[selectedRow.item.id],
+                        serials = serials.filter { it.itemId == selectedRow.item.id },
                         saving = saving,
                         error = error,
                         onBackToList = { selectedItemId = null; error = null },
@@ -220,6 +225,31 @@ fun InventoryScreen(
                             coroutineScope.launch {
                                 try {
                                     viewModel.saveLevels(scope, record)
+                                    error = null
+                                } catch (_: Exception) {
+                                    error = saveError
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        },
+                        onAddSerial = { serialNumber, onResult ->
+                            saving = true
+                            coroutineScope.launch {
+                                try {
+                                    onResult(viewModel.addSerial(scope, selectedRow.item.id, serialNumber))
+                                } catch (_: Exception) {
+                                    error = saveError
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        },
+                        onRemoveSerial = { serialId ->
+                            saving = true
+                            coroutineScope.launch {
+                                try {
+                                    viewModel.removeSerial(scope, serialId, serialWriteoffReason)
                                     error = null
                                 } catch (_: Exception) {
                                     error = saveError
@@ -351,14 +381,23 @@ private fun ColumnScope.ItemDetail(
     row: InventoryRow,
     movements: List<StockMovementRecord>,
     levels: StockLevelsRecord?,
+    serials: List<StockSerialRecord>,
     saving: Boolean,
     error: String?,
     onBackToList: () -> Unit,
     onSaveLevels: (StockLevelsRecord) -> Unit,
+    onAddSerial: (String, (SerialAddResult) -> Unit) -> Unit,
+    onRemoveSerial: (String) -> Unit,
 ) {
     var minimumText by remember(row.item.id, levels) { mutableStateOf(levels?.minimum?.toPlainString() ?: "") }
     var reorderText by remember(row.item.id, levels) { mutableStateOf(levels?.reorderLevel?.toPlainString() ?: "") }
     var maximumText by remember(row.item.id, levels) { mutableStateOf(levels?.maximum?.toPlainString() ?: "") }
+    var serialText by remember(row.item.id) { mutableStateOf("") }
+    var serialMessage by remember(row.item.id) { mutableStateOf<String?>(null) }
+    val serialAddedText = stringResource(R.string.inventory_serial_added)
+    val serialDuplicateText = stringResource(R.string.inventory_serial_duplicate)
+    val serialInvalidText = stringResource(R.string.inventory_serial_invalid)
+    val inStockSerials = serials.filter { it.status == SerialStatus.IN_STOCK }
 
     Button(onClick = onBackToList) { Text(stringResource(R.string.inventory_back_to_list)) }
     Text(row.item.name, style = MaterialTheme.typography.headlineSmall)
@@ -389,6 +428,29 @@ private fun ColumnScope.ItemDetail(
                     movement.quantity.toPlainString(),
                 )
             )
+        }
+        // §30 serials ride in the same scrolling area as
+        // display rows — their Remove buttons act on the row's
+        // own immutable id only; the stateful Add form stays in
+        // the fixed area below (the Phase 18.4 lesson).
+        item {
+            Text(stringResource(R.string.inventory_serials_title), style = MaterialTheme.typography.titleMedium)
+        }
+        if (inStockSerials.isEmpty()) {
+            item {
+                Text(stringResource(R.string.inventory_serial_empty))
+            }
+        }
+        items(inStockSerials, key = { "serial-" + it.id }) { serial ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(serial.serialNumber)
+                Button(onClick = { onRemoveSerial(serial.id) }, enabled = !saving) {
+                    Text(stringResource(R.string.inventory_serial_remove))
+                }
+            }
         }
     }
 
@@ -429,6 +491,33 @@ private fun ColumnScope.ItemDetail(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(stringResource(R.string.inventory_levels_save))
+    }
+
+    // §30 receive flow — fixed area, like the levels Save.
+    serialMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+    OutlinedTextField(
+        value = serialText,
+        onValueChange = { serialText = it },
+        label = { Text(stringResource(R.string.inventory_serial_field)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        onClick = {
+            onAddSerial(serialText) { result ->
+                serialMessage = when (result) {
+                    is SerialAddResult.Added -> serialAddedText
+                    SerialAddResult.Duplicate -> serialDuplicateText
+                    SerialAddResult.Invalid -> serialInvalidText
+                }
+                if (result is SerialAddResult.Added) {
+                    serialText = ""
+                }
+            }
+        },
+        enabled = !saving && serialText.isNotBlank(),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(stringResource(R.string.inventory_serial_add))
     }
 }
 

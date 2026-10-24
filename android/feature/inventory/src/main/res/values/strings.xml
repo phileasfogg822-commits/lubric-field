@@ -84,4 +84,13 @@
     <string name="inventory_transfer_received">Transfer received</string>
     <string name="inventory_transfer_cancelled">Transfer cancelled</string>
     <string name="inventory_transfer_invalid">That action is not available now</string>
+    <string name="inventory_serials_title">Serial numbers</string>
+    <string name="inventory_serial_empty">No serials registered</string>
+    <string name="inventory_serial_field">Serial number</string>
+    <string name="inventory_serial_add">Add serial</string>
+    <string name="inventory_serial_remove">Remove</string>
+    <string name="inventory_serial_added">Serial added</string>
+    <string name="inventory_serial_duplicate">That serial is already registered</string>
+    <string name="inventory_serial_invalid">Enter a serial number</string>
+    <string name="inventory_serial_writeoff_reason">Serial written off</string>
 </resources>
