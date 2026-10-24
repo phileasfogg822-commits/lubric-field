@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.feature.sales
 import com.lubrcapp.lubrcapp.domain.sales.DocumentStatusRules
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
+import com.lubrcapp.lubrcapp.domain.sales.SalesStatus
 import java.math.BigDecimal
 
 /**
@@ -20,6 +21,9 @@ object SalesDocumentStatus {
 
     fun orderStatus(document: SalesDocument): SalesOrderStatus =
         SalesOrderStatus.entries.firstOrNull { it.name == document.status } ?: SalesOrderStatus.DRAFT
+
+    fun invoiceStatus(document: SalesDocument): SalesStatus =
+        SalesStatus.entries.firstOrNull { it.name == document.status } ?: SalesStatus.DRAFT
 
     /** The document with its status moved, or throws when the move is illegal. */
     fun transition(document: SalesDocument, target: QuotationStatus): SalesDocument {

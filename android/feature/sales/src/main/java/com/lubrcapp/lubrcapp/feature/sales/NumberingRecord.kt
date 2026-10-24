@@ -59,5 +59,15 @@ object DocumentNumberDefaults {
             documentType = type.name,
             prefix = "INV",
         )
+        SalesDocumentType.SALES_RETURN -> NumberingRecord(
+            id = type.name,
+            documentType = type.name,
+            prefix = "SR",
+        )
+        SalesDocumentType.CREDIT_NOTE -> NumberingRecord(
+            id = type.name,
+            documentType = type.name,
+            prefix = "CN",
+        )
     }
 }

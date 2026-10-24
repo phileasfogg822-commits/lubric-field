@@ -21,6 +21,8 @@ enum class SalesDocumentType {
     QUOTATION,
     SALES_ORDER,
     INVOICE,
+    SALES_RETURN,
+    CREDIT_NOTE,
 }
 
 data class SalesDocument(

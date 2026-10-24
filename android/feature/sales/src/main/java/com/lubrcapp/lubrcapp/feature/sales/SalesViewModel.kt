@@ -57,6 +57,25 @@ class SalesViewModel @Inject constructor(
     suspend fun loadInvoices(scope: OperationalScope): List<SalesDocument> =
         loadDocuments(scope).filter { it.type == SalesDocumentType.INVOICE }
 
+    // Phase 21.4 return / credit-note surfaces: the same reuse
+    // as invoices — both are "orders" records with their own
+    // type, filtered here so callers never see other documents.
+    fun observeReturns(scope: OperationalScope): Flow<List<SalesDocument>> =
+        observeDocuments(scope).map { documents ->
+            documents.filter { it.type == SalesDocumentType.SALES_RETURN }
+        }
+
+    suspend fun loadReturns(scope: OperationalScope): List<SalesDocument> =
+        loadDocuments(scope).filter { it.type == SalesDocumentType.SALES_RETURN }
+
+    fun observeCreditNotes(scope: OperationalScope): Flow<List<SalesDocument>> =
+        observeDocuments(scope).map { documents ->
+            documents.filter { it.type == SalesDocumentType.CREDIT_NOTE }
+        }
+
+    suspend fun loadCreditNotes(scope: OperationalScope): List<SalesDocument> =
+        loadDocuments(scope).filter { it.type == SalesDocumentType.CREDIT_NOTE }
+
     suspend fun saveDocument(scope: OperationalScope, document: SalesDocument, revision: Long = 0) =
         repository.save(scope, "orders", document.id, SalesDocumentJson.encode(document), revision)
 

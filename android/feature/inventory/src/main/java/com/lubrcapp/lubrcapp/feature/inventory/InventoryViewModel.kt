@@ -466,4 +466,21 @@ class InventoryViewModel @Inject constructor(
         result.flipped.forEach { saveSerial(scope, it) }
         return result
     }
+
+    /**
+     * The 21.4 return flip: SOLD → IN_STOCK for the named
+     * serial numbers of one item, through saveSerial the way
+     * markSerialsSold flips the other direction. Only flipped
+     * records are saved. A damaged return does not come back
+     * through here — it goes through removeSerial instead.
+     */
+    suspend fun markSerialsReturned(
+        scope: OperationalScope,
+        itemId: String,
+        serialNumbers: List<String>,
+    ): FlipStockResult {
+        val result = flipSerialsToStock(loadSerials(scope), itemId, serialNumbers)
+        result.flipped.forEach { saveSerial(scope, it) }
+        return result
+    }
 }

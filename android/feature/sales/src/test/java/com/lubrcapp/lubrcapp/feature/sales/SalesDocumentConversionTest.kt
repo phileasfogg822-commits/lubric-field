@@ -187,4 +187,83 @@ class SalesDocumentConversionTest {
             newLineId = { "new-" + it.id },
         )
     }
+
+    private val invoice = SalesDocument(
+        id = "inv-1",
+        type = SalesDocumentType.INVOICE,
+        number = "INV-2026-00001",
+        partyId = "party-1",
+        date = "2026-10-24",
+        status = "SENT",
+        notes = "Deliver before Friday",
+    )
+
+    private val invoiceLines = listOf(
+        SalesDocumentLine(
+            id = "il-1", orderId = "inv-1", position = 0,
+            description = "Shell HX7 4L", quantity = BigDecimal("20"), rate = BigDecimal("6200"),
+        ),
+        SalesDocumentLine(
+            id = "il-2", orderId = "inv-1", position = 1,
+            description = "Mobil 1 4L", quantity = BigDecimal("10"), rate = BigDecimal("8500"),
+            taxComponents = listOf(SalesTaxComponent("Sales Tax", BigDecimal("17"))),
+            fulfilledQuantity = BigDecimal("10"),
+        ),
+    )
+
+    @Test
+    fun invoiceToReturnCopiesLinesAndLinksBackOnly() {
+        val result = SalesDocumentConversion.invoiceToReturn(
+            invoice,
+            invoiceLines,
+            newDocumentId = "ret-1",
+            newLineId = { "new-" + it.id },
+        )
+
+        val returnDocument = result.returnDocument
+        assertEquals(SalesDocumentType.SALES_RETURN, returnDocument.type)
+        assertEquals("DRAFT", returnDocument.status)
+        assertEquals("", returnDocument.number)
+        assertEquals("inv-1", returnDocument.convertedFromId)
+        assertNull(returnDocument.convertedToId)
+        assertEquals("party-1", returnDocument.partyId)
+        // No forward link on the invoice: many partial returns
+        // may point at it, so no single link can name them.
+        assertNull(invoice.convertedToId)
+        assertEquals(listOf("new-il-1", "new-il-2"), result.returnLines.map { it.id })
+        assertEquals(listOf("ret-1", "ret-1"), result.returnLines.map { it.orderId })
+        assertEquals(BigDecimal.ZERO, result.returnLines[1].fulfilledQuantity)
+        assertEquals(
+            listOf(SalesTaxComponent("Sales Tax", BigDecimal("17"))),
+            result.returnLines[1].taxComponents,
+        )
+    }
+
+    @Test
+    fun onlyLiveInvoicesConvertToReturns() {
+        assertThrows(IllegalArgumentException::class.java) {
+            SalesDocumentConversion.invoiceToReturn(
+                invoice.copy(status = "DRAFT"),
+                invoiceLines,
+                newDocumentId = "ret-1",
+                newLineId = { "new-" + it.id },
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            SalesDocumentConversion.invoiceToReturn(
+                invoice.copy(status = "CANCELLED"),
+                invoiceLines,
+                newDocumentId = "ret-1",
+                newLineId = { "new-" + it.id },
+            )
+        }
+        for (status in listOf("PAID", "PARTIALLY_PAID", "OVERDUE")) {
+            SalesDocumentConversion.invoiceToReturn(
+                invoice.copy(status = status),
+                invoiceLines,
+                newDocumentId = "ret-1",
+                newLineId = { "new-" + it.id },
+            )
+        }
+    }
 }

@@ -49,6 +49,8 @@ class DocumentNumberingWiringTest {
         assertEquals("QT", DocumentNumberDefaults.recordFor(SalesDocumentType.QUOTATION).prefix)
         assertEquals("SO", DocumentNumberDefaults.recordFor(SalesDocumentType.SALES_ORDER).prefix)
         assertEquals("INV", DocumentNumberDefaults.recordFor(SalesDocumentType.INVOICE).prefix)
+        assertEquals("SR", DocumentNumberDefaults.recordFor(SalesDocumentType.SALES_RETURN).prefix)
+        assertEquals("CN", DocumentNumberDefaults.recordFor(SalesDocumentType.CREDIT_NOTE).prefix)
     }
 
     @Test

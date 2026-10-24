@@ -121,4 +121,62 @@ object SalesDocumentConversion {
             }
         return InvoiceResult(invoice = invoice, invoiceLines = invoiceLines, convertedOrder = convertedOrder)
     }
+
+    data class ReturnResult(
+        val returnDocument: SalesDocument,
+        val returnLines: List<SalesDocumentLine>,
+    )
+
+    /**
+     * Phase 21.4 — invoice → sales return (§64: select the
+     * original invoice). Only a SENT, PAID, PARTIALLY_PAID, or
+     * OVERDUE invoice converts: a DRAFT invoice sold nothing
+     * yet and a CANCELLED invoice is dead. The return starts
+     * as an unnumbered DRAFT, copies party, dates, notes, and
+     * every line including its tax snapshot, and starts
+     * fulfilment from zero. Deliberately unlike 21.2's invoice
+     * conversion, the invoice gains NO forward link and keeps
+     * its status: an invoice takes many partial returns over
+     * time, so no single link can name them, and the return
+     * reduces the receivable through its posting (21.4), not
+     * through the invoice's status. The return's reason goes
+     * in notes at the screen; the conversion copies the
+     * invoice's notes as the starting point, the 21.2 pattern.
+     */
+    fun invoiceToReturn(
+        invoice: SalesDocument,
+        lines: List<SalesDocumentLine>,
+        newDocumentId: String,
+        newLineId: (SalesDocumentLine) -> String,
+    ): ReturnResult {
+        require(invoice.type == SalesDocumentType.INVOICE) { "Not an invoice: ${invoice.id}" }
+        val status = SalesDocumentStatus.invoiceStatus(invoice)
+        require(
+            status == SalesStatus.SENT || status == SalesStatus.PAID ||
+                status == SalesStatus.PARTIALLY_PAID || status == SalesStatus.OVERDUE
+        ) { "Invoice in $status cannot convert to a return: ${invoice.id}" }
+        val returnDocument = SalesDocument(
+            id = newDocumentId,
+            type = SalesDocumentType.SALES_RETURN,
+            number = "",
+            partyId = invoice.partyId,
+            date = invoice.date,
+            dueDate = invoice.dueDate,
+            status = "DRAFT",
+            notes = invoice.notes,
+            convertedFromId = invoice.id,
+            convertedToId = null,
+        )
+        val returnLines = lines
+            .filter { it.orderId == invoice.id }
+            .sortedBy { it.position }
+            .map { line ->
+                line.copy(
+                    id = newLineId(line),
+                    orderId = newDocumentId,
+                    fulfilledQuantity = BigDecimal.ZERO,
+                )
+            }
+        return ReturnResult(returnDocument = returnDocument, returnLines = returnLines)
+    }
 }
