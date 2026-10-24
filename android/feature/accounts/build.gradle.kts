@@ -52,6 +52,8 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":domain:business"))
     implementation(project(":domain:payment"))
+    implementation(project(":domain:accounting"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
