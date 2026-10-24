@@ -57,7 +57,18 @@ stock/serials but settles no refund).
 
 ## Package 22.1 — Payment allocation core
 
-Status: NOT STARTED.
+Status: ACCEPTED on `e2b015c` (2026-10-24). Trio green:
+Native 40114613809, Compose 40114613807, Segmented
+40114613871. `PaymentAllocation.allocate` in
+domain/payment (no new Gradle deps — the module already
+depends only on `:domain:common`, so the core is
+status-agnostic by construction): only RECEIVED payments
+allocate; only same-party invoices; deterministic order by
+dueDate then invoiceId (oldest first); outstanding =
+grandTotal − alreadyPaid clamped at zero; applied =
+min(remaining payment, outstanding); currency mismatch
+skips the invoice; leftover reported as unallocated.
+11 new tests (PaymentAllocationTest).
 
 Grounded design (2026-10-24, from the live tree):
 domain/payment depends ONLY on `:domain:common` — no
