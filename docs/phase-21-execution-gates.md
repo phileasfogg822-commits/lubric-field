@@ -62,7 +62,45 @@ completed success; Phase 12 Segmented Verification run
 
 ## Package 21.2 — Convert-to-Invoice + fulfilment + reservations
 
-Status: NOT STARTED.
+Status: ACCEPTED on `fdd3086`.
+
+Convert-to-Invoice: `SalesDocumentConversion.salesOrderToInvoice`
+returns an `InvoiceResult` — only CONFIRMED, PARTIALLY_FULFILLED,
+and FULFILLED orders convert (DRAFT is not a commitment,
+CANCELLED is dead); an order with `convertedToId` set never
+converts twice (single-link semantics); the invoice is an
+unnumbered DRAFT with party, dates, notes, and lines copied
+including tax snapshots, `fulfilledQuantity` zeroed (invoice
+delivery is its own history); the order keeps its status and
+gains the forward link.
+
+Delivery recording: `SalesDocumentStatus.recordDelivery`
+returns a `DeliveryResult` — positive quantities only
+(returns are 21.4), CONFIRMED+ orders only, unknown line
+throws, status re-derived via `applyFulfilment`. It posts no
+stock movement: movements post at invoice time in 21.3,
+never twice.
+
+Section 213 reservations: `StockReservationRecord` (id,
+orderId, lineId, itemId, warehouseId?, batchId?, quantity,
+status, createdAt) with `ReservationStatus` ACTIVE/RELEASED
+and a caller-supplied `ReservationPolicy` ON_SUBMIT/ON_CONFIRM/
+NEVER, over whitelisted "reservations"; pure
+`activeReservedQuantity` + `availableQuantity` helpers;
+ViewModel `observeReservations`/`loadReservations`/
+`loadReservationsForOrder`/`saveReservation`/`reserveForOrder`
+(NEVER reserves nothing and returns current active, skips
+itemless lines, never double-reserves)/`releaseForOrder`.
+
+Verification (GitHub Actions on exact head `fdd3086`,
+PR #30): Native Android CI run 40085872528 — completed
+success; Compose UI Emulator Tests run 40085872444 —
+completed success; Phase 12 Segmented Verification run
+40085872535 — completed success. 21.2 ACCEPTED.
+
+Tests: 12 new (conversion 2, fulfilment 4, reservation 3,
+orchestration 3 — gate recount; the package-time claim of 11
+was an arithmetic slip, 2+4+3+3 = 12).
 
 ## Package 21.3 — postDocument wiring + serial SOLD flip
 
