@@ -66,7 +66,7 @@ date+createdAt+id), `saveJournalEntry`, `postJournalEntry`
 (the 19.1 dependency-diff lesson, applied before
 integrating). Existing raw accounts surface untouched.
 
-Tests (11): JournalEntryRecordTest (8 — balance math,
+Tests (10): JournalEntryRecordTest (7 — balance math,
 unbalanced report, codec round-trip, garbage/unknown-field
 tolerance, unparseable-amount-as-ZERO + id-wins, domain
 bridge with caller currency, factory stamps) +
@@ -120,11 +120,11 @@ constructor-call cross-check at staging time — static
 shape checks cannot catch type errors (same family as
 19.5's dropped parameters).
 
-Tests (13): PostingEngineTest (6 — valid posting produces
+Tests (12): PostingEngineTest (6 — valid posting produces
 a balanced entry with derived id, unbalanced rejected,
 empty document rejected, two-sided line rejected,
 credit-blocked rejected, credit-limit-exceeded rejected) +
-AccountTransactionTest (7 — transaction codec round-trip +
+AccountTransactionTest (6 — transaction codec round-trip +
 garbage tolerance, fromEntry stable ids, postDocument saves
 entry + rows, re-post overwrites instead of duplicating,
 rejected posting saves nothing).
