@@ -176,7 +176,15 @@ success. 18.3 ACCEPTED.
 
 ## Package 18.4 — Quotation / order screens
 
-Status: NOT STARTED.
+Status: ACCEPTED on `a118f37`.
+
+The sales surface over the 18.1 typed model, replacing the Phase 12 raw org.json screen entirely. `TimelineEntry` + codec (§14's first writer, "timeline_entries" local-only, not whitelisted); `SalesReferenceData` (tolerant customers/products reads; no dependency on feature/parties or feature/items); `SalesDocumentFormState` + `SalesLineDraft` (text-while-editing numerics, tax snapshot from name + % into one component, `totalsOrNull` via the 18.1 engine); ViewModel `saveDocumentWithLines` (deletes stale lines; header never deleted), `convertQuotationToOrder`, timeline save/load; `SalesScreen` rewrite (one editor, live Grand total, legal 18.2 status buttons, Convert on ACCEPTED, timeline strip); `SalesViewModel.saveForm` (numbering via 18.3, header + lines, SAVED timeline entry). NAMED RESIDUAL: `currencyCode` defaults to "XXX" — wiring BusinessChoice.currency through the registry is shell work, deferred.
+
+Tests (11): SalesDocumentFormStateTest (4), SalesTimelineAndReferenceTest (2), SalesViewModelOrchestrationTest (3), SalesScreenComposeTest (2). The Compose create-quotation test asserts live "Grand total: 1170" and the saved row "QT-2026-00001 · Quotation · DRAFT · 2026-10-23".
+
+Failure history (13 heads): `49aa34a` boundary (hardcoded timeline Text) → `b5a5c14` Money scale (stripTrailingZeros; test compared via equals) → `2be5559` assertIsDisplayed flap → `0c74885` assertExists not importable → `da51b15` waitUntil timeout (save never started) → `ef0ee8f` diagnostic (all tables zero) → `3340b72` println DIAG (logcat not captured) → `0f0e2ee` fetchSemanticsNodes not importable (compile) → `da95ec1` ViewModel.saveForm move → `f8a69b2` inlined onSave → `c3dc871` testTag click → `684a337` lambda probe (proved onSave never ran) → `32ce7f8` moved Save/Cancel out of LazyColumn (stale handler) → `a118f37` dropped performScrollTo (button no longer scrollable). Root causes: LazyColumn item cached a stale onSave; then performScrollTo on a non-scrollable node.
+
+Verification (GitHub Actions on exact head `a118f37`, PR #27): Native Android CI run 40042319091 — 24 steps completed success; Compose UI Emulator Tests run 40042319201 — completed success (13-head red streak broken); Phase 12 Segmented Verification run 40042319153 — completed success.
 
 ## Package 18.5 — Conversion
 
@@ -213,4 +221,15 @@ success. 18.5 ACCEPTED.
 
 ## Package 18.6 — Phase gate
 
-Status: NOT STARTED.
+Status: ACCEPTED (gate).
+
+Evidence sweep vs `96a3cb7` (the Phase 17 head this branch was cut from): 29 files, +2,808/−92 (includes the gates doc itself); 38 new tests (18.1: 10, 18.2: 11, 18.3: 4, 18.5: 2, 18.4: 11). All six packages accepted with green-CI proof on exact heads: 18.1 `de9435d`, 18.2 `dd0df43`, 18.3 `2d796b2` (fix head), 18.4 `a118f37` (fix head), 18.5 `87ff571`, 18.6 this gate. Integration order: 18.1 → 18.2 → 18.3 → 18.5 → 18.4 (18.5 is pure logic and was built ahead of the screens).
+
+Deferred items, carried forward explicitly:
+- Currency wiring: BusinessChoice.currency through the AppModuleRegistry content signature (shell work) — the sales totals preview defaults to "XXX" until then.
+- "timeline_entries" and "numbering_sequences" are local-only (not sync-whitelisted); cross-device number uniqueness is Phase 30.
+- Multi-component tax-scheme records have no home yet; the line snapshot model already supports them when one lands.
+- "Convert to Invoice" records the link only — invoices (§49/§50) are Phase 21.
+- Fulfilment is tracked state (§44); stock moves via the Phase 19/21 ledger postings.
+
+Phase 19 prep: agent_notes/phase-19-prep.md (Inventory Ledger & Stock Ops) is drafted in the goal workspace.
