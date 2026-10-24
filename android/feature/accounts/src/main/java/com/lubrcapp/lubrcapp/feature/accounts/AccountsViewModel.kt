@@ -150,4 +150,43 @@ class AccountsViewModel @Inject constructor(
             .map { AccountTransactionJson.decode(it.id, it.json) }
             .filter { it.entryId == entryId }
             .sortedBy { it.id }
+
+    // Phase 20.3 — typed chart-of-accounts surface over
+    // "accounts" (sync-whitelisted master data). The raw
+    // observe/load/save above stay for the legacy screen
+    // until 20.4 replaces it.
+
+    /** Accounts sorted by code, then name, then id. */
+    fun observeAccounts(scope: OperationalScope): Flow<List<AccountRecord>> =
+        repository.observe(scope, "accounts").map { rows ->
+            rows.map { AccountJson.decode(it.id, it.json) }.sortedAccountsForDisplay()
+        }
+
+    /** Accounts sorted by code, then name, then id. */
+    suspend fun loadAccounts(scope: OperationalScope): List<AccountRecord> =
+        repository.list(scope, "accounts")
+            .map { AccountJson.decode(it.id, it.json) }
+            .sortedAccountsForDisplay()
+
+    /** Only active accounts, in display order. */
+    suspend fun loadActiveAccounts(scope: OperationalScope): List<AccountRecord> =
+        loadAccounts(scope).filter { it.isActive }
+
+    /** Persist an account exactly as given. */
+    suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
+        repository.save(scope, "accounts", account.id, AccountJson.encode(account))
+    }
+
+    /**
+     * Deactivate an account (master data is never deleted, so
+     * historical journal lines stay resolvable). No-op for an
+     * unknown id.
+     */
+    suspend fun deactivateAccount(scope: OperationalScope, accountId: String) {
+        val account = loadAccounts(scope).firstOrNull { it.id == accountId } ?: return
+        saveAccount(scope, account.copy(isActive = false))
+    }
+
+    private fun List<AccountRecord>.sortedAccountsForDisplay(): List<AccountRecord> =
+        sortedWith(compareBy({ it.code }, { it.name }, { it.id }))
 }
