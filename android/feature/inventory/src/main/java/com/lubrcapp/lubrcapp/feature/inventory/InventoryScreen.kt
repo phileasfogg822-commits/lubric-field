@@ -795,6 +795,8 @@ private fun ColumnScope.TransferDetail(
     saving: Boolean,
     onBack: () -> Unit,
     onDispatch: (String, (TransferResult) -> Unit) -> Unit,
+    onReceive: (String, (TransferResult) -> Unit) -> Unit,
+    onCancel: (String, (TransferResult) -> Unit) -> Unit,
 ) {
     var resultText by remember(transfer.id) { mutableStateOf<String?>(null) }
     val dispatchedText = stringResource(R.string.inventory_transfer_dispatched)
