@@ -46,6 +46,9 @@ object SalesDocumentLineJson {
             record.warehouseId?.let { put("warehouseId", it) }
             record.batchId?.let { put("batchId", it) }
             put("fulfilledQuantity", record.fulfilledQuantity.toPlainString())
+            put("serialNumbers", buildJsonArray {
+                record.serialNumbers.forEach { add(JsonPrimitive(it)) }
+            })
         }
         return json.encodeToString(JsonObject.serializer(), obj)
     }
@@ -74,7 +77,15 @@ object SalesDocumentLineJson {
             warehouseId = root.string("warehouseId"),
             batchId = root.string("batchId"),
             fulfilledQuantity = root.decimal("fulfilledQuantity") ?: BigDecimal.ZERO,
+            serialNumbers = root.serialNumbers(),
         )
+    }
+
+    private fun JsonObject.serialNumbers(): List<String> {
+        val array = this["serialNumbers"] as? JsonArray ?: return emptyList()
+        return array.mapNotNull { element ->
+            (element as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+        }
     }
 
     private fun JsonObject.taxComponents(): List<SalesTaxComponent> {

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -78,6 +79,89 @@ class SalesViewModelOrchestrationTest {
         val storedQuotation = vm.loadDocuments(scope).first { it.id == "q-1" }
         assertEquals("CONVERTED", storedQuotation.status)
         assertEquals(order.id, storedQuotation.convertedToId)
+    }
+
+    @Test
+    fun orderToInvoiceConversionPersistsInvoiceAndMarksTheOrder() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val order = SalesDocument(
+            id = "o-1",
+            type = SalesDocumentType.SALES_ORDER,
+            number = "SO-2026-00003",
+            status = "CONFIRMED",
+        )
+        vm.saveDocumentWithLines(scope, order, listOf(line("l-1", "o-1", 0)))
+
+        val invoice = vm.convertOrderToInvoice(scope, "o-1")
+        assertEquals(SalesDocumentType.INVOICE, invoice.type)
+        assertEquals("o-1", invoice.convertedFromId)
+        assertEquals(1, vm.loadLines(scope, invoice.id).size)
+
+        val storedOrder = vm.loadDocuments(scope).first { it.id == "o-1" }
+        assertEquals(invoice.id, storedOrder.convertedToId)
+        assertEquals("CONFIRMED", storedOrder.status)
+    }
+
+    @Test
+    fun invoiceToReturnConversionPersistsReturnAndLeavesTheInvoiceUnlinked() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val invoice = SalesDocument(
+            id = "inv-1",
+            type = SalesDocumentType.INVOICE,
+            number = "INV-2026-00001",
+            status = "SENT",
+        )
+        vm.saveDocumentWithLines(scope, invoice, listOf(line("l-1", "inv-1", 0)))
+
+        val returnDocument = vm.convertInvoiceToReturn(scope, "inv-1")
+        assertEquals(SalesDocumentType.SALES_RETURN, returnDocument.type)
+        assertEquals("inv-1", returnDocument.convertedFromId)
+        assertEquals(1, vm.loadLines(scope, returnDocument.id).size)
+
+        // No forward link: the invoice takes many partial returns.
+        val storedInvoice = vm.loadDocuments(scope).first { it.id == "inv-1" }
+        assertNull(storedInvoice.convertedToId)
+        assertEquals("SENT", storedInvoice.status)
+    }
+
+    @Test
+    fun deliveryPersistsUpdatedLinesAndDerivedStatus() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val order = SalesDocument(id = "o-1", type = SalesDocumentType.SALES_ORDER, status = "CONFIRMED")
+        vm.saveDocumentWithLines(scope, order, listOf(line("l-1", "o-1", 0)))
+
+        val updated = vm.recordDelivery(scope, "o-1", "l-1", BigDecimal("1"))
+        assertEquals("FULFILLED", updated.status)
+        assertEquals(BigDecimal("1"), vm.loadLines(scope, "o-1").first().fulfilledQuantity)
+    }
+
+    @Test
+    fun reservationsReserveReleaseAndNeverDoubleReserve() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val order = SalesDocument(id = "o-1", type = SalesDocumentType.SALES_ORDER, status = "CONFIRMED")
+        val stocked = line("l-1", "o-1", 0).copy(itemId = "item-1")
+        val service = line("l-2", "o-1", 1)
+        vm.saveDocumentWithLines(scope, order, listOf(stocked, service))
+
+        val reserved = vm.reserveForOrder(scope, "o-1", ReservationPolicy.ON_CONFIRM, "2026-10-24T10:00:00Z")
+        assertEquals(1, reserved.size)
+        assertEquals("item-1", reserved[0].itemId)
+        assertEquals(BigDecimal("1"), reserved[0].quantity)
+
+        val again = vm.reserveForOrder(scope, "o-1", ReservationPolicy.ON_CONFIRM, "2026-10-24T10:00:00Z")
+        assertEquals(1, again.size)
+
+        val never = vm.reserveForOrder(scope, "o-1", ReservationPolicy.NEVER, "2026-10-24T10:00:00Z")
+        assertEquals(1, never.size)
+
+        val released = vm.releaseForOrder(scope, "o-1")
+        assertEquals(1, released.size)
+        assertEquals(ReservationStatus.RELEASED, released[0].status)
+        assertEquals(0, vm.loadReservationsForOrder(scope, "o-1").filter { it.status == ReservationStatus.ACTIVE }.size)
     }
 
     @Test

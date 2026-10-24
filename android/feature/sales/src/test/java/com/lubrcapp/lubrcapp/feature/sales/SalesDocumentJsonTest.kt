@@ -25,6 +25,23 @@ class SalesDocumentJsonTest {
     }
 
     @Test
+    fun invoiceTypeRoundTripsExactly() {
+        val document = SalesDocument(
+            id = "inv-1",
+            type = SalesDocumentType.INVOICE,
+            number = "INV-2026-00001",
+            partyId = "party-1",
+            date = "2026-10-24",
+            dueDate = "2026-11-23",
+            status = "SENT",
+            notes = "Converted from order doc-2",
+            convertedFromId = "doc-2",
+            convertedToId = null,
+        )
+        assertEquals(document, SalesDocumentJson.decode("inv-1", SalesDocumentJson.encode(document)))
+    }
+
+    @Test
     fun headerDecodeIsTolerantAndTheRecordIdWins() {
         val decoded = SalesDocumentJson.decode(
             "record-id",
@@ -66,6 +83,30 @@ class SalesDocumentJsonTest {
             fulfilledQuantity = BigDecimal("1"),
         )
         assertEquals(line, SalesDocumentLineJson.decode("line-1", SalesDocumentLineJson.encode(line)))
+    }
+
+    @Test
+    fun lineSerialNumbersRoundTripAndTolerateMissing() {
+        val line = SalesDocumentLine(
+            id = "line-1",
+            orderId = "doc-1",
+            quantity = BigDecimal("1"),
+            rate = BigDecimal("100"),
+            serialNumbers = listOf("SN1", "SN2"),
+        )
+        assertEquals(line, SalesDocumentLineJson.decode("line-1", SalesDocumentLineJson.encode(line)))
+
+        val missing = SalesDocumentLineJson.decode(
+            "line-1",
+            """{"orderId":"doc-1","quantity":"1","rate":"100"}""",
+        )
+        assertEquals(emptyList<String>(), missing.serialNumbers)
+
+        val nonArray = SalesDocumentLineJson.decode("line-1", """{"serialNumbers":"SN1"}""")
+        assertEquals(emptyList<String>(), nonArray.serialNumbers)
+
+        val blanks = SalesDocumentLineJson.decode("line-1", """{"serialNumbers":["SN1","","SN2"]}""")
+        assertEquals(listOf("SN1", "SN2"), blanks.serialNumbers)
     }
 
     @Test

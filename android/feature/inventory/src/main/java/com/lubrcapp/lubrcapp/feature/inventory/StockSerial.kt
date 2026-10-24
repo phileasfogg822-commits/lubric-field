@@ -115,3 +115,98 @@ object StockSerialJson {
         return primitive.content
     }
 }
+
+/** The outcome of the 21.3 sale-time SOLD flip. */
+data class FlipSoldResult(
+    /** The full registry with flipped records replaced. */
+    val updatedSerials: List<StockSerialRecord>,
+    /** The records flipped IN_STOCK → SOLD by this call. */
+    val flipped: List<StockSerialRecord>,
+    /** Requested numbers that were not flipped: unknown, wrong item, or no longer in stock. */
+    val notFlippedNumbers: List<String>,
+)
+
+/**
+ * Phase 21.3 — the sale-time SOLD flip 19.6 deferred: flip
+ * IN_STOCK → SOLD for the named serial numbers of one item.
+ * Matching is by (itemId, serialNumber) — the number alone is
+ * not unique across items — and each distinct requested number
+ * flips at most one record (the (item, number, IN_STOCK)
+ * combination is unique by the 19.6 Duplicate rule; the guard
+ * is belt-and-braces). Already-SOLD/REMOVED records and
+ * unknown numbers land in [FlipSoldResult.notFlippedNumbers]
+ * rather than failing the call, so the caller can report them.
+ * The note is left untouched: it records why a serial was
+ * REMOVED, and a sale needs no reason text. The sale itself is
+ * evidenced by the invoice line's serial numbers plus the
+ * posted stock movement — no invoice link is stored here.
+ */
+fun flipSerialsToSold(
+    serials: List<StockSerialRecord>,
+    itemId: String,
+    serialNumbers: List<String>,
+): FlipSoldResult {
+    val distinct = serialNumbers.distinct()
+    val flipped = mutableListOf<StockSerialRecord>()
+    val flippedNumbers = mutableSetOf<String>()
+    val updated = serials.map { record ->
+        if (record.itemId == itemId && record.status == SerialStatus.IN_STOCK &&
+            record.serialNumber in distinct && record.serialNumber !in flippedNumbers
+        ) {
+            flippedNumbers.add(record.serialNumber)
+            record.copy(status = SerialStatus.SOLD).also { flipped.add(it) }
+        } else {
+            record
+        }
+    }
+    return FlipSoldResult(
+        updatedSerials = updated,
+        flipped = flipped,
+        notFlippedNumbers = distinct.filter { it !in flippedNumbers },
+    )
+}
+
+/** The outcome of the 21.4 return flip. */
+data class FlipStockResult(
+    /** The full registry with flipped records replaced. */
+    val updatedSerials: List<StockSerialRecord>,
+    /** The records flipped SOLD → IN_STOCK by this call. */
+    val flipped: List<StockSerialRecord>,
+    /** Requested numbers that were not flipped: unknown, wrong item, or not sold. */
+    val notFlippedNumbers: List<String>,
+)
+
+/**
+ * Phase 21.4 — the inverse of 21.3's sale flip: returned
+ * goods go back to stock. Flips SOLD → IN_STOCK for the named
+ * serial numbers of one item, one record per distinct number.
+ * IN_STOCK records (never sold), REMOVED records (written off
+ * for a reason — a damaged return goes through removeSerial,
+ * not here), unknown numbers, and other items' numbers land
+ * in [FlipStockResult.notFlippedNumbers] rather than failing
+ * the call. The note is left untouched, the 21.3 pattern.
+ */
+fun flipSerialsToStock(
+    serials: List<StockSerialRecord>,
+    itemId: String,
+    serialNumbers: List<String>,
+): FlipStockResult {
+    val distinct = serialNumbers.distinct()
+    val flipped = mutableListOf<StockSerialRecord>()
+    val flippedNumbers = mutableSetOf<String>()
+    val updated = serials.map { record ->
+        if (record.itemId == itemId && record.status == SerialStatus.SOLD &&
+            record.serialNumber in distinct && record.serialNumber !in flippedNumbers
+        ) {
+            flippedNumbers.add(record.serialNumber)
+            record.copy(status = SerialStatus.IN_STOCK).also { flipped.add(it) }
+        } else {
+            record
+        }
+    }
+    return FlipStockResult(
+        updatedSerials = updated,
+        flipped = flipped,
+        notFlippedNumbers = distinct.filter { it !in flippedNumbers },
+    )
+}
