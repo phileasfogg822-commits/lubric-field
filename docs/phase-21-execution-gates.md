@@ -266,4 +266,33 @@ AppModuleRegistry is still shell work.
 
 ## Package 21.6 — Phase gate
 
-Status: NOT STARTED.
+Status: COMPLETE. Sweep vs Phase 20 head `bd285e5`:
+30 files, +2853/−30 (code head `c596370`; the gates doc
+itself adds the rest). All five acceptance trios
+re-verified green on their exact heads: 21.1 `51ee332`
+(Native 40084450910, Compose 40084450906, Segmented
+40084450987), 21.2 `fdd3086` (40085872528 / 40085872444
+/ 40085872535), 21.3 `183f0ee` (40087838685 / 40087838622
+/ 40087838569), 21.4 `71e9e4c` (40090823906 / 40090823897
+/ 40090823894), 21.5 `c596370` (40106249885 / 40106249903
+/ 40106249911).
+
+Test recount (added `+@Test` lines per package
+boundary — the gate rule): 21.1 = 2, 21.2 = 12, 21.3 = 8,
+21.4 = 9, 21.5 = 9; phase total 40. Correction: 21.1 was
+claimed as 3 tests at package time; the diff shows 2 new
+tests (SalesDocumentJsonTest, SalesViewModelDocumentsTest)
+plus a 1-line extension to an existing numbering test —
+the same class of slip as 20.5 and 21.2, caught by the
+same recount.
+
+Deferred, carried forward: currency wiring through
+AppModuleRegistry is still shell work; availability-aware
+stock checks → Phase 22; refund settlement (§64 Refund
+Mode) → Phase 22; the party picker rows still use the
+bare dot-plus-name pattern (21.5 fixed only the posting
+picker); multi-component tax schemes stay deferred;
+timeline/numbering tables stay local-only.
+
+Phase 22 prep drafted in `agent_notes/phase-22-prep.md`.
+Phase 21 COMPLETE 5/5 accepted + gate.
