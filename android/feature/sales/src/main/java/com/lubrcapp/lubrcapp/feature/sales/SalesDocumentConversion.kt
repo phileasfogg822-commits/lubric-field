@@ -2,6 +2,7 @@ package com.lubrcapp.lubrcapp.feature.sales
 
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
+import com.lubrcapp.lubrcapp.domain.sales.SalesStatus
 import java.math.BigDecimal
 
 /**
