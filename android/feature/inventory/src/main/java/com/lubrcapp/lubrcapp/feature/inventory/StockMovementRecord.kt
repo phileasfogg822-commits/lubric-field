@@ -64,6 +64,8 @@ data class StockMovementRecord(
     val date: String = "",
     /** Why this movement exists (§36 requires one for adjustments). */
     val reason: String = "",
+    /** Optional §36 attachment as a URI reference (Phase 15 media posture). */
+    val attachmentUri: String? = null,
     /** ISO instant the movement was recorded. */
     val createdAt: String = "",
 ) {
@@ -107,6 +109,7 @@ data class StockMovementRecord(
             referenceId: String? = null,
             date: String = "",
             reason: String = "",
+            attachmentUri: String? = null,
             createdAt: String = "",
         ): StockMovementRecord {
             val magnitude = quantity.abs()
@@ -122,6 +125,7 @@ data class StockMovementRecord(
                 referenceId = referenceId,
                 date = date,
                 reason = reason,
+                attachmentUri = attachmentUri,
                 createdAt = createdAt,
             )
         }

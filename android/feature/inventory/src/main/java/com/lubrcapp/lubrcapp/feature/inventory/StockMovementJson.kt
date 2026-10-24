@@ -38,6 +38,7 @@ object StockMovementJson {
             record.referenceId?.let { put("referenceId", it) }
             put("date", record.date)
             put("reason", record.reason)
+            record.attachmentUri?.let { put("attachmentUri", it) }
             put("createdAt", record.createdAt)
         }
         return json.encodeToString(JsonObject.serializer(), obj)
@@ -65,6 +66,7 @@ object StockMovementJson {
             referenceId = root.string("referenceId"),
             date = root.string("date") ?: "",
             reason = root.string("reason") ?: "",
+            attachmentUri = root.string("attachmentUri"),
             createdAt = root.string("createdAt") ?: "",
         )
     }

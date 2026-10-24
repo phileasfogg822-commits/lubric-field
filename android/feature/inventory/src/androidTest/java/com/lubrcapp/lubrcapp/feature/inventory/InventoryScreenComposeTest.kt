@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
@@ -65,5 +66,27 @@ class InventoryScreenComposeTest {
         compose.onNodeWithText("2026-10-24 · SALE · -5").assertIsDisplayed()
         compose.onNodeWithText("Back to list").performClick()
         compose.onNodeWithText("Engine Oil · 45 · In stock").assertIsDisplayed()
+    }
+
+    @Test fun adjustFlowPostsAMovement() {
+        val fake = FakeRepository()
+        fake.seed(
+            "products",
+            listOf(OperationalRecord("oil", """{"name":"Engine Oil","openingStock":"50"}""")),
+        )
+        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        compose.onNodeWithText("Adjust stock").performClick()
+        compose.onNodeWithText("Engine Oil").performClick()
+        compose.onNodeWithText("Quantity").performTextInput("3")
+        compose.onNodeWithText("Reason").performTextInput("Leaking cans")
+        compose.onNodeWithText("Post adjustment").performClick()
+        compose.waitUntil(5000) { (fake.flowFor("stock_movements").value.size) == 1 }
+        compose.onNodeWithText("Adjustment posted").assertIsDisplayed()
+        val saved = StockMovementJson.decode(
+            fake.flowFor("stock_movements").value[0].id,
+            fake.flowFor("stock_movements").value[0].json,
+        )
+        assertEquals(0, BigDecimal("3").compareTo(saved.quantity))
+        assertEquals("Leaking cans", saved.reason)
     }
 }

@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.inventory.LedgerMovement
+import com.lubrcapp.lubrcapp.domain.inventory.NegativeStockDecision
+import com.lubrcapp.lubrcapp.domain.inventory.NegativeStockPolicy
+import com.lubrcapp.lubrcapp.domain.inventory.StockLedger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import java.time.Instant
@@ -68,6 +72,7 @@ class InventoryViewModel @Inject constructor(
         referenceId: String? = null,
         date: String = "",
         reason: String = "",
+        attachmentUri: String? = null,
     ): StockMovementRecord {
         val movement = StockMovementRecord.of(
             id = UUID.randomUUID().toString(),
@@ -81,6 +86,7 @@ class InventoryViewModel @Inject constructor(
             referenceId = referenceId,
             date = date,
             reason = reason,
+            attachmentUri = attachmentUri,
             createdAt = Instant.now().toString(),
         )
         saveMovement(scope, movement)
@@ -121,4 +127,105 @@ class InventoryViewModel @Inject constructor(
 
     suspend fun saveLevels(scope: OperationalScope, levels: StockLevelsRecord) =
         repository.save(scope, "stock_levels", levels.itemId, StockLevelsJson.encode(levels), 0)
+
+    // Phase 19.4 adjustment + count posting. Both go through the
+    // §175 negative-stock check for outbound movements: the
+    // balance is the ledger balance of the exact dimension the
+    // movement leaves from (the item total when no warehouse is
+    // named; the opening constant counts only in that total).
+    // The policy is a parameter — WARN until a settings home
+    // exists, never silently NEVER_ALLOW (phase prep decision).
+
+    suspend fun postAdjustment(
+        scope: OperationalScope,
+        form: StockAdjustmentFormState,
+        policy: NegativeStockPolicy = NegativeStockPolicy.WARN,
+    ): AdjustmentResult {
+        val itemId = form.itemId ?: return AdjustmentResult.BlockedByPolicy
+        val quantity = form.quantity ?: return AdjustmentResult.BlockedByPolicy
+        if (!form.isValid) return AdjustmentResult.BlockedByPolicy
+        return postChecked(
+            scope = scope,
+            itemId = itemId,
+            type = form.movementType,
+            quantity = quantity,
+            warehouseId = form.warehouseId,
+            batchId = form.batchId,
+            date = form.date,
+            reason = form.reason,
+            attachmentUri = form.attachmentUri,
+            policy = policy,
+        )
+    }
+
+    /** §37: post one count variance ("Adjust Stock"). Zero variance posts nothing and returns null. */
+    suspend fun postCountVariance(
+        scope: OperationalScope,
+        itemId: String,
+        variance: BigDecimal,
+        warehouseId: String? = null,
+        date: String = "",
+        reason: String,
+        policy: NegativeStockPolicy = NegativeStockPolicy.WARN,
+    ): AdjustmentResult? {
+        if (variance.signum() == 0) return null
+        val type = if (variance.signum() > 0) MovementType.ADJUSTMENT_IN else MovementType.ADJUSTMENT_OUT
+        return postChecked(
+            scope = scope,
+            itemId = itemId,
+            type = type,
+            quantity = variance.abs(),
+            warehouseId = warehouseId,
+            batchId = null,
+            date = date,
+            reason = reason,
+            attachmentUri = null,
+            policy = policy,
+        )
+    }
+
+    private suspend fun postChecked(
+        scope: OperationalScope,
+        itemId: String,
+        type: MovementType,
+        quantity: BigDecimal,
+        warehouseId: String?,
+        batchId: String?,
+        date: String,
+        reason: String,
+        attachmentUri: String?,
+        policy: NegativeStockPolicy,
+    ): AdjustmentResult {
+        var warning = false
+        if (!type.isInbound) {
+            val movements = loadMovements(scope)
+            val ledgerMovements = movements.map {
+                LedgerMovement(itemId = it.itemId, warehouseId = it.warehouseId, batchId = it.batchId, quantity = it.quantity)
+            }
+            val opening = loadItems(scope).firstOrNull { it.id == itemId }?.openingStock ?: BigDecimal.ZERO
+            val balance = if (warehouseId == null) {
+                StockLedger.totalFor(ledgerMovements, itemId, opening)
+            } else {
+                StockLedger.balanceFor(ledgerMovements, itemId, warehouseId = warehouseId, batchId = batchId)
+            }
+            when (StockLedger.checkNegative(policy, balance, quantity)) {
+                NegativeStockDecision.BLOCKED -> return AdjustmentResult.BlockedByPolicy
+                NegativeStockDecision.ALLOWED_WITH_WARNING -> warning = true
+                NegativeStockDecision.ALLOWED -> Unit
+            }
+        }
+        val movement = postMovement(
+            scope = scope,
+            itemId = itemId,
+            type = type,
+            quantity = quantity,
+            warehouseId = warehouseId,
+            batchId = batchId,
+            referenceType = "STOCK_ADJUSTMENT",
+            date = date,
+            reason = reason,
+            attachmentUri = attachmentUri,
+        )
+        return AdjustmentResult.Posted(movement, warning)
+    }
 }
