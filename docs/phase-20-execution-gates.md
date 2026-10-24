@@ -82,7 +82,58 @@ completed success; Phase 12 Segmented Verification run
 
 ## Package 20.2 — Posting engine
 
-Status: NOT STARTED.
+Status: ACCEPTED on `d72958f`.
+
+`PostingEngine` in domain/accounting (pure Kotlin/JVM, zero
+Gradle changes): the single gate from a 17.4
+`DocumentPosting` to a balanced domain `JournalEntry` — runs
+`PostingValidator` (totals reconciliation, balance,
+one-sided lines, party consistency, §18 credit block) and
+builds the entry only on zero violations
+(`PostingResult.Posted` / `Rejected`). The entry id derives
+from the transaction id ("je-<transactionId>"), so
+re-posting the same document overwrites the same entry
+instead of double-posting; tenant/business/date/currency
+context are the caller's (the 19.1 / 20.1 pattern). The
+engine writes nothing and posts no stock movements or party
+effects itself — those are the Phase 19 and Phase 22
+ledgers' jobs from the same posting.
+
+Feature layer: `AccountTransactionRecord` + tolerant
+`AccountTransactionJson` over "account_transactions"
+(whitelisted AND INSERT_ONLY — the syncing per-line truth
+mirroring the local journal entry; stable row ids
+"<entryId>-<index>"). `AccountsViewModel.postDocument`
+runs the engine, then saves the journal record AND one
+transaction row per line; on rejection nothing is saved.
+`loadTransactionsForEntry` reads an entry's rows in stable
+line order.
+
+Failure history: first head `b667695` failed all three
+workflows at `:feature:accounts:compileDebugKotlin` — the
+codec's minimal-record fallback called
+`AccountTransactionRecord(id = id)` but `entryId` and
+`accountId` had no defaults (20.1's record defaulted
+everything except `id`; two were missed here). Fix head
+`d72958f` (2 lines) defaults both to "". Lesson:
+constructor-call cross-check at staging time — static
+shape checks cannot catch type errors (same family as
+19.5's dropped parameters).
+
+Tests (13): PostingEngineTest (6 — valid posting produces
+a balanced entry with derived id, unbalanced rejected,
+empty document rejected, two-sided line rejected,
+credit-blocked rejected, credit-limit-exceeded rejected) +
+AccountTransactionTest (7 — transaction codec round-trip +
+garbage tolerance, fromEntry stable ids, postDocument saves
+entry + rows, re-post overwrites instead of duplicating,
+rejected posting saves nothing).
+
+Verification (GitHub Actions on exact head `d72958f`,
+PR #29): Native Android CI run 40074878588 — completed
+success; Compose UI Emulator Tests run 40074878581 —
+completed success; Phase 12 Segmented Verification run
+40074878602 — completed success. 20.2 ACCEPTED.
 
 ## Package 20.3 — Chart of Accounts
 
