@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -546,10 +548,17 @@ private fun DocumentEditor(
                             Text(stringResource(R.string.sales_posting_receivable), style = MaterialTheme.typography.titleMedium)
                         }
                         accountOptions.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.selectable(
                                     selected = receivableId == option.id,
                                     onClick = { receivableId = option.id },
+                                    role = Role.RadioButton,
+                                ),
+                            ) {
+                                RadioButton(
+                                    selected = receivableId == option.id,
+                                    onClick = null,
                                 )
                                 Text(option.name)
                             }
@@ -558,10 +567,17 @@ private fun DocumentEditor(
                             Text(stringResource(R.string.sales_posting_revenue), style = MaterialTheme.typography.titleMedium)
                         }
                         accountOptions.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.selectable(
                                     selected = revenueId == option.id,
                                     onClick = { revenueId = option.id },
+                                    role = Role.RadioButton,
+                                ),
+                            ) {
+                                RadioButton(
+                                    selected = revenueId == option.id,
+                                    onClick = null,
                                 )
                                 Text(option.name)
                             }
@@ -570,19 +586,33 @@ private fun DocumentEditor(
                             Text(stringResource(R.string.sales_posting_tax), style = MaterialTheme.typography.titleMedium)
                         }
                         run {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.selectable(
                                     selected = taxId == null,
                                     onClick = { taxId = null },
+                                    role = Role.RadioButton,
+                                ),
+                            ) {
+                                RadioButton(
+                                    selected = taxId == null,
+                                    onClick = null,
                                 )
                                 Text(stringResource(R.string.sales_posting_no_tax))
                             }
                         }
                         accountOptions.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.selectable(
                                     selected = taxId == option.id,
                                     onClick = { taxId = option.id },
+                                    role = Role.RadioButton,
+                                ),
+                            ) {
+                                RadioButton(
+                                    selected = taxId == option.id,
+                                    onClick = null,
                                 )
                                 Text(option.name)
                             }
