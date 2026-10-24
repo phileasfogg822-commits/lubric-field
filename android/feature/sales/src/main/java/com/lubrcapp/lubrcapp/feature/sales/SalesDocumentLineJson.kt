@@ -47,7 +47,7 @@ object SalesDocumentLineJson {
             record.batchId?.let { put("batchId", it) }
             put("fulfilledQuantity", record.fulfilledQuantity.toPlainString())
             put("serialNumbers", buildJsonArray {
-                record.serialNumbers.forEach { add(it) }
+                record.serialNumbers.forEach { add(JsonPrimitive(it)) }
             })
         }
         return json.encodeToString(JsonObject.serializer(), obj)
