@@ -2,6 +2,8 @@ package com.lubrcapp.lubrcapp.feature.inventory
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -386,14 +388,16 @@ private fun ColumnScope.StockAdjustmentMode(
     Text(stringResource(R.string.inventory_adjust_title), style = MaterialTheme.typography.headlineSmall)
     resultText?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().weight(1f),
+    // A vertically scrolling Column, not a LazyColumn: every node
+    // stays composed, so the test can scroll to the fields and
+    // type into them — LazyColumn drops below-fold items from the
+    // semantics tree, which is what broke the adjust-flow test.
+    Column(
+        modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item {
-            Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
-        }
-        items(items, key = { it.id }) { item ->
+        Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
+        items.forEach { item ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { form = form.copy(itemId = item.id) },
@@ -405,70 +409,62 @@ private fun ColumnScope.StockAdjustmentMode(
                 Text(item.name)
             }
         }
-        item {
-            Text(stringResource(R.string.inventory_field_kind), style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StockAdjustmentKind.entries.forEach { kind ->
-                    Button(
-                        onClick = { form = form.copy(kind = kind) },
-                        enabled = form.kind != kind,
-                    ) {
-                        Text(stringResource(kindLabel(kind)))
-                    }
+        Text(stringResource(R.string.inventory_field_kind), style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StockAdjustmentKind.entries.forEach { kind ->
+                Button(
+                    onClick = { form = form.copy(kind = kind) },
+                    enabled = form.kind != kind,
+                ) {
+                    Text(stringResource(kindLabel(kind)))
                 }
             }
         }
         if (form.kind == StockAdjustmentKind.MANUAL_CORRECTION) {
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = { form = form.copy(manualInbound = true) },
-                        enabled = !form.manualInbound,
-                    ) { Text(stringResource(R.string.inventory_direction_in)) }
-                    Button(
-                        onClick = { form = form.copy(manualInbound = false) },
-                        enabled = form.manualInbound,
-                    ) { Text(stringResource(R.string.inventory_direction_out)) }
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { form = form.copy(manualInbound = true) },
+                    enabled = !form.manualInbound,
+                ) { Text(stringResource(R.string.inventory_direction_in)) }
+                Button(
+                    onClick = { form = form.copy(manualInbound = false) },
+                    enabled = form.manualInbound,
+                ) { Text(stringResource(R.string.inventory_direction_out)) }
             }
         }
-        item {
-            OutlinedTextField(
-                value = form.quantityText,
-                onValueChange = { form = form.copy(quantityText = it) },
-                label = { Text(stringResource(R.string.inventory_field_quantity)) },
-                modifier = Modifier.fillMaxWidth(),
+        OutlinedTextField(
+            value = form.quantityText,
+            onValueChange = { form = form.copy(quantityText = it) },
+            label = { Text(stringResource(R.string.inventory_field_quantity)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.date,
+            onValueChange = { form = form.copy(date = it) },
+            label = { Text(stringResource(R.string.inventory_field_date)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.reason,
+            onValueChange = { form = form.copy(reason = it) },
+            label = { Text(stringResource(R.string.inventory_field_reason)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = form.attachmentUri ?: "",
+            onValueChange = { form = form.copy(attachmentUri = it.takeIf { uri -> uri.isNotBlank() }) },
+            label = { Text(stringResource(R.string.inventory_field_attachment)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(stringResource(R.string.inventory_field_warehouse), style = MaterialTheme.typography.titleSmall)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(
+                selected = form.warehouseId == null,
+                onClick = { form = form.copy(warehouseId = null) },
             )
-            OutlinedTextField(
-                value = form.date,
-                onValueChange = { form = form.copy(date = it) },
-                label = { Text(stringResource(R.string.inventory_field_date)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.reason,
-                onValueChange = { form = form.copy(reason = it) },
-                label = { Text(stringResource(R.string.inventory_field_reason)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = form.attachmentUri ?: "",
-                onValueChange = { form = form.copy(attachmentUri = it.takeIf { uri -> uri.isNotBlank() }) },
-                label = { Text(stringResource(R.string.inventory_field_attachment)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Text(stringResource(R.string.inventory_field_none))
         }
-        item {
-            Text(stringResource(R.string.inventory_field_warehouse), style = MaterialTheme.typography.titleSmall)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = form.warehouseId == null,
-                    onClick = { form = form.copy(warehouseId = null) },
-                )
-                Text(stringResource(R.string.inventory_field_none))
-            }
-        }
-        items(warehouses, key = { it.id }) { warehouse ->
+        warehouses.forEach { warehouse ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { form = form.copy(warehouseId = warehouse.id) },
