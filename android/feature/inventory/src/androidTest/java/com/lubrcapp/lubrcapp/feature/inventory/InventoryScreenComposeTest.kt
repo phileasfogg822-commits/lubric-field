@@ -144,8 +144,8 @@ class InventoryScreenComposeTest {
         )
         compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
         compose.onNodeWithText("Samsung TV · 0 · Out of stock").performClick()
-        compose.onNodeWithText("Serial number").performTextInput("SN28282")
-        compose.onNodeWithText("Add serial").performClick()
+        compose.onNodeWithText("Serial number").performScrollTo().performTextInput("SN28282")
+        compose.onNodeWithText("Add serial").performScrollTo().performClick()
         compose.waitUntil(5000) { (fake.flowFor("serial_numbers").value.size) == 1 }
         compose.onNodeWithText("Serial added").assertIsDisplayed()
         compose.onAllNodesWithText("SN28282").assertCountEquals(1)
