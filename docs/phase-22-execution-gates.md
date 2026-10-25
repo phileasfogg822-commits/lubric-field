@@ -166,7 +166,41 @@ compareTo amount assertion; nothing else changed.
 
 ## Package 22.4 — Refund settlement
 
-Status: NOT STARTED.
+Status: ACCEPTED on `400d80f` (2026-10-25). Trio green:
+Native 40163304053, Compose 40163304051, Segmented
+40163304049. 2 files, +199, 3 new tests (all in
+`SalesRefundPostingTest`).
+
+Contents: `SalesRefundPosting.refundToPosting` — the
+cash-out refund builder mirroring 22.2 with sides
+swapped: Dr Receivable / Cr Cash with POSITIVE amounts
+(the 21.4 mirror principle); one synthetic totals line —
+the refund itself — so PostingValidator passes with no
+validator change; partyEffect RECEIVABLE with a POSITIVE
+amount (a refund raises a negative credit balance back
+toward zero, the opposite sign from a payment's negative
+effect); no stock movements; transactionId from the
+refund id; documentType "REFUND". Builder requires a
+positive amount (zero/negative refunds are data errors,
+rejected at build time). No new domain type (reusing
+Payment would conflate customer refunds with vendor
+payments, Phase 23's payables side); no new dependency;
+the typed refund record (method / reference / return
+link) lands with 22.5's handler.
+
+Decisions recorded in the builder: (1) post the return
+FIRST — the builder takes no balance snapshot, so
+over-refunding past zero is the handler's ordering job;
+(2) refund callers must NOT supply a validator
+creditCheck — the validator fires on any positive
+RECEIVABLE effect and cannot distinguish "new credit"
+from "clearing a credit balance", while the §18 block
+fires only on new positive exposure, which a refund
+never creates; (3) credit-against-future-invoices is
+DEFERRED to a later package — 22.1 allocation allocates
+payments, not credit balances, and extending it is its
+own design; until then the credit balance carries
+forward per 22.3's rule.
 
 ## Package 22.5 — Customer ledger screens
 
