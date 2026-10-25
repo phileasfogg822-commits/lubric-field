@@ -192,3 +192,22 @@ credit term (debit notes) lands with 23.5; the
 payable record's cache sync belongs to the later
 join package. domain/purchase gains the
 `:domain:payment` dependency.
+
+## Package 23.5 — Debit notes
+
+Status: NOT STARTED.
+
+Design: the vendor mirror of 21.4 (supervisor
+decision 5) — `PurchaseDebitNotePosting` in
+feature/purchases reverses a purchase with POSITIVE
+amounts and a side-swapped journal: Dr Payable /
+Cr Expense / Cr Tax, with a NEGATIVE PAYABLE
+effect for the full grand total, and stock OUT
+movements for the returned lines. A debit note is
+its own document with its own line type; lines
+carry positive returned quantities. Totals are
+recomputed from lines through the shared
+calculator, exactly as in 23.2. No bottom-line
+discount. The credit term for 23.4's derivation
+and the payable record's cache sync belong to the
+later join package.
