@@ -143,3 +143,21 @@ stored total supplies only the currency hint.
 Document type "PURCHASE_INVOICE". Posting does not
 change the purchase status. feature/purchases gains
 the `:domain:accounting` dependency.
+
+## Package 23.3 — Goods receipt
+
+Status: NOT STARTED.
+
+Design: the purchase-status transition (supervisor
+decision 3) — `PurchaseReceiving.receive` in
+domain/purchase moves a DRAFT purchase to RECEIVED
+on the same record, adjusts lines to what actually
+arrived (short and over delivery both rewrite the
+line quantity; absent lines count as zero received),
+and emits stock IN movements for positively
+received lines only. Only DRAFT purchases receive;
+a second receipt is rejected, not merged. Stored
+money totals are not recomputed here — totals are
+recomputed from lines at posting time (the 23.2
+rule). No journal, no money movement: posting
+stays 23.2's job.
