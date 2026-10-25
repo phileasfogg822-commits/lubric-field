@@ -75,3 +75,24 @@ fun trialBalance(
         }
     return TrialBalance(rows, totalDebits, totalCredits)
 }
+
+/**
+ * Phase 24.1 — the trial-balance report: the 20.4 preview
+ * over a date range. Entries are ISO yyyy-MM-dd text
+ * (validated at write time), so lexicographic comparison
+ * is chronological comparison. Both bounds are inclusive.
+ * An inverted range is a caller error, not an empty
+ * report.
+ */
+fun trialBalanceForPeriod(
+    entries: List<JournalEntryRecord>,
+    accounts: List<AccountRecord>,
+    fromDate: String,
+    toDate: String,
+): TrialBalance {
+    require(fromDate <= toDate) { "fromDate must not be after toDate" }
+    return trialBalance(
+        entries = entries.filter { it.date in fromDate..toDate },
+        accounts = accounts,
+    )
+}

@@ -1,0 +1,186 @@
+# Phase 24 execution gates — Reporting / Reconciliation / Period Controls
+
+Branch `phase-24-reporting-reconciliation`, base
+`phase-23-purchasing-payables` @ `6c94a34`. Packages land on this
+branch one at a time, each accepted only with green CI
+on its exact head. This doc is the ledger; the design
+detail lives in `agent_notes/phase-24-prep.md` (goal workspace,
+to be written from the roadmap and the master spec
+before 24.1).
+
+## Scope
+
+Reporting, reconciliation, and period controls over
+the ledger built in Phases 17–23: trial balance and
+financial reports over journal entries, reconciliation
+of party balances against ledger effects, and period
+open/close controls. The trial balance (Phase 20) and
+the party ledger balances (Phases 22–23) are the
+existing foundations; Phase 24 turns them into
+reports and controls, it does not re-derive them.
+
+## Status
+
+NOT STARTED. Branch + scaffold pushed 2026-10-25;
+draft PR #33 awaits the owner's tap. Package
+breakdown is settled from the roadmap and the
+master spec at planning time — nothing below is a
+package commitment yet.
+
+## Package 24.1 — Trial Balance report
+
+Status: ACCEPTED on `4e16d34` (2026-10-25). Trio green:
+Native 40197124538, Compose 40197124625, Segmented
+40197124699. 1 new file, 2 modified, no build-file
+changes, 4 new tests (all in `TrialBalanceReportTest`).
+
+Contents: `trialBalanceForPeriod` in feature/accounts
+filters journal entries to an inclusive ISO date range
+and delegates to the existing `trialBalance`, so the
+report derives from posted entries only (§73).
+`loadTrialBalance` on AccountsViewModel wires it to
+the ledger surfaces. No UI change: the screen already
+renders the preview; report screens land in a later
+package. An inverted range throws rather than silently
+reporting empty.
+
+## Package 24.2 — Profit & Loss report
+
+Status: ACCEPTED on `6f95e3d` (2026-10-25). Trio green:
+Native 40198770265, Compose 40198770284, Segmented
+40198770187. 2 new files, 1 modified, no build-file
+changes, 5 new tests (all in `ProfitAndLossTest`).
+
+Contents: `profitAndLoss` in feature/accounts over an
+inclusive ISO date range — income rows are INCOME
++ OTHER_INCOME at net credit, expense rows are
+COST_OF_GOODS_SOLD + EXPENSE at net debit,
+ASSET/LIABILITY/EQUITY never appear here, and
+lines on accounts with no matching record are
+excluded (the trial balance still shows them).
+`loadProfitAndLoss` on AccountsViewModel wires it
+to the ledger surfaces. No UI change; net profit
+may be negative (a net loss) and is never clamped.
+
+## Package 24.3 — Balance Sheet report
+
+Status: ACCEPTED on `f132614` (2026-10-25). Trio green:
+Native 40200135365, Compose 40200135364, Segmented
+40200135304. 2 new files, 1 modified, no build-file
+changes, 4 new tests (all in `BalanceSheetTest`).
+
+Contents: `balanceSheet` in feature/accounts as of a
+date (cumulative) — asset rows at net debit,
+liability and equity rows at net credit, profit &
+loss accounts never appear here, unknown accounts
+excluded. No balanced flag by design: for a
+balanced ledger the `difference` (assets −
+liabilities − equity) equals undistributed profit.
+`loadBalanceSheet` on AccountsViewModel wires it
+to the ledger surfaces. No UI change.
+
+## Package 24.4 — Party Statement report
+
+Status: ACCEPTED on `7cb2eda` (2026-10-25). Trio green:
+Native 40201910242, Compose 40201910185, Segmented
+40201910190. 2 new files, 1 modified, no build-file
+changes, 4 new tests (all in `PartyStatementTest`).
+
+Contents: `partyStatement` in feature/accounts for
+one party, one direction and one currency over an
+inclusive ISO date range — opening balance (net
+sum of matching rows before the range), the
+period movements in chronological order, and the
+closing balance. Balances are Money, per
+currency, never summed across currencies;
+unknown directions match nothing (the 22.3
+rule). `loadPartyStatement` on AccountsViewModel
+wires it to the ledger rows. No UI change.
+
+## Package 24.5 — General Ledger report
+
+Status: ACCEPTED on `da4e1b4` (2026-10-25). Trio green:
+Native 40203550128, Compose 40203550132, Segmented
+40203550127 (attempt 2 — attempt 1 failed on the
+12.6.1 MavenArtifactFetcher flake, re-run green
+with no code change). 2 new files, 1 modified,
+no build-file changes, 4 new tests (all in
+`GeneralLedgerTest`).
+
+Contents: `generalLedger` in feature/accounts for
+one account over an inclusive ISO date range —
+opening balance, one movement per entry in the
+range (lines on the account summed per entry,
+chronological by date then entry id) each
+carrying its running balance, and the closing
+balance. Balances are plain BigDecimals: journal
+lines carry no currency, so the ledger is
+currency-agnostic like the trial balance.
+`loadGeneralLedger` on AccountsViewModel wires
+it to the ledger surfaces. No UI change.
+
+## Package 24.6 — Day Book report
+
+Status: ACCEPTED on `7677167` (2026-10-25). Trio green:
+Native 40205373221, Compose 40205373204, Segmented
+40205373225. 2 new files, 1 modified, no build-file
+changes, 5 new tests (all in `DayBookTest`).
+
+Contents: `dayBook` in feature/accounts over an
+inclusive ISO date range — every entry in the
+range, sorted by date then entry id. No
+aggregation, no currency question (entries carry
+their lines as posted). `loadDayBook` on
+AccountsViewModel wires it to the ledger
+surfaces. No UI change.
+
+## Package 24.7 — Phase gate
+
+Status: PASSED (2026-10-25). Code-final head
+`7677167`; gate recorded in this commit.
+
+Sweep `6c94a34..7677167`: 14 files, +1226/−0,
+purely additive — 6 report files, 6 test files,
+AccountsViewModel surfaces, and this gates doc.
+No build-file changes anywhere in the phase.
+
+Test recount: 26 new tests, matching the
+acceptance records (24.1: 4, 24.2: 5, 24.3: 4,
+24.4: 4, 24.5: 4, 24.6: 5). All six accepted
+heads are ancestors of `7677167` in order.
+
+Delivered: the §76 report engine over posted
+journal entries only — Trial Balance (range),
+Profit & Loss (range), Balance Sheet (as-of),
+Party Statement (party/direction/currency/
+range), General Ledger (account/range with
+running balances), Day Book (chronological
+listing) — each with a ViewModel surface, no
+UI change, no new tables, no currency
+conversion.
+
+Carryovers (named, not gate blockers):
+- Report screens: the six reports are engine +
+  ViewModel surfaces only; the AccountsScreen
+  trial-balance preview predates them.
+- Cash Flow (§76): needs a cash-flow
+  classification on accounts that does not
+  exist — a design decision, not derivable
+  from journal entries alone.
+- Period controls: date-range filtering only;
+  an open/close posting lock would touch
+  `postDocument`/PostingValidator and needs
+  the owner's decision.
+- App-wide currency wiring (still shell work);
+  journal lines carry no currency, so the
+  ledger reports stay currency-agnostic by
+  design (party statements are the per-
+  currency exception, via ledger rows).
+- Earlier carryovers stand: typed refund
+  record, header-balance follow-up,
+  availability-aware negative-stock check,
+  Phase 13 close-out sweep (issue #19).
+
+Phase 24 CLOSED. Next: Phase 25
+(Documents/PDF/Printing); its draft PR needs
+the owner's tap at phase start.

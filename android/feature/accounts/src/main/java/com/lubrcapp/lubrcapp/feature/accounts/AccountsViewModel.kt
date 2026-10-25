@@ -10,6 +10,7 @@ import com.lubrcapp.lubrcapp.domain.accounting.PostingEngine
 import com.lubrcapp.lubrcapp.domain.accounting.PostingResult
 import com.lubrcapp.lubrcapp.domain.accounting.PostingViolation
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.domain.common.DeviceId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -200,6 +201,64 @@ class AccountsViewModel @Inject constructor(
     /** Only active accounts, in display order. */
     suspend fun loadActiveAccounts(scope: OperationalScope): List<AccountRecord> =
         loadAccounts(scope).filter { it.isActive }
+
+    // Phase 24.1 — trial-balance report over a date range:
+    // the 20.4 preview promoted to the report engine's
+    // first report. Bounds are ISO dates, inclusive.
+    suspend fun loadTrialBalance(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): TrialBalance =
+        trialBalanceForPeriod(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
+
+    // Phase 24.2 — profit & loss report over a date range.
+    // Bounds are ISO dates, inclusive.
+    suspend fun loadProfitAndLoss(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): ProfitAndLoss =
+        profitAndLoss(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
+
+    // Phase 24.3 — balance-sheet report as of a date
+    // (cumulative: every entry dated on or before it).
+    suspend fun loadBalanceSheet(
+        scope: OperationalScope,
+        asOfDate: String,
+    ): BalanceSheet =
+        balanceSheet(loadJournalEntries(scope), loadAccounts(scope), asOfDate)
+
+    // Phase 24.4 — party statement report: one party, one
+    // direction, one currency, over an inclusive ISO range.
+    suspend fun loadPartyStatement(
+        scope: OperationalScope,
+        partyId: String,
+        direction: String,
+        currency: CurrencyCode,
+        fromDate: String,
+        toDate: String,
+    ): PartyStatement =
+        partyStatement(loadLedgerRows(scope), partyId, direction, currency, fromDate, toDate)
+
+    // Phase 24.5 — general ledger report: one account over
+    // an inclusive ISO range, with running balances.
+    suspend fun loadGeneralLedger(
+        scope: OperationalScope,
+        accountId: String,
+        fromDate: String,
+        toDate: String,
+    ): GeneralLedger =
+        generalLedger(loadJournalEntries(scope), loadAccounts(scope), accountId, fromDate, toDate)
+
+    // Phase 24.6 — day book report: every entry in an
+    // inclusive ISO range, chronological by date then id.
+    suspend fun loadDayBook(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): DayBook =
+        dayBook(loadJournalEntries(scope), fromDate, toDate)
 
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
