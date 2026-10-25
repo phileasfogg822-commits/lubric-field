@@ -28,20 +28,19 @@ package commitment yet.
 
 ## Package 25.1 — Printable document model
 
-Status: NOT STARTED.
+Status: ACCEPTED on `dbc36e0` (2026-10-25). Trio green:
+Native 40219779926, Compose 40219779994, Segmented
+40219779947. 3 new files, 1 modified, 5 new tests
+(all in `PrintableDocumentTest`).
 
-Design: the single shape every render path
-consumes — `PrintableDocument` + `PrintableLine`
+Contents: `PrintableDocument` + `PrintableLine`
 in a new feature/printing module (plain data, no
 feature or domain dependency; the app shell maps
-sales, purchase, and report data into it, because
-feature modules never depend on each other).
+sales, purchase, and report data into it).
 The `printableDocument` builder computes
-subtotal from line amounts as given (source
-engines own per-line rounding) and grand total
-as subtotal + tax − discount; tax and discount
-are non-negative magnitudes (negative values
-throw). Currency is a plain code string, ""
-when the source carries none. No render path
-yet — PDF, preview, and thermal all build on
-this model.
+subtotal from line amounts as given and grand
+total as subtotal + tax − discount; negative
+tax or discount throws. Currency is a plain
+code string, "" when the source carries none.
+No render path yet — PDF, preview, and thermal
+all build on this model.
