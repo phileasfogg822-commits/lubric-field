@@ -148,7 +148,7 @@ Native green.
 
 ## Package 25.5 — Print settings model
 
-Status: NOT STARTED.
+Status: ACCEPTED on `e41b563` (trio Native 40227563121 / Compose 40227563098 / Segmented 40227563087, all green; verified first-hand).
 
 Design: the paper and finishing choices a
 printer-settings screen (spec screen 67)
@@ -170,3 +170,9 @@ settings screen itself, persistence, and
 any device connection state — those need
 shell wiring and a record surface, and
 this package is the model they will edit.
+
+Evidence: 2 new files (PrintSettings,
+PrintSettingsTest), 1 modified
+(ThermalReceipt gains the autoCut
+parameter), 4 tests, no new dependencies,
+no workflow changes.
