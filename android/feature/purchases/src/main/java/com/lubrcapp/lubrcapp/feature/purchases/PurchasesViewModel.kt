@@ -21,4 +21,16 @@ class PurchasesViewModel @Inject constructor(
 
     suspend fun save(scope: OperationalScope, id: String, payloadJson: String, revision: Long = 0) =
         repository.save(scope, "purchase_orders", id, payloadJson, revision)
+
+    /** Phase 23.1 — typed payables surface over "vendor_payables". */
+    suspend fun savePayable(scope: OperationalScope, record: VendorPayableRecord) =
+        repository.save(scope, "vendor_payables", record.id, VendorPayableJson.encode(record))
+
+    suspend fun loadPayables(scope: OperationalScope): List<VendorPayableRecord> =
+        repository.list(scope, "vendor_payables")
+            .map { VendorPayableJson.decode(it.id, it.json) }
+
+    /** One payable per purchase: the record id IS the purchase document id. */
+    suspend fun loadPayableForPurchase(scope: OperationalScope, purchaseId: String): VendorPayableRecord? =
+        loadPayables(scope).firstOrNull { it.id == purchaseId }
 }

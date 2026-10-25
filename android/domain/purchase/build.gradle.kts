@@ -15,5 +15,7 @@ kotlin {
 
 dependencies {
     api(project(":domain:common"))
+    api(project(":domain:accounting"))
+    api(project(":domain:payment"))
     testImplementation("junit:junit:4.13.2")
 }
