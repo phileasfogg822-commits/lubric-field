@@ -176,3 +176,38 @@ PrintSettingsTest), 1 modified
 (ThermalReceipt gains the autoCut
 parameter), 4 tests, no new dependencies,
 no workflow changes.
+
+## Package 25.6 — Print preview screen
+
+Status: NOT STARTED.
+
+Design: spec §99's Preview action —
+`PrintPreviewScreen` in feature/printing
+renders a DocumentLayout's lines as text
+rows (alignment from the line's semantic
+align, bold from its bold flag, size from
+its point size) inside a scrolling Column,
+with the §99 actions (Share, Download PDF,
+Print) as buttons in a fixed row above the
+content. The actions are callbacks the
+shell wires later (25.7): this package
+owns the preview UI, not the share sheet,
+the file write, or the printer. Build
+changes mirror feature/accounts' compose
+subset (compose plugin, compose-bom
+2026.06.00, ui, ui-graphics,
+ui-tooling-preview, material3, ui-test
+deps) — printing's first Compose code, so
+its build file grows from minimal to the
+pattern module's shape. Static labels go
+through the module's own strings.xml (the
+Native boundary step rejects hardcoded
+Text literals); document lines are dynamic
+data. Tests (emulator): title + total
+after scroll (30 items, so the total is
+genuinely below the fold), and all four
+action buttons firing their callbacks.
+Deliberately OUT: the registry entry and
+the document source — the shell wiring
+that gives the screen a real document is
+25.7, not this package.
