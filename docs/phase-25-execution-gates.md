@@ -64,3 +64,23 @@ tax/discount lines, grand total, notes, footer.
 No framework classes — the layout tests on the
 JVM; the PDF writer (25.3) and thermal
 renderer resolve alignment to x positions.
+
+## Package 25.3 — PDF writer
+
+Status: NOT STARTED.
+
+Design: the first renderer — `writePdf` in
+feature/printing renders a DocumentLayout to
+PDF with the platform PdfDocument API (no new
+dependency). X positions resolve from the
+layout's semantic alignment via the pure
+`resolveX` (LEFT at the margin, CENTER
+midpoint, RIGHT before the margin); the
+baseline is the line top minus the Paint
+ascent. Layout dims and PDF dims share the
+same point space. The writer itself is
+framework code, so its behavior is covered by
+an emulator test asserting valid PDF bytes
+(%PDF header), and the Compose workflow list
+gains :feature:printing so that test actually
+runs in CI.
