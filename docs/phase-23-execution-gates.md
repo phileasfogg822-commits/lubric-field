@@ -168,21 +168,27 @@ dependency (StockMovement in the result type).
 
 ## Package 23.4 — Vendor payment application
 
-Status: NOT STARTED.
+Status: ACCEPTED on `184b717` (2026-10-25). Trio green:
+Native 40180736234, Compose 40180736233, Segmented
+40180736276. 2 new files, 2 modified build files, 8 new
+tests (all in `PurchasePaymentApplicationTest`).
 
-Design: the derivation of a purchase invoice's
-paidAmount (supervisor decision 1) —
-`PurchasePaymentApplication.applyPayments` in
-domain/purchase recomputes the stored cache from
-the payment set on every payment event, mirroring
-22.2's applyPayment shape adapted from an event
-application to a re-derivation. Only PAID-direction
-payments linked to the invoice count; an empty
-derivation is not an event; re-derivation is
-idempotent; otherwise the invoice must be RECEIVED,
-PARTIALLY_PAID, or OVERDUE. Derived >= total lands
-PAID, else PARTIALLY_PAID; overpayment lands PAID
-with a negative balanceDue, not a clamp. The
+Contents: `PurchasePaymentApplication.applyPayments`
+in domain/purchase — the derivation of a purchase
+invoice's paidAmount (supervisor decision 1). The
+stored paidAmount is a cache; this function is the
+authority, recomputed from the payment set on every
+payment event, mirroring 22.2's applyPayment shape
+adapted from an event application to a
+re-derivation. Only PAID-direction payments linked
+to the invoice count; an empty derivation is not an
+event; re-derivation is idempotent; otherwise the
+invoice must be RECEIVED, PARTIALLY_PAID, or
+OVERDUE. Derived >= total lands PAID, else
+PARTIALLY_PAID; overpayment lands PAID with a
+negative balanceDue, not a clamp. Mixed-currency
+sets fail loudly on Money's currency guard. The
 credit term (debit notes) lands with 23.5; the
 payable record's cache sync belongs to the later
-join package.
+join package. domain/purchase gains the
+`:domain:payment` dependency.
