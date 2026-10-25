@@ -179,7 +179,7 @@ no workflow changes.
 
 ## Package 25.6 — Print preview screen
 
-Status: NOT STARTED.
+Status: ACCEPTED on `b4c17c7` (trio Native 40228829090 / Compose 40228829093 / Segmented 40228829070, all green; verified first-hand).
 
 Design: spec §99's Preview action —
 `PrintPreviewScreen` in feature/printing
@@ -211,3 +211,11 @@ Deliberately OUT: the registry entry and
 the document source — the shell wiring
 that gives the screen a real document is
 25.7, not this package.
+
+Evidence: 2 new files (PrintPreviewScreen,
+PrintPreviewScreenTest) + 1 new res file
+(strings.xml) + the printing build file
+grown to the compose subset; 2 emulator
+tests, both green on the first head — the
+scroll test and the callback test passed
+with no fix cycle.
