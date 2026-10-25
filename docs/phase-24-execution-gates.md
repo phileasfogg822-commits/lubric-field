@@ -46,18 +46,18 @@ reporting empty.
 
 ## Package 24.2 — Profit & Loss report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `6f95e3d` (2026-10-25). Trio green:
+Native 40198770265, Compose 40198770284, Segmented
+40198770187. 2 new files, 1 modified, no build-file
+changes, 5 new tests (all in `ProfitAndLossTest`).
 
-Design: the second §76 business report —
-`profitAndLoss` in feature/accounts over an
-inclusive ISO date range. Income rows are INCOME
-+ OTHER_INCOME accounts at net credit; expense
-rows are COST_OF_GOODS_SOLD + EXPENSE accounts
-at net debit; ASSET/LIABILITY/EQUITY accounts
-never appear here. Lines on accounts with no
-matching record carry no §74 class and are
+Contents: `profitAndLoss` in feature/accounts over an
+inclusive ISO date range — income rows are INCOME
++ OTHER_INCOME at net credit, expense rows are
+COST_OF_GOODS_SOLD + EXPENSE at net debit,
+ASSET/LIABILITY/EQUITY never appear here, and
+lines on accounts with no matching record are
 excluded (the trial balance still shows them).
-`loadProfitAndLoss` on AccountsViewModel wires
-it to the ledger surfaces. No UI change; net
-profit may be negative (a net loss) and is never
-clamped.
+`loadProfitAndLoss` on AccountsViewModel wires it
+to the ledger surfaces. No UI change; net profit
+may be negative (a net loss) and is never clamped.
