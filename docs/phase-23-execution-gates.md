@@ -218,12 +218,13 @@ belong to the later join package.
 
 ## Package 23.6 — Posting join
 
-Status: NOT STARTED.
+Status: ACCEPTED on `ca1003c` (2026-10-25). Trio green:
+Native 40183908686, Compose 40183908802, Segmented
+40183908570. 3 new files, no build-file changes, 4 new
+tests (all in `PurchasePostingHandlerTest`).
 
-Design: the app-layer purchases posting join, the
-mirror of 21.5 — `PurchasePostingHandler` in the
-shell, the one place that may see purchases,
-accounts, and inventory ViewModels at once.
+Contents: `PurchasePostingHandler` in the app shell
+— the purchases posting join, the mirror of 21.5.
 postInvoice builds with 23.2, posts through
 postDocument, and on Posted saves the payable
 record (23.1). postDebitNote builds with 23.5,
