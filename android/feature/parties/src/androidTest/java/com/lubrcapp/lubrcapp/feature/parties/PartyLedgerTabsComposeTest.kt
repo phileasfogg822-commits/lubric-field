@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 
@@ -54,7 +55,7 @@ class PartyLedgerTabsComposeTest {
 
     @Test fun paymentsTabSwitchesContent() {
         openProfile()
-        compose.onNodeWithText("Payments").performClick()
+        compose.onNodeWithText("Payments").performScrollTo().performClick()
         compose.onNodeWithText("2026-10-05 PAY-2026-00001 -40000").assertIsDisplayed()
         // The invoice-only transaction row leaves with the tab switch.
         compose.onAllNodesWithText("2026-10-01 INV-2026-00001 100000").assertCountEquals(0)
@@ -62,9 +63,9 @@ class PartyLedgerTabsComposeTest {
 
     @Test fun ordersAndItemsTabsShowTheirRows() {
         openProfile()
-        compose.onNodeWithText("Orders").performClick()
+        compose.onNodeWithText("Orders").performScrollTo().performClick()
         compose.onNodeWithText("SO-2026-00001 2026-09-28 CONFIRMED 100000").assertIsDisplayed()
-        compose.onNodeWithText("Items").performClick()
+        compose.onNodeWithText("Items").performScrollTo().performClick()
         compose.onNodeWithText("Engine Oil 4L 2 20000").assertIsDisplayed()
     }
 

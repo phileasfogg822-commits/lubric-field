@@ -117,7 +117,7 @@ fun PartyProfileMode(
                         Text(stringResource(R.string.parties_ledger_empty))
                     } else {
                         tabs.transactions.forEach { row ->
-                            Text("${row.date} ${row.documentNumber} ${row.amountText}")
+                            Text(stringResource(R.string.parties_ledger_row, row.date, row.documentNumber, row.amountText))
                         }
                     }
                 }
@@ -126,7 +126,7 @@ fun PartyProfileMode(
                         Text(stringResource(R.string.parties_ledger_empty))
                     } else {
                         tabs.statement.forEach { row ->
-                            Text("${row.date} ${row.documentNumber} ${row.amountText} ${row.runningBalanceText}")
+                            Text(stringResource(R.string.parties_ledger_row_statement, row.date, row.documentNumber, row.amountText, row.runningBalanceText))
                         }
                     }
                 }
@@ -135,7 +135,7 @@ fun PartyProfileMode(
                         Text(stringResource(R.string.parties_ledger_empty))
                     } else {
                         tabs.payments.forEach { row ->
-                            Text("${row.date} ${row.documentNumber} ${row.amountText}")
+                            Text(stringResource(R.string.parties_ledger_row, row.date, row.documentNumber, row.amountText))
                         }
                     }
                 }
@@ -144,7 +144,7 @@ fun PartyProfileMode(
                         Text(stringResource(R.string.parties_ledger_empty))
                     } else {
                         tabs.orders.forEach { row ->
-                            Text("${row.number} ${row.date} ${row.status} ${row.totalText}")
+                            Text(stringResource(R.string.parties_ledger_order_row, row.number, row.date, row.status, row.totalText))
                         }
                     }
                 }
@@ -153,7 +153,7 @@ fun PartyProfileMode(
                         Text(stringResource(R.string.parties_ledger_empty))
                     } else {
                         tabs.items.forEach { row ->
-                            Text("${row.name} ${row.quantityText} ${row.totalText}")
+                            Text(stringResource(R.string.parties_ledger_item_row, row.name, row.quantityText, row.totalText))
                         }
                     }
                 }

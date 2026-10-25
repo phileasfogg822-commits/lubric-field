@@ -94,4 +94,8 @@
     <string name="parties_tab_orders">Orders</string>
     <string name="parties_tab_items">Items</string>
     <string name="parties_ledger_empty">No entries yet</string>
+    <string name="parties_ledger_row">%1$s %2$s %3$s</string>
+    <string name="parties_ledger_row_statement">%1$s %2$s %3$s %4$s</string>
+    <string name="parties_ledger_order_row">%1$s %2$s %3$s %4$s</string>
+    <string name="parties_ledger_item_row">%1$s %2$s %3$s</string>
 </resources>
