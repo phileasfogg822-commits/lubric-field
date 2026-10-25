@@ -146,18 +146,22 @@ the `:domain:accounting` dependency.
 
 ## Package 23.3 — Goods receipt
 
-Status: NOT STARTED.
+Status: ACCEPTED on `4211378` (2026-10-25). Trio green:
+Native 40179782077, Compose 40179782298, Segmented
+40179782088. 2 new files, 1 modified build file, 5 new
+tests (all in `PurchaseReceivingTest`).
 
-Design: the purchase-status transition (supervisor
-decision 3) — `PurchaseReceiving.receive` in
-domain/purchase moves a DRAFT purchase to RECEIVED
-on the same record, adjusts lines to what actually
-arrived (short and over delivery both rewrite the
-line quantity; absent lines count as zero received),
-and emits stock IN movements for positively
-received lines only. Only DRAFT purchases receive;
-a second receipt is rejected, not merged. Stored
-money totals are not recomputed here — totals are
-recomputed from lines at posting time (the 23.2
-rule). No journal, no money movement: posting
-stays 23.2's job.
+Contents: `PurchaseReceiving.receive` in domain/purchase
+— the purchase-status transition (supervisor decision
+3). A DRAFT purchase moves to RECEIVED on the same
+record, lines adjust to what actually arrived (short
+and over delivery both rewrite the line quantity;
+absent lines count as zero received), and stock IN
+movements emit for positively received lines only.
+Only DRAFT purchases receive; a second receipt is
+rejected, not merged. Stored money totals are not
+recomputed here — totals are recomputed from lines
+at posting time (the 23.2 rule). No journal, no
+money movement: posting stays 23.2's job.
+domain/purchase gains the `:domain:accounting`
+dependency (StockMovement in the result type).
