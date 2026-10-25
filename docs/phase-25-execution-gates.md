@@ -107,3 +107,31 @@ jobs" (attempt 2) went green with no code
 change. Note the build stopped at inventory
 on attempt 1, so printing's emulator test
 first actually ran on attempt 2.
+
+## Package 25.4 — Thermal receipt renderer
+
+Status: NOT STARTED.
+
+Design: the ESC/POS half of spec §98's
+abstraction layer — `thermalReceipt` in
+feature/printing renders a DocumentLayout to
+the byte stream a thermal receipt printer
+consumes, the same layout writePdf renders
+to PDF, so every document has two renderers
+and no second layout pass. Pure Kotlin, no
+framework classes, fully JVM-testable:
+ESC @ initialize, ESC a n alignment (0 LEFT,
+1 CENTER, 2 RIGHT), ESC E n bold on/off,
+LF per line, GS V 0 full cut once at the
+end. Page boundaries are ignored — receipt
+paper is continuous. Text is US-ASCII
+(non-ASCII folds to '?') and lines longer
+than widthChars (default 42) truncate, since
+a thermal line has a fixed column count.
+Deliberately OUT: device transport
+(Bluetooth / USB / network — moves bytes,
+does not decide them, and no CI runner can
+prove it), QR and logo bitmaps (need a
+bitmap/QR encoder), and the cash-drawer
+kick (needs a device signal the document
+model does not carry).
