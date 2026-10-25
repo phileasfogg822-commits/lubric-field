@@ -99,19 +99,22 @@ wires it to the ledger rows. No UI change.
 
 ## Package 24.5 — General Ledger report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `da4e1b4` (2026-10-25). Trio green:
+Native 40203550128, Compose 40203550132, Segmented
+40203550127 (attempt 2 — attempt 1 failed on the
+12.6.1 MavenArtifactFetcher flake, re-run green
+with no code change). 2 new files, 1 modified,
+no build-file changes, 4 new tests (all in
+`GeneralLedgerTest`).
 
-Design: the per-account ledger report —
-`generalLedger` in feature/accounts for one
-account over an inclusive ISO date range:
-opening balance (net debits minus credits on
-that account before the range), one movement
-per entry in the range (lines on the account
-summed per entry, chronological by date then
-entry id), each carrying its running balance,
-and the closing balance. Balances are plain
-BigDecimals: journal lines carry no currency,
-so the ledger is currency-agnostic like the
-trial balance. `loadGeneralLedger` on
-AccountsViewModel wires it to the ledger
-surfaces. No UI change.
+Contents: `generalLedger` in feature/accounts for
+one account over an inclusive ISO date range —
+opening balance, one movement per entry in the
+range (lines on the account summed per entry,
+chronological by date then entry id) each
+carrying its running balance, and the closing
+balance. Balances are plain BigDecimals: journal
+lines carry no currency, so the ledger is
+currency-agnostic like the trial balance.
+`loadGeneralLedger` on AccountsViewModel wires
+it to the ledger surfaces. No UI change.
