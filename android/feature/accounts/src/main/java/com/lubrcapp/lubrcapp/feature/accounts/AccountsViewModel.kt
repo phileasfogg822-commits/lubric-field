@@ -10,6 +10,7 @@ import com.lubrcapp.lubrcapp.domain.accounting.PostingEngine
 import com.lubrcapp.lubrcapp.domain.accounting.PostingResult
 import com.lubrcapp.lubrcapp.domain.accounting.PostingViolation
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.domain.common.DeviceId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -227,6 +228,18 @@ class AccountsViewModel @Inject constructor(
         asOfDate: String,
     ): BalanceSheet =
         balanceSheet(loadJournalEntries(scope), loadAccounts(scope), asOfDate)
+
+    // Phase 24.4 — party statement report: one party, one
+    // direction, one currency, over an inclusive ISO range.
+    suspend fun loadPartyStatement(
+        scope: OperationalScope,
+        partyId: String,
+        direction: String,
+        currency: CurrencyCode,
+        fromDate: String,
+        toDate: String,
+    ): PartyStatement =
+        partyStatement(loadLedgerRows(scope), partyId, direction, currency, fromDate, toDate)
 
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {

@@ -78,3 +78,20 @@ balanced ledger the `difference` (assets −
 liabilities − equity) equals undistributed profit.
 `loadBalanceSheet` on AccountsViewModel wires it
 to the ledger surfaces. No UI change.
+
+## Package 24.4 — Party Statement report
+
+Status: NOT STARTED.
+
+Design: the party-side reconciliation report —
+`partyStatement` in feature/accounts for one
+party, one direction (RECEIVABLE or PAYABLE)
+and one currency over an inclusive ISO date
+range: opening balance (net sum of matching
+rows before the range), the period movements
+in chronological order, and the closing
+balance. Balances are Money, per currency —
+never summed across currencies. Unknown
+directions match nothing (the 22.3 rule).
+`loadPartyStatement` on AccountsViewModel wires
+it to the ledger rows. No UI change.
