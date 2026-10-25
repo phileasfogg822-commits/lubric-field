@@ -165,3 +165,24 @@ at posting time (the 23.2 rule). No journal, no
 money movement: posting stays 23.2's job.
 domain/purchase gains the `:domain:accounting`
 dependency (StockMovement in the result type).
+
+## Package 23.4 — Vendor payment application
+
+Status: NOT STARTED.
+
+Design: the derivation of a purchase invoice's
+paidAmount (supervisor decision 1) —
+`PurchasePaymentApplication.applyPayments` in
+domain/purchase recomputes the stored cache from
+the payment set on every payment event, mirroring
+22.2's applyPayment shape adapted from an event
+application to a re-derivation. Only PAID-direction
+payments linked to the invoice count; an empty
+derivation is not an event; re-derivation is
+idempotent; otherwise the invoice must be RECEIVED,
+PARTIALLY_PAID, or OVERDUE. Derived >= total lands
+PAID, else PARTIALLY_PAID; overpayment lands PAID
+with a negative balanceDue, not a clamp. The
+credit term (debit notes) lands with 23.5; the
+payable record's cache sync belongs to the later
+join package.
