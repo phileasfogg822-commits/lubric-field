@@ -251,6 +251,15 @@ class AccountsViewModel @Inject constructor(
     ): GeneralLedger =
         generalLedger(loadJournalEntries(scope), loadAccounts(scope), accountId, fromDate, toDate)
 
+    // Phase 24.6 — day book report: every entry in an
+    // inclusive ISO range, chronological by date then id.
+    suspend fun loadDayBook(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): DayBook =
+        dayBook(loadJournalEntries(scope), fromDate, toDate)
+
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
         repository.save(scope, "accounts", account.id, AccountJson.encode(account))

@@ -118,3 +118,16 @@ lines carry no currency, so the ledger is
 currency-agnostic like the trial balance.
 `loadGeneralLedger` on AccountsViewModel wires
 it to the ledger surfaces. No UI change.
+
+## Package 24.6 — Day Book report
+
+Status: NOT STARTED.
+
+Design: the chronological journal listing —
+`dayBook` in feature/accounts over an inclusive
+ISO date range: every entry in the range,
+sorted by date then entry id. No aggregation,
+no currency question (entries carry their
+lines as posted). `loadDayBook` on
+AccountsViewModel wires it to the ledger
+surfaces. No UI change.
