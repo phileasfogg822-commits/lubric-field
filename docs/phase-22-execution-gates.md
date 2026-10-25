@@ -204,7 +204,62 @@ forward per 22.3's rule.
 
 ## Package 22.5 — Customer ledger screens
 
-Status: NOT STARTED.
+Status: ACCEPTED on `62d00a0` (2026-10-25). Trio green:
+Native 40167399382, Compose 40167399353, Segmented
+40167399439. Commits: `6ddccb2` (profile builder),
+`681b2a3` (tabs UI), `b4fe0a2` (backfill trigger),
+`bf57387` (shell wiring), `62d00a0` (boundary/scroll
+fix). 8 new files, 4 modified, 15 new tests (5 builder
++ 4 Compose tabs + 4 backfill + 2 mapping).
+
+Contents: `PartyLedgerProfile.build(rows, partyId,
+currency)` turns a party's ledger rows into the §17 view
+— balance, outstanding (positive-only, mirroring
+PartyCredit's receivable-side rule), transactions,
+statement with running balances, payments (PAYMENT /
+REFUND rows only). The profile screen renders
+Transactions / Statement / Payments / Orders / Items
+tabs from plain data — no feature-to-feature dependency
+(verified: no feature module depends on another
+feature); `ledgerTabs = null` preserves the 14.4
+header-only profile exactly. The backfill trigger
+(app shell) rebuilds 21.x rows: journal entry id
+`je-<documentId>` identifies the document exactly
+(PostingEngine's naming rule; 21.3/21.4 carry
+transactionId = document id), so there is no number
+matching and no unnumbered-document ambiguity; the
+effect is ±grandTotal from the document's lines with
+the handler's own defaults (no charges / discount /
+round-off), reproducing the original total exactly;
+writes overwrite by entry id, so re-runs are clean, and
+unmatched / partyless entries are skipped and counted,
+never errored. The shell mapping wires tabs into the
+app: currency derived from the party's earliest ledger
+row; a party with no rows yet totals orders/items
+under ISO "XXX" (a computation-only tag — only plain
+numbers reach the display, nothing persists).
+
+First attempt `bf57387` went 2/3: Segmented green,
+Native failed on the boundary check (five interpolated
+`Text("...")` row literals in PartyProfile.kt),
+Compose failed on the tab-click tests with no public
+logs. Fix `62d00a0` moved all five row formats to
+string resources (rendered text byte-identical) and
+added performScrollTo before tab clicks; its trio is
+the green one above.
+
+Decisions: (1) backfill matches by entry id, not
+document number; (2) backfill writes zero rows too,
+matching 22.3's writer (balance-neutral, one row per
+posting effect); (3) the ledger IS the payments
+surface — no new domain type for tabs; (4) currency is
+derived, never hardcoded for a business; (5) header
+balances are NOT changed by 22.5 — the opening-based
+Outstanding line stays as 14.4 designed it, and the
+ledger truth lives in the tabs. Carryovers: the typed
+refund record promised by 22.4 did not land in 22.5
+and remains open for a later package, as does the
+header-balance follow-up.
 
 ## Package 22.6 — Phase gate
 
