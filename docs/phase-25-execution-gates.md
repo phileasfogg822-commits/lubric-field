@@ -110,7 +110,7 @@ first actually ran on attempt 2.
 
 ## Package 25.4 — Thermal receipt renderer
 
-Status: NOT STARTED.
+Status: ACCEPTED on `89ffdf2` (trio Native 40226350807 / Compose 40226350848 / Segmented 40226350770, all green; verified first-hand).
 
 Design: the ESC/POS half of spec §98's
 abstraction layer — `thermalReceipt` in
@@ -135,3 +135,13 @@ prove it), QR and logo bitmaps (need a
 bitmap/QR encoder), and the cash-drawer
 kick (needs a device signal the document
 model does not carry).
+
+Evidence: 2 new files (ThermalReceipt,
+ThermalReceiptTest), 8 JVM tests, no new
+dependencies, no workflow changes. The
+watch for this head died on a runtime
+restart with Native still in progress and
+was restarted after a direct API check
+(Segmented + Compose already green);
+the restarted watch delivered the final
+Native green.
