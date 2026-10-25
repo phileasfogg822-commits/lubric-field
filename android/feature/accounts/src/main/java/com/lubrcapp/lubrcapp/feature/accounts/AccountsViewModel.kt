@@ -241,6 +241,16 @@ class AccountsViewModel @Inject constructor(
     ): PartyStatement =
         partyStatement(loadLedgerRows(scope), partyId, direction, currency, fromDate, toDate)
 
+    // Phase 24.5 — general ledger report: one account over
+    // an inclusive ISO range, with running balances.
+    suspend fun loadGeneralLedger(
+        scope: OperationalScope,
+        accountId: String,
+        fromDate: String,
+        toDate: String,
+    ): GeneralLedger =
+        generalLedger(loadJournalEntries(scope), loadAccounts(scope), accountId, fromDate, toDate)
+
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
         repository.save(scope, "accounts", account.id, AccountJson.encode(account))
