@@ -88,4 +88,10 @@
     <string name="parties_mobile_line">Mobile: %1$s</string>
     <string name="parties_email_line">Email: %1$s</string>
     <string name="parties_notes_line">Notes: %1$s</string>
+    <string name="parties_tab_transactions">Transactions</string>
+    <string name="parties_tab_statement">Statement</string>
+    <string name="parties_tab_payments">Payments</string>
+    <string name="parties_tab_orders">Orders</string>
+    <string name="parties_tab_items">Items</string>
+    <string name="parties_ledger_empty">No entries yet</string>
 </resources>

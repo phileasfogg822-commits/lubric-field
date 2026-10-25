@@ -1,15 +1,22 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,6 +42,7 @@ fun PartyProfileMode(
     groupName: String?,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    ledgerTabs: PartyLedgerTabsData? = null,
 ) {
     val assessment = PartyCredit.assess(party)
     Column(
@@ -91,5 +99,74 @@ fun PartyProfileMode(
         party.email?.let { Text(stringResource(R.string.parties_email_line, it)) }
         party.notes?.let { Text(stringResource(R.string.parties_notes_line, it)) }
         Button(onClick = onEdit) { Text(stringResource(R.string.parties_edit, party.name)) }
+        ledgerTabs?.let { tabs ->
+            var selectedTab by remember { mutableStateOf(PartyProfileTab.TRANSACTIONS) }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TabButton(stringResource(R.string.parties_tab_transactions), selectedTab == PartyProfileTab.TRANSACTIONS) { selectedTab = PartyProfileTab.TRANSACTIONS }
+                TabButton(stringResource(R.string.parties_tab_statement), selectedTab == PartyProfileTab.STATEMENT) { selectedTab = PartyProfileTab.STATEMENT }
+                TabButton(stringResource(R.string.parties_tab_payments), selectedTab == PartyProfileTab.PAYMENTS) { selectedTab = PartyProfileTab.PAYMENTS }
+                TabButton(stringResource(R.string.parties_tab_orders), selectedTab == PartyProfileTab.ORDERS) { selectedTab = PartyProfileTab.ORDERS }
+                TabButton(stringResource(R.string.parties_tab_items), selectedTab == PartyProfileTab.ITEMS) { selectedTab = PartyProfileTab.ITEMS }
+            }
+            when (selectedTab) {
+                PartyProfileTab.TRANSACTIONS -> {
+                    if (tabs.transactions.isEmpty()) {
+                        Text(stringResource(R.string.parties_ledger_empty))
+                    } else {
+                        tabs.transactions.forEach { row ->
+                            Text("${row.date} ${row.documentNumber} ${row.amountText}")
+                        }
+                    }
+                }
+                PartyProfileTab.STATEMENT -> {
+                    if (tabs.statement.isEmpty()) {
+                        Text(stringResource(R.string.parties_ledger_empty))
+                    } else {
+                        tabs.statement.forEach { row ->
+                            Text("${row.date} ${row.documentNumber} ${row.amountText} ${row.runningBalanceText}")
+                        }
+                    }
+                }
+                PartyProfileTab.PAYMENTS -> {
+                    if (tabs.payments.isEmpty()) {
+                        Text(stringResource(R.string.parties_ledger_empty))
+                    } else {
+                        tabs.payments.forEach { row ->
+                            Text("${row.date} ${row.documentNumber} ${row.amountText}")
+                        }
+                    }
+                }
+                PartyProfileTab.ORDERS -> {
+                    if (tabs.orders.isEmpty()) {
+                        Text(stringResource(R.string.parties_ledger_empty))
+                    } else {
+                        tabs.orders.forEach { row ->
+                            Text("${row.number} ${row.date} ${row.status} ${row.totalText}")
+                        }
+                    }
+                }
+                PartyProfileTab.ITEMS -> {
+                    if (tabs.items.isEmpty()) {
+                        Text(stringResource(R.string.parties_ledger_empty))
+                    } else {
+                        tabs.items.forEach { row ->
+                            Text("${row.name} ${row.quantityText} ${row.totalText}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
+    if (selected) {
+        Button(onClick = onClick) { Text(label) }
+    } else {
+        OutlinedButton(onClick = onClick) { Text(label) }
     }
 }
