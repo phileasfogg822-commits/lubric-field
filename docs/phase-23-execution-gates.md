@@ -120,6 +120,16 @@ id). This is the foundation every later 23 package
 builds on: receiving transitions, payment
 application, and debit notes all write through it.
 
-## Package 23.2 — Phase gate
+## Package 23.2 — Purchase invoice posting
 
 Status: NOT STARTED.
+
+Design: the vendor mirror of 21.3 — `PurchaseInvoicePosting`
+maps a purchase invoice and its lines through the shared
+DocumentTotalsCalculator (line tax from the line's flat
+rate via a single-component exclusive scheme) to a
+DocumentPosting: Dr Expense / Dr Tax / Cr Payable, all
+positive amounts, with a PAYABLE effect for the full
+grand total and no stock movements (receiving owns
+stock). Totals are recomputed from lines, never trusted
+from the invoice's stored totals.
