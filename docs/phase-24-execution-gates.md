@@ -26,3 +26,19 @@ draft PR #33 awaits the owner's tap. Package
 breakdown is settled from the roadmap and the
 master spec at planning time — nothing below is a
 package commitment yet.
+
+## Package 24.1 — Trial Balance report
+
+Status: NOT STARTED.
+
+Design: the 20.4 preview promoted to the report
+engine's first report — `trialBalanceForPeriod` in
+feature/accounts filters journal entries to an
+inclusive ISO date range and delegates to the
+existing `trialBalance`, so the report derives
+from posted entries only (§73). `loadTrialBalance`
+on AccountsViewModel wires it to the ledger
+surfaces. No UI change: the screen already
+renders the preview; report screens land in a
+later package. An inverted range throws rather
+than silently reporting empty.

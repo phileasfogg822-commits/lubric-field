@@ -201,6 +201,16 @@ class AccountsViewModel @Inject constructor(
     suspend fun loadActiveAccounts(scope: OperationalScope): List<AccountRecord> =
         loadAccounts(scope).filter { it.isActive }
 
+    // Phase 24.1 — trial-balance report over a date range:
+    // the 20.4 preview promoted to the report engine's
+    // first report. Bounds are ISO dates, inclusive.
+    suspend fun loadTrialBalance(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): TrialBalance =
+        trialBalanceForPeriod(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
+
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
         repository.save(scope, "accounts", account.id, AccountJson.encode(account))
