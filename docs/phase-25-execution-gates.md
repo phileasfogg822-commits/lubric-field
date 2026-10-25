@@ -67,7 +67,7 @@ renderer resolve alignment to x positions.
 
 ## Package 25.3 — PDF writer
 
-Status: NOT STARTED.
+Status: ACCEPTED on `09f4f76` (trio Native 40224171952 / Compose 40224172003 attempt 2 / Segmented 40224171978, all green; verified first-hand).
 
 Design: the first renderer — `writePdf` in
 feature/printing renders a DocumentLayout to
@@ -84,3 +84,26 @@ an emulator test asserting valid PDF bytes
 (%PDF header), and the Compose workflow list
 gains :feature:printing so that test actually
 runs in CI.
+
+Evidence: first push `5e4ac58` (3 new files —
+PdfWriter, XResolutionTest, PdfWriterTest — plus
+the printing build file and the Compose
+workflow list); fix head `09f4f76` adds only
+`androidx.test:runner:1.5.2` to printing's
+androidTest deps. Tests: 4 unit (XResolution)
++ 1 instrumentation (PdfWriterTest).
+Incidents: (1) the first head failed
+Compose-only because the printing test APK
+lacked AndroidJUnitRunner — 25.1's minimal
+build file declared only ext:junit, which does
+not bring the runner; the explicit runner dep
+fixed it. (2) The fix head's attempt 1 failed
+Compose-only on inventory's
+adjustFlowPostsAMovement, with inventory code
+identical to `5e4ac58` where the same test
+passed and a diff touching only printing's
+test deps — a timing flake; "Re-run failed
+jobs" (attempt 2) went green with no code
+change. Note the build stopped at inventory
+on attempt 1, so printing's emulator test
+first actually ran on attempt 2.
