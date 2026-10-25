@@ -47,19 +47,20 @@ all build on this model.
 
 ## Package 25.2 — Document layout engine
 
-Status: NOT STARTED.
+Status: ACCEPTED on `210ab80` (2026-10-25). Trio green:
+Native 40221120896, Compose 40221120940, Segmented
+40221120829. 2 new files, 1 modified, 5 new tests
+(all in `DocumentLayoutTest`).
 
-Design: the pure layout layer beneath every
-renderer — `layoutDocument` in feature/printing
-turns a PrintableDocument into positioned
+Contents: `layoutDocument` in feature/printing —
+the pure layout layer beneath every renderer.
+It turns a PrintableDocument into positioned
 `LayoutLine`s (text, alignment, y, size, bold)
-grouped into `LayoutPage`s. Vertical flow with
-pagination: lines flow top to bottom and spill
-to a new page past the content bottom; line
-height is size × 1.25. Content order: title,
-number/date, party (when present), item lines,
-subtotal, non-zero tax/discount lines, grand
-total, notes, footer. No framework classes —
-the layout tests on the JVM; the PDF writer
-(25.3) and thermal renderer resolve alignment
-to x positions.
+grouped into `LayoutPage`s, with vertical flow
+and pagination (line height size × 1.25).
+Content order: title, number/date, party (when
+present), item lines, subtotal, non-zero
+tax/discount lines, grand total, notes, footer.
+No framework classes — the layout tests on the
+JVM; the PDF writer (25.3) and thermal
+renderer resolve alignment to x positions.
