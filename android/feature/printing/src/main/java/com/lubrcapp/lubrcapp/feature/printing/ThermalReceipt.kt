@@ -17,7 +17,8 @@ package com.lubrcapp.lubrcapp.feature.printing
  * Commands used: ESC @ (initialize), ESC a n
  * (alignment: 0 LEFT, 1 CENTER, 2 RIGHT),
  * ESC E n (bold on/off), LF (line feed),
- * GS V 0 (full cut). Page boundaries are ignored
+ * GS V 0 (full cut, once at the end unless
+ * [autoCut] is false). Page boundaries are ignored
  * — receipt paper is continuous, so lines flow as
  * one stream and the cut comes once, at the end.
  * Text is US-ASCII: characters outside ASCII fold
@@ -32,6 +33,7 @@ package com.lubrcapp.lubrcapp.feature.printing
 fun thermalReceipt(
     layout: DocumentLayout,
     widthChars: Int = 42,
+    autoCut: Boolean = true,
 ): ByteArray {
     require(widthChars > 0) { "widthChars must be positive" }
     val out = mutableListOf<Byte>()
@@ -57,6 +59,8 @@ fun thermalReceipt(
             bytes(0x0A)
         }
     }
-    bytes(0x1D, 0x56, 0x00)
+    if (autoCut) {
+        bytes(0x1D, 0x56, 0x00)
+    }
     return out.toByteArray()
 }

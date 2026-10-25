@@ -145,3 +145,28 @@ was restarted after a direct API check
 (Segmented + Compose already green);
 the restarted watch delivered the final
 Native green.
+
+## Package 25.5 — Print settings model
+
+Status: NOT STARTED.
+
+Design: the paper and finishing choices a
+printer-settings screen (spec screen 67)
+will edit and the renderers consume —
+`PrintSettings` in feature/printing, pure
+data with no storage (persistence rides
+the app's usual record surface when the
+settings screen lands, not this layer).
+`PaperWidth` maps to the thermal column
+count the receipt renderer truncates to:
+58 mm carries 32 columns, 80 mm carries
+42 — the conventional defaults, and the
+80 mm value keeps 25.4's default. `autoCut`
+selects the trailing GS V 0 cut; it arrives
+as an additive defaulted parameter on
+`thermalReceipt`, so every 25.4 test still
+passes unchanged. Deliberately OUT: the
+settings screen itself, persistence, and
+any device connection state — those need
+shell wiring and a record surface, and
+this package is the model they will edit.
