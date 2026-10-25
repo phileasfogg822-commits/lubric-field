@@ -121,13 +121,15 @@ it to the ledger surfaces. No UI change.
 
 ## Package 24.6 — Day Book report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `7677167` (2026-10-25). Trio green:
+Native 40205373221, Compose 40205373204, Segmented
+40205373225. 2 new files, 1 modified, no build-file
+changes, 5 new tests (all in `DayBookTest`).
 
-Design: the chronological journal listing —
-`dayBook` in feature/accounts over an inclusive
-ISO date range: every entry in the range,
-sorted by date then entry id. No aggregation,
-no currency question (entries carry their
-lines as posted). `loadDayBook` on
+Contents: `dayBook` in feature/accounts over an
+inclusive ISO date range — every entry in the
+range, sorted by date then entry id. No
+aggregation, no currency question (entries carry
+their lines as posted). `loadDayBook` on
 AccountsViewModel wires it to the ledger
 surfaces. No UI change.
