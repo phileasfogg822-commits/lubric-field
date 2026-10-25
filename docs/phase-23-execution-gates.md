@@ -239,3 +239,30 @@ Retry-safe by entry id, payable id, and the
 already-moved check. The ledger, not the payable
 record, is the truth for the debit-note-reduced
 balance — no derivation change needed.
+
+## Phase gate
+
+Status: PASSED and Phase 23 CLOSED 2026-10-25.
+
+Sweep `9b4af05..ca1003c`: 18 files, +1809/−0,
+every file inside an accepted package or this
+gates doc; no deletions anywhere — a purely
+additive phase. Test recount by diffing added
+`@Test` lines: 29 total (23.1: 4, 23.2: 3, 23.3: 5,
+23.4: 8, 23.5: 5, 23.6: 4) — every count matches
+its acceptance record. All six accepted code
+heads are ancestors of `ca1003c` in order, each
+followed by its docs commit.
+
+Carryovers out of Phase 23: a typed
+purchase-order record (23.6 notes the join takes
+invoice + lines as arguments because none exists
+yet); serial-aware purchase returns (23.6 moves
+no serials); multi-shipment receipt (23.3
+rejects a second receipt rather than merging).
+Standing carryovers unchanged: the
+availability-aware negative-stock check, the
+profile header-balance follow-up, credit
+against future invoices, app-wide currency
+wiring, the Phase 13 close-out sweep (issue #19,
+owner tap), and the 12C-05(b) owner decision.
