@@ -141,6 +141,17 @@ class AccountsViewModel @Inject constructor(
         transactions.forEach { row ->
             repository.save(scope, "account_transactions", row.id, AccountTransactionJson.encode(row))
         }
+        // Phase 22.3 — the posting's party effect becomes a
+        // "party_ledger" row in the same save: this is the
+        // job 20.2 deliberately left to Phase 22. A posting
+        // without an effect records nothing; a re-post
+        // overwrites the same row id ("je-<transactionId>"),
+        // which is also what makes the 21.x backfill
+        // idempotent. On rejection nothing is saved (the
+        // early return above already ran).
+        PartyLedgerRecord.fromPosting(posting, entry)?.let { row ->
+            savePartyLedgerRow(scope, row)
+        }
         return DocumentPostResult.Posted(entry, transactions)
     }
 
@@ -150,6 +161,24 @@ class AccountsViewModel @Inject constructor(
             .map { AccountTransactionJson.decode(it.id, it.json) }
             .filter { it.entryId == entryId }
             .sortedBy { it.id }
+
+    // Phase 22.3 — typed party-ledger surface over
+    // "party_ledger" (sync-whitelisted, INSERT_ONLY).
+
+    /** Persist a ledger row exactly as given. */
+    suspend fun savePartyLedgerRow(scope: OperationalScope, row: PartyLedgerRecord) {
+        repository.save(scope, "party_ledger", row.id, PartyLedgerJson.encode(row))
+    }
+
+    /** All ledger rows, chronological, then by id. */
+    suspend fun loadLedgerRows(scope: OperationalScope): List<PartyLedgerRecord> =
+        repository.list(scope, "party_ledger")
+            .map { PartyLedgerJson.decode(it.id, it.json) }
+            .sortedWith(compareBy({ it.date }, { it.id }))
+
+    /** Ledger rows for one party, chronological, then by id. */
+    suspend fun loadLedgerRowsForParty(scope: OperationalScope, partyId: String): List<PartyLedgerRecord> =
+        loadLedgerRows(scope).filter { it.partyId == partyId }
 
     // Phase 20.3 — typed chart-of-accounts surface over
     // "accounts" (sync-whitelisted master data). The raw

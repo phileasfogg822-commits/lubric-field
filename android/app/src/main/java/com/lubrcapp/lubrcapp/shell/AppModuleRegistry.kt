@@ -134,7 +134,17 @@ object AppModuleRegistry {
             configKey = null,
             viewCapability = Capabilities.PARTIES_VIEW,
             selectable = true,
-            content = { scope, back -> PartiesScreen(scope, back) },
+            content = { scope, back ->
+                val accountsViewModel: AccountsViewModel = hiltViewModel()
+                val salesViewModel: SalesViewModel = hiltViewModel()
+                PartiesScreen(
+                    scope = scope,
+                    onBack = back,
+                    ledgerTabsProvider = { partyId ->
+                        PartyLedgerTabsMapping.tabsFor(scope, partyId, salesViewModel, accountsViewModel)
+                    },
+                )
+            },
             bottomNavSlot = BottomNavSlot.PARTIES,
         ),
         AppModule(

@@ -21,6 +21,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,7 @@ fun PartiesScreen(
     scope: OperationalScope,
     onBack: () -> Unit,
     viewModel: PartiesViewModel = hiltViewModel(),
+    ledgerTabsProvider: (suspend (String) -> PartyLedgerTabsData?)? = null,
 ) {
     val parties by remember(viewModel, scope) { viewModel.observeParties(scope) }
         .collectAsState(initial = emptyList())
@@ -60,6 +62,10 @@ fun PartiesScreen(
     var groupsOpen by remember(scope) { mutableStateOf(false) }
     var profileId by remember(scope) { mutableStateOf<String?>(null) }
     val profileParty = profileId?.let { id -> parties.firstOrNull { it.id == id } }
+    var ledgerTabs by remember { mutableStateOf<PartyLedgerTabsData?>(null) }
+    LaunchedEffect(profileParty?.id) {
+        ledgerTabs = profileParty?.let { ledgerTabsProvider?.invoke(it.id) }
+    }
     var editingId by remember(scope) { mutableStateOf<String?>(null) }
     var saving by remember(scope) { mutableStateOf(false) }
     var deletingId by remember(scope) { mutableStateOf<String?>(null) }
@@ -113,6 +119,7 @@ fun PartiesScreen(
             party = profileParty,
             groupName = profileParty.groupId?.let { gid -> groups.firstOrNull { it.id == gid }?.name },
             onBack = { profileId = null },
+            ledgerTabs = ledgerTabs,
             onEdit = {
                 form.load(profileParty)
                 editingId = profileParty.id

@@ -1,0 +1,301 @@
+# Phase 22 execution gates — Payments / Receivables / Customer Ledger
+
+Branch: `phase-22-payments-receivables` (cut from Phase 21 head
+`8f42a8c`). Draft PR (base `phase-21-sales-fulfilment`).
+
+## Authoritative scope
+
+Phase 22 is the phase that makes invoices collectible. It
+consumes what Phase 21 posted and leaves the ledger as its
+record. It is the second real consumer of the Phase 20
+posting engine (after 21.5's handler): a payment's journal
+effect (Dr Cash/Bank, Cr Receivable) goes through
+`AccountsViewModel.postDocument` (20.2), not through a
+parallel path.
+
+Domain base already exists and must not be rebuilt:
+domain/payment `Payment` (id, tenant, business, party,
+direction RECEIVED/PAID, methodId, amount, referenceNumber,
+relatedInvoiceId, date, notes, metadata) — note its
+relatedInvoiceId is a SINGLE invoice, so multi-invoice
+allocation needs its own lines; domain/accounting posting
+contract + `PartyLedgerEffect` (17.4, RECEIVABLE/PAYABLE,
+signed amount); domain/sales `SalesStatus`
+DRAFT/SENT/PAID/PARTIALLY_PAID/OVERDUE/CANCELLED; 21.1's
+pin (no stored paidAmount — derived from payment rows);
+21.4's pin (no sign guards in the posting chain).
+
+Ground facts for the record layer: `party_ledger` is in the
+Phase 12 sync whitelist AND is INSERT_ONLY — append-only
+by platform rule, like `account_transactions` and
+`stock_movements`. No `PartyLedgerRecord` or codec exists
+yet anywhere in the tree: Phase 22 builds the record layer
+from scratch. 20.2's `postDocument` deliberately does NOT
+persist `partyEffect` — "that is Phase 22's job."
+
+Open pins (settle at 22.1, in order): payment record keys
++ whitelist status — there is no `payments` table in the
+whitelist, so does a payment live on `cash_movements`
+(whitelisted, INSERT_ONLY — the cash-in/out ledger), on
+`party_ledger` itself, or on a new local-only table? The
+choice decides what syncs. Allocation rules — one payment
+across many invoices, one invoice across many payments,
+partials, overpayment, and how each moves the invoice's
+SalesStatus. Refund settlement mechanics — cash-out vs
+credit-against-future-invoices, and which journal sides
+each takes. Overdue derivation — from dueDate + remaining,
+computed or stored, transition or derived view. Customer
+ledger surface — per-party statement (invoices, payments,
+returns, credit notes, balance); Phase 24 owns full
+reporting, so 22 stays to the ledger itself.
+
+Deferred into 22 from earlier phases: availability-aware
+stock checks (21.3/21.4 postings carry movements but do
+not check availability) and refund settlement (§64 Refund
+Mode — 21.4 posts the return's journal and restores
+stock/serials but settles no refund).
+
+## Package 22.1 — Payment allocation core
+
+Status: ACCEPTED on `e2b015c` (2026-10-24). Trio green:
+Native 40114613809, Compose 40114613807, Segmented
+40114613871. `PaymentAllocation.allocate` in
+domain/payment (no new Gradle deps — the module already
+depends only on `:domain:common`, so the core is
+status-agnostic by construction): only RECEIVED payments
+allocate; only same-party invoices; deterministic order by
+dueDate then invoiceId (oldest first); outstanding =
+grandTotal − alreadyPaid clamped at zero; applied =
+min(remaining payment, outstanding); currency mismatch
+skips the invoice; leftover reported as unallocated.
+11 new tests (PaymentAllocationTest).
+
+Grounded design (2026-10-24, from the live tree):
+domain/payment depends ONLY on `:domain:common` — no
+`:domain:sales` dep — so the allocation core stays
+status-agnostic and needs no Gradle change: it computes
+applied amounts and remaining balances, and the caller
+maps remaining == 0 → PAID, applied > 0 →
+PARTIALLY_PAID. `PaymentAllocation.allocate(payment,
+openInvoices)`: only RECEIVED payments allocate (PAID
+direction is the payables side, Phase 23); only same-party
+invoices; non-collectible (DRAFT/CANCELLED) skipped by
+the caller via a collectible flag; deterministic order by
+dueDate then invoiceId (oldest first); outstanding =
+grandTotal − alreadyPaid clamped at zero; applied =
+min(remaining payment, outstanding); unallocated leftover
+reported, not decided, here. Money is compareTo-equal,
+never raw BigDecimal equals; minus requires same
+currency, so a mismatched-currency invoice is skipped,
+not forced.
+
+## Package 22.2 — Payment posting + invoice status moves
+
+Status: ACCEPTED on `85eb9f8` (2026-10-24). Trio green:
+Native 40117230445, Compose 40117230472 (attempt-2
+re-run after attempt 1 failed on an unrelated inventory
+test — see below), Segmented 40117230449. 5 files,
++334, 11 new tests (builder validator test 1,
+status-move tests 10).
+
+Contents: `SalesPaymentPosting.paymentToPosting`
+(Dr Cash/Bank, Cr Receivable; one synthetic totals line
+— the payment itself — so PostingValidator passes with
+no validator change; partyEffect RECEIVABLE negative;
+no stock movements; transactionId from the payment id)
+and `SalesDocumentStatus.applyPayment` (SENT /
+PARTIALLY_PAID / OVERDUE take payments; remaining == 0
+→ PAID, else PARTIALLY_PAID; same-state and zero
+applications return unchanged). `:domain:payment`
+dependency added to feature/sales.
+
+Failure history: attempt 1's Compose run failed on
+exactly one test — `InventoryScreenComposeTest.
+adjustFlowPostsAMovement` ("Adjustment posted" not
+displayed). The 22.2 diff touches no inventory files
+(only feature/sales + gates doc) and the same test
+passed on the 22.1 trio under an hour earlier, so it
+was diagnosed as a timing flake, not a regression;
+attempt 2 (failed-jobs re-run only, website route)
+went green, and the previously unjudged sales/parties/
+purchases/accounts connected tests ran in the re-run.
+No code change was made for the flake.
+
+## Package 22.3 — Party ledger rows from posting effects
+
+Status: ACCEPTED on `cf138d2` (2026-10-25). Trio green:
+Native 40124055752, Compose 40124055756, Segmented
+40124055758. 5 files, +514 (package head `74ed57c`)
+plus a test-only fix head `cf138d2` (+9/−1). 11 new
+tests (all in `PartyLedgerTest`).
+
+Contents: `PartyLedgerRecord` + tolerant `PartyLedgerJson`
+over `party_ledger` (whitelisted, INSERT_ONLY — the
+table 20.2 left unwritten); `AccountsViewModel.postDocument`
+now persists the posting's party effect in the same save
+(completing the job 20.2 left to Phase 22 — a posting
+without an effect records nothing, a rejection saves
+nothing); row id is the journal entry id
+(`je-<transactionId>`), so a re-post overwrites the
+same row; `PartyLedgerBalance` net-sums signed
+RECEIVABLE / PAYABLE amounts per party per currency,
+ignoring unknown direction text, and a negative net
+stays a credit balance instead of being clamped.
+
+Backfill decision: YES — backfill party_ledger rows
+for the 21.x postings already done, through this same
+writer, idempotent by transaction id (prep decision 5).
+The trigger / app-layer orchestration that finds the
+21.x postings and rebuilds their effects is NOT in
+22.3's core; it lands with 22.5's ledger surfaces.
+
+Failure history: package head `74ed57c` went 2/3 green
+(Segmented 40123162170, Compose 40123162257) with
+Native 40123162319 failing at step 15.3 on exactly 3
+tests, all in the new `PartyLedgerTest`, all test bugs
+— production code untouched: (1) the test helper built
+postings with a party effect but no party id, so the
+validator rightly rejected them (PARTY_EFFECT_MISMATCH)
+and no ledger row was saved — `postDocumentSavesLedgerRow`
+and `repostOverwritesSameLedgerRow` failed; (2) the
+`fromPostingMapsEffectAndIds` amount assertion used
+raw `BigDecimal.equals`, which is scale-sensitive
+against Money's normalized 1E+5. Fix head `cf138d2`
+sets the posting party from the effect and uses a
+compareTo amount assertion; nothing else changed.
+
+## Package 22.4 — Refund settlement
+
+Status: ACCEPTED on `400d80f` (2026-10-25). Trio green:
+Native 40163304053, Compose 40163304051, Segmented
+40163304049. 2 files, +199, 3 new tests (all in
+`SalesRefundPostingTest`).
+
+Contents: `SalesRefundPosting.refundToPosting` — the
+cash-out refund builder mirroring 22.2 with sides
+swapped: Dr Receivable / Cr Cash with POSITIVE amounts
+(the 21.4 mirror principle); one synthetic totals line —
+the refund itself — so PostingValidator passes with no
+validator change; partyEffect RECEIVABLE with a POSITIVE
+amount (a refund raises a negative credit balance back
+toward zero, the opposite sign from a payment's negative
+effect); no stock movements; transactionId from the
+refund id; documentType "REFUND". Builder requires a
+positive amount (zero/negative refunds are data errors,
+rejected at build time). No new domain type (reusing
+Payment would conflate customer refunds with vendor
+payments, Phase 23's payables side); no new dependency;
+the typed refund record (method / reference / return
+link) lands with 22.5's handler.
+
+Decisions recorded in the builder: (1) post the return
+FIRST — the builder takes no balance snapshot, so
+over-refunding past zero is the handler's ordering job;
+(2) refund callers must NOT supply a validator
+creditCheck — the validator fires on any positive
+RECEIVABLE effect and cannot distinguish "new credit"
+from "clearing a credit balance", while the §18 block
+fires only on new positive exposure, which a refund
+never creates; (3) credit-against-future-invoices is
+DEFERRED to a later package — 22.1 allocation allocates
+payments, not credit balances, and extending it is its
+own design; until then the credit balance carries
+forward per 22.3's rule.
+
+## Package 22.5 — Customer ledger screens
+
+Status: ACCEPTED on `62d00a0` (2026-10-25). Trio green:
+Native 40167399382, Compose 40167399353, Segmented
+40167399439. Commits: `6ddccb2` (profile builder),
+`681b2a3` (tabs UI), `b4fe0a2` (backfill trigger),
+`bf57387` (shell wiring), `62d00a0` (boundary/scroll
+fix). 8 new files, 4 modified, 15 new tests (5 builder
++ 4 Compose tabs + 4 backfill + 2 mapping).
+
+Contents: `PartyLedgerProfile.build(rows, partyId,
+currency)` turns a party's ledger rows into the §17 view
+— balance, outstanding (positive-only, mirroring
+PartyCredit's receivable-side rule), transactions,
+statement with running balances, payments (PAYMENT /
+REFUND rows only). The profile screen renders
+Transactions / Statement / Payments / Orders / Items
+tabs from plain data — no feature-to-feature dependency
+(verified: no feature module depends on another
+feature); `ledgerTabs = null` preserves the 14.4
+header-only profile exactly. The backfill trigger
+(app shell) rebuilds 21.x rows: journal entry id
+`je-<documentId>` identifies the document exactly
+(PostingEngine's naming rule; 21.3/21.4 carry
+transactionId = document id), so there is no number
+matching and no unnumbered-document ambiguity; the
+effect is ±grandTotal from the document's lines with
+the handler's own defaults (no charges / discount /
+round-off), reproducing the original total exactly;
+writes overwrite by entry id, so re-runs are clean, and
+unmatched / partyless entries are skipped and counted,
+never errored. The shell mapping wires tabs into the
+app: currency derived from the party's earliest ledger
+row; a party with no rows yet totals orders/items
+under ISO "XXX" (a computation-only tag — only plain
+numbers reach the display, nothing persists).
+
+First attempt `bf57387` went 2/3: Segmented green,
+Native failed on the boundary check (five interpolated
+`Text("...")` row literals in PartyProfile.kt),
+Compose failed on the tab-click tests with no public
+logs. Fix `62d00a0` moved all five row formats to
+string resources (rendered text byte-identical) and
+added performScrollTo before tab clicks; its trio is
+the green one above.
+
+Decisions: (1) backfill matches by entry id, not
+document number; (2) backfill writes zero rows too,
+matching 22.3's writer (balance-neutral, one row per
+posting effect); (3) the ledger IS the payments
+surface — no new domain type for tabs; (4) currency is
+derived, never hardcoded for a business; (5) header
+balances are NOT changed by 22.5 — the opening-based
+Outstanding line stays as 14.4 designed it, and the
+ledger truth lives in the tabs. Carryovers: the typed
+refund record promised by 22.4 did not land in 22.5
+and remains open for a later package, as does the
+header-balance follow-up.
+
+## Package 22.6 — Phase gate
+
+Status: PASSED (2026-10-25). Sweep of `8f42a8c..62d00a0`
+(phase-21 head to 22.5 code head): 27 files changed,
+2433 insertions, 1 deletion — every file belongs to
+an accepted package (22.1 allocation, 22.2 payment
+posting, 22.3 ledger rows, 22.4 refund builder, 22.5
+tabs/backfill/wiring) plus this gates doc itself; no
+workflow files, no master files, no foreign content.
+The single deletion is the old one-line PartiesScreen
+call in AppModuleRegistry, replaced by the 22.5 wired
+lambda. All five accepted code heads are ancestors of
+`62d00a0` in order, each followed by its acceptance
+docs commit.
+
+Test recount by diffing added `+@Test` lines over the
+same range: 51 total — 22.1: 11 (PaymentAllocationTest),
+22.2: 11 (SalesDocumentPaymentStatusTest 10 +
+SalesPaymentPostingTest 1), 22.3: 11 (PartyLedgerTest),
+22.4: 3 (SalesRefundPostingTest), 22.5: 15
+(PartyLedgerProfileTest 5, PartyLedgerTabsComposeTest
+4, PartyLedgerBackfillTest 4,
+PartyLedgerTabsMappingTest 2). Every package count
+matches its acceptance record.
+
+Acceptances re-verified: 22.1 on `e2b015c`, 22.2 on
+`85eb9f8`, 22.3 on `cf138d2`, 22.4 on `400d80f`, 22.5
+on `62d00a0` — each with its green trio recorded in
+its section above. Open items carried forward (not
+gate blockers): the typed refund record promised by
+22.4, the header-balance follow-up from 22.5, the
+availability-aware negative-stock check from the Phase
+22 prep decisions, and the Phase 13 close-out sweep
+(issue #19 checklist reconcile, owner tap).
+
+Phase 22 is CLOSED. Next: Phase 23
+(Purchasing / Receiving / Payables / Debit Notes),
+prep already drafted in agent_notes/phase-23-prep.md.

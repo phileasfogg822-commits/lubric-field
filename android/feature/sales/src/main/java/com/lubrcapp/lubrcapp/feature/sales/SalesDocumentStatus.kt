@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
+import com.lubrcapp.lubrcapp.domain.payment.InvoiceApplication
 import com.lubrcapp.lubrcapp.domain.sales.DocumentStatusRules
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
@@ -106,5 +107,53 @@ object SalesDocumentStatus {
             else line
         }
         return DeliveryResult(document = applyFulfilment(document, updatedLines), lines = updatedLines)
+    }
+
+    /**
+     * Phase 22.2 — move an invoice's status from a payment
+     * application (22.1's InvoiceApplication). The payment
+     * lifecycle has no table in DocumentStatusRules, so the
+     * rules live here, in the bridge's require style.
+     *
+     * Guards: type must be INVOICE; current status must be
+     * SENT, PARTIALLY_PAID, or OVERDUE (the collectible
+     * states — DRAFT/CANCELLED are excluded by 22.1's
+     * collectible flag, so reaching here with one is a data
+     * problem and throws); the application must name this
+     * document. Mapping is purely on allocation outcome:
+     * remaining == 0 → PAID; applied > 0 with remaining > 0
+     * → PARTIALLY_PAID. A zero application or a second
+     * partial that keeps PARTIALLY_PAID returns the document
+     * unchanged — same-state is not an error for payments
+     * (unlike the quotation/order tables, where same-state
+     * moves are never transitions): the payment itself is
+     * valid, only the status has nothing to change. OVERDUE
+     * derivation (dueDate + remaining) is NOT computed here;
+     * it belongs to 22.3's ledger view.
+     */
+    fun applyPayment(
+        document: SalesDocument,
+        application: InvoiceApplication,
+    ): SalesDocument {
+        require(document.type == SalesDocumentType.INVOICE) {
+            "Not an invoice: ${document.id}"
+        }
+        val from = invoiceStatus(document)
+        require(
+            from == SalesStatus.SENT ||
+                from == SalesStatus.PARTIALLY_PAID ||
+                from == SalesStatus.OVERDUE,
+        ) {
+            "Invoice in $from cannot take payments"
+        }
+        require(application.invoiceId.value == document.id) {
+            "Application is for ${application.invoiceId.value}, not ${document.id}"
+        }
+        if (application.applied.isZero) return document
+        val target =
+            if (application.remaining.isZero) SalesStatus.PAID
+            else SalesStatus.PARTIALLY_PAID
+        if (from == target) return document
+        return document.copy(status = target.name)
     }
 }
