@@ -263,4 +263,39 @@ header-balance follow-up.
 
 ## Package 22.6 — Phase gate
 
-Status: NOT STARTED.
+Status: PASSED (2026-10-25). Sweep of `8f42a8c..62d00a0`
+(phase-21 head to 22.5 code head): 27 files changed,
+2433 insertions, 1 deletion — every file belongs to
+an accepted package (22.1 allocation, 22.2 payment
+posting, 22.3 ledger rows, 22.4 refund builder, 22.5
+tabs/backfill/wiring) plus this gates doc itself; no
+workflow files, no master files, no foreign content.
+The single deletion is the old one-line PartiesScreen
+call in AppModuleRegistry, replaced by the 22.5 wired
+lambda. All five accepted code heads are ancestors of
+`62d00a0` in order, each followed by its acceptance
+docs commit.
+
+Test recount by diffing added `+@Test` lines over the
+same range: 51 total — 22.1: 11 (PaymentAllocationTest),
+22.2: 11 (SalesDocumentPaymentStatusTest 10 +
+SalesPaymentPostingTest 1), 22.3: 11 (PartyLedgerTest),
+22.4: 3 (SalesRefundPostingTest), 22.5: 15
+(PartyLedgerProfileTest 5, PartyLedgerTabsComposeTest
+4, PartyLedgerBackfillTest 4,
+PartyLedgerTabsMappingTest 2). Every package count
+matches its acceptance record.
+
+Acceptances re-verified: 22.1 on `e2b015c`, 22.2 on
+`85eb9f8`, 22.3 on `cf138d2`, 22.4 on `400d80f`, 22.5
+on `62d00a0` — each with its green trio recorded in
+its section above. Open items carried forward (not
+gate blockers): the typed refund record promised by
+22.4, the header-balance follow-up from 22.5, the
+availability-aware negative-stock check from the Phase
+22 prep decisions, and the Phase 13 close-out sweep
+(issue #19 checklist reconcile, owner tap).
+
+Phase 22 is CLOSED. Next: Phase 23
+(Purchasing / Receiving / Payables / Debit Notes),
+prep already drafted in agent_notes/phase-23-prep.md.
