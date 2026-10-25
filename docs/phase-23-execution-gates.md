@@ -122,14 +122,24 @@ application, and debit notes all write through it.
 
 ## Package 23.2 — Purchase invoice posting
 
-Status: NOT STARTED.
+Status: ACCEPTED on `6385a46` (2026-10-25). Trio green:
+Native 40175728288, Compose 40175728433, Segmented
+40175728416. 2 new files, 1 modified build file, 3 new
+tests (all in `PurchaseInvoicePostingTest`).
 
-Design: the vendor mirror of 21.3 — `PurchaseInvoicePosting`
-maps a purchase invoice and its lines through the shared
-DocumentTotalsCalculator (line tax from the line's flat
-rate via a single-component exclusive scheme) to a
-DocumentPosting: Dr Expense / Dr Tax / Cr Payable, all
-positive amounts, with a PAYABLE effect for the full
-grand total and no stock movements (receiving owns
-stock). Totals are recomputed from lines, never trusted
-from the invoice's stored totals.
+Contents: `PurchaseInvoicePosting` in feature/purchases
+— the vendor mirror of 21.3. A purchase invoice and
+its lines map through the shared
+DocumentTotalsCalculator (line tax from the line's
+flat rate via a single-component exclusive scheme) to
+a DocumentPosting: Dr Expense / Dr Tax / Cr Payable,
+all POSITIVE amounts, with a PAYABLE effect for the
+full grand total and NO stock movements (receiving
+owns stock per supervisor decision 3). Totals are
+recomputed from lines, never trusted from the
+invoice's stored totals, so the posting satisfies
+PostingValidator by construction; the invoice's
+stored total supplies only the currency hint.
+Document type "PURCHASE_INVOICE". Posting does not
+change the purchase status. feature/purchases gains
+the `:domain:accounting` dependency.
