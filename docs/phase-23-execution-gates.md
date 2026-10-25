@@ -195,19 +195,23 @@ join package. domain/purchase gains the
 
 ## Package 23.5 — Debit notes
 
-Status: NOT STARTED.
+Status: ACCEPTED on `5b38031` (2026-10-25). Trio green:
+Native 40182269649, Compose 40182269642, Segmented
+40182269648. 2 new files, no build-file changes, 5 new
+tests (all in `PurchaseDebitNotePostingTest`).
 
-Design: the vendor mirror of 21.4 (supervisor
-decision 5) — `PurchaseDebitNotePosting` in
-feature/purchases reverses a purchase with POSITIVE
-amounts and a side-swapped journal: Dr Payable /
-Cr Expense / Cr Tax, with a NEGATIVE PAYABLE
-effect for the full grand total, and stock OUT
-movements for the returned lines. A debit note is
-its own document with its own line type; lines
-carry positive returned quantities. Totals are
+Contents: `PurchaseDebitNotePosting` in
+feature/purchases — the vendor mirror of 21.4
+(supervisor decision 5). A return to supplier
+posts Dr Payable / Cr Expense / Cr Tax with
+POSITIVE amounts, a NEGATIVE PAYABLE effect for
+the full grand total, and stock OUT movements for
+the returned lines. A debit note is its own
+document with its own line type; lines carry
+positive returned quantities. Totals are
 recomputed from lines through the shared
-calculator, exactly as in 23.2. No bottom-line
-discount. The credit term for 23.4's derivation
-and the payable record's cache sync belong to the
-later join package.
+calculator, exactly as in 23.2, so the posting
+satisfies PostingValidator by construction. No
+bottom-line discount. The credit term for 23.4's
+derivation and the payable record's cache sync
+belong to the later join package.
