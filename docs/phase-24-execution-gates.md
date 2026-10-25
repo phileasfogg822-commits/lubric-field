@@ -64,20 +64,17 @@ may be negative (a net loss) and is never clamped.
 
 ## Package 24.3 — Balance Sheet report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `f132614` (2026-10-25). Trio green:
+Native 40200135365, Compose 40200135364, Segmented
+40200135304. 2 new files, 1 modified, no build-file
+changes, 4 new tests (all in `BalanceSheetTest`).
 
-Design: the third §76 business report —
-`balanceSheet` in feature/accounts as of a date
-(cumulative: every entry dated on or before the
-date counts). Asset rows are ASSET accounts at
-net debit; liability and equity rows are
-LIABILITY and EQUITY accounts at net credit;
-profit & loss accounts never appear here. Lines
-on accounts with no matching record carry no
-§74 class and are excluded. There is no
-balanced flag by design: for a balanced ledger
-the difference (assets − liabilities − equity)
-equals undistributed profit, and that amount is
-reported as `difference`, never disguised as an
-error. `loadBalanceSheet` on AccountsViewModel
-wires it to the ledger surfaces. No UI change.
+Contents: `balanceSheet` in feature/accounts as of a
+date (cumulative) — asset rows at net debit,
+liability and equity rows at net credit, profit &
+loss accounts never appear here, unknown accounts
+excluded. No balanced flag by design: for a
+balanced ledger the `difference` (assets −
+liabilities − equity) equals undistributed profit.
+`loadBalanceSheet` on AccountsViewModel wires it
+to the ledger surfaces. No UI change.
