@@ -215,3 +215,26 @@ satisfies PostingValidator by construction. No
 bottom-line discount. The credit term for 23.4's
 derivation and the payable record's cache sync
 belong to the later join package.
+
+## Package 23.6 — Posting join
+
+Status: NOT STARTED.
+
+Design: the app-layer purchases posting join, the
+mirror of 21.5 — `PurchasePostingHandler` in the
+shell, the one place that may see purchases,
+accounts, and inventory ViewModels at once.
+postInvoice builds with 23.2, posts through
+postDocument, and on Posted saves the payable
+record (23.1). postDebitNote builds with 23.5,
+posts, and on Posted persists the stock OUT
+movements as negated PURCHASE rows. Unlike 21.5,
+the join takes the invoice and lines as arguments
+(no typed purchase-order persistence to load
+through); invoice postings move no stock
+(receiving owns it); no serial handling; no
+creditCheck (PAYABLE effects never trigger it).
+Retry-safe by entry id, payable id, and the
+already-moved check. The ledger, not the payable
+record, is the truth for the debit-note-reduced
+balance — no derivation change needed.
