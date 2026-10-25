@@ -80,7 +80,37 @@ still need Umar's tap)
 
 ## Package 23.1 — Typed payables record
 
-Status: NOT STARTED.
+Status: ACCEPTED on `e242f95` (2026-10-25). Trio green:
+Native 40172584050, Compose 40172584124, Segmented
+40172584048. 3 new files, 2 modified, 4 new tests
+(all in `VendorPayableTest`).
+
+Contents: `VendorPayableRecord` over whitelisted
+"vendor_payables" — one record per purchase, the id
+IS the purchase document id (the same
+one-record-per-document shape as SalesDocument in
+"orders"), so a status transition re-saves the same
+id and the payable for a purchase is a direct
+lookup. Status stored as text (a PurchaseStatus
+name); total/paid amounts as BigDecimals with
+currency on the row; `balanceDue` derived (total
+minus paid), mirroring PurchaseInvoice.balanceDue.
+`paidAmount` is the CACHED derived value per
+supervisor decision 1 — the derivation from payment
+records is the authority in later packages, and this
+field is recomputed on payment/credit events.
+`VendorPayableJson` is the tolerant codec (same
+contract as 22.3: unknown/missing fields default,
+unparseable payloads decode to a minimal record
+carrying only the id, unparseable amounts decode as
+ZERO, amounts as plain strings). `PurchasesViewModel`
+gains `savePayable` / `loadPayables` /
+`loadPayableForPurchase`; feature/purchases gains
+the kotlinx-serialization-json 1.6.2 dependency
+(same version as feature/sales and feature/accounts).
+The table is mutable (NOT INSERT_ONLY), so
+re-saving the same id overwrites — status changes
+do not append corrections.
 
 Design: the typed `vendor_payables` record and its
 tolerant codec, mirroring the 22.3 PartyLedgerRecord
