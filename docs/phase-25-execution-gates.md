@@ -25,3 +25,23 @@ draft PR awaits the owner's tap. Package
 breakdown is settled from the roadmap and the
 master spec at planning time — nothing below is a
 package commitment yet.
+
+## Package 25.1 — Printable document model
+
+Status: NOT STARTED.
+
+Design: the single shape every render path
+consumes — `PrintableDocument` + `PrintableLine`
+in a new feature/printing module (plain data, no
+feature or domain dependency; the app shell maps
+sales, purchase, and report data into it, because
+feature modules never depend on each other).
+The `printableDocument` builder computes
+subtotal from line amounts as given (source
+engines own per-line rounding) and grand total
+as subtotal + tax − discount; tax and discount
+are non-negative magnitudes (negative values
+throw). Currency is a plain code string, ""
+when the source carries none. No render path
+yet — PDF, preview, and thermal all build on
+this model.
