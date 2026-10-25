@@ -220,6 +220,14 @@ class AccountsViewModel @Inject constructor(
     ): ProfitAndLoss =
         profitAndLoss(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
 
+    // Phase 24.3 — balance-sheet report as of a date
+    // (cumulative: every entry dated on or before it).
+    suspend fun loadBalanceSheet(
+        scope: OperationalScope,
+        asOfDate: String,
+    ): BalanceSheet =
+        balanceSheet(loadJournalEntries(scope), loadAccounts(scope), asOfDate)
+
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
         repository.save(scope, "accounts", account.id, AccountJson.encode(account))

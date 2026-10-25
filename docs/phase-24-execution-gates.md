@@ -61,3 +61,23 @@ excluded (the trial balance still shows them).
 `loadProfitAndLoss` on AccountsViewModel wires it
 to the ledger surfaces. No UI change; net profit
 may be negative (a net loss) and is never clamped.
+
+## Package 24.3 — Balance Sheet report
+
+Status: NOT STARTED.
+
+Design: the third §76 business report —
+`balanceSheet` in feature/accounts as of a date
+(cumulative: every entry dated on or before the
+date counts). Asset rows are ASSET accounts at
+net debit; liability and equity rows are
+LIABILITY and EQUITY accounts at net credit;
+profit & loss accounts never appear here. Lines
+on accounts with no matching record carry no
+§74 class and are excluded. There is no
+balanced flag by design: for a balanced ledger
+the difference (assets − liabilities − equity)
+equals undistributed profit, and that amount is
+reported as `difference`, never disguised as an
+error. `loadBalanceSheet` on AccountsViewModel
+wires it to the ledger surfaces. No UI change.
