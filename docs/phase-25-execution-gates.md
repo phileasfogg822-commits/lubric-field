@@ -44,3 +44,22 @@ tax or discount throws. Currency is a plain
 code string, "" when the source carries none.
 No render path yet — PDF, preview, and thermal
 all build on this model.
+
+## Package 25.2 — Document layout engine
+
+Status: NOT STARTED.
+
+Design: the pure layout layer beneath every
+renderer — `layoutDocument` in feature/printing
+turns a PrintableDocument into positioned
+`LayoutLine`s (text, alignment, y, size, bold)
+grouped into `LayoutPage`s. Vertical flow with
+pagination: lines flow top to bottom and spill
+to a new page past the content bottom; line
+height is size × 1.25. Content order: title,
+number/date, party (when present), item lines,
+subtotal, non-zero tax/discount lines, grand
+total, notes, footer. No framework classes —
+the layout tests on the JVM; the PDF writer
+(25.3) and thermal renderer resolve alignment
+to x positions.
