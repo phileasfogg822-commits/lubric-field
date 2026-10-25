@@ -29,16 +29,17 @@ package commitment yet.
 
 ## Package 24.1 — Trial Balance report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `4e16d34` (2026-10-25). Trio green:
+Native 40197124538, Compose 40197124625, Segmented
+40197124699. 1 new file, 2 modified, no build-file
+changes, 4 new tests (all in `TrialBalanceReportTest`).
 
-Design: the 20.4 preview promoted to the report
-engine's first report — `trialBalanceForPeriod` in
-feature/accounts filters journal entries to an
-inclusive ISO date range and delegates to the
-existing `trialBalance`, so the report derives
-from posted entries only (§73). `loadTrialBalance`
-on AccountsViewModel wires it to the ledger
-surfaces. No UI change: the screen already
-renders the preview; report screens land in a
-later package. An inverted range throws rather
-than silently reporting empty.
+Contents: `trialBalanceForPeriod` in feature/accounts
+filters journal entries to an inclusive ISO date range
+and delegates to the existing `trialBalance`, so the
+report derives from posted entries only (§73).
+`loadTrialBalance` on AccountsViewModel wires it to
+the ledger surfaces. No UI change: the screen already
+renders the preview; report screens land in a later
+package. An inverted range throws rather than silently
+reporting empty.
