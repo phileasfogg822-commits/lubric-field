@@ -133,3 +133,54 @@ aggregation, no currency question (entries carry
 their lines as posted). `loadDayBook` on
 AccountsViewModel wires it to the ledger
 surfaces. No UI change.
+
+## Package 24.7 — Phase gate
+
+Status: PASSED (2026-10-25). Code-final head
+`7677167`; gate recorded in this commit.
+
+Sweep `6c94a34..7677167`: 14 files, +1226/−0,
+purely additive — 6 report files, 6 test files,
+AccountsViewModel surfaces, and this gates doc.
+No build-file changes anywhere in the phase.
+
+Test recount: 26 new tests, matching the
+acceptance records (24.1: 4, 24.2: 5, 24.3: 4,
+24.4: 4, 24.5: 4, 24.6: 5). All six accepted
+heads are ancestors of `7677167` in order.
+
+Delivered: the §76 report engine over posted
+journal entries only — Trial Balance (range),
+Profit & Loss (range), Balance Sheet (as-of),
+Party Statement (party/direction/currency/
+range), General Ledger (account/range with
+running balances), Day Book (chronological
+listing) — each with a ViewModel surface, no
+UI change, no new tables, no currency
+conversion.
+
+Carryovers (named, not gate blockers):
+- Report screens: the six reports are engine +
+  ViewModel surfaces only; the AccountsScreen
+  trial-balance preview predates them.
+- Cash Flow (§76): needs a cash-flow
+  classification on accounts that does not
+  exist — a design decision, not derivable
+  from journal entries alone.
+- Period controls: date-range filtering only;
+  an open/close posting lock would touch
+  `postDocument`/PostingValidator and needs
+  the owner's decision.
+- App-wide currency wiring (still shell work);
+  journal lines carry no currency, so the
+  ledger reports stay currency-agnostic by
+  design (party statements are the per-
+  currency exception, via ledger rows).
+- Earlier carryovers stand: typed refund
+  record, header-balance follow-up,
+  availability-aware negative-stock check,
+  Phase 13 close-out sweep (issue #19).
+
+Phase 24 CLOSED. Next: Phase 25
+(Documents/PDF/Printing); its draft PR needs
+the owner's tap at phase start.
