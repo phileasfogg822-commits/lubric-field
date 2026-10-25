@@ -43,3 +43,21 @@ the ledger surfaces. No UI change: the screen already
 renders the preview; report screens land in a later
 package. An inverted range throws rather than silently
 reporting empty.
+
+## Package 24.2 — Profit & Loss report
+
+Status: NOT STARTED.
+
+Design: the second §76 business report —
+`profitAndLoss` in feature/accounts over an
+inclusive ISO date range. Income rows are INCOME
++ OTHER_INCOME accounts at net credit; expense
+rows are COST_OF_GOODS_SOLD + EXPENSE accounts
+at net debit; ASSET/LIABILITY/EQUITY accounts
+never appear here. Lines on accounts with no
+matching record carry no §74 class and are
+excluded (the trial balance still shows them).
+`loadProfitAndLoss` on AccountsViewModel wires
+it to the ledger surfaces. No UI change; net
+profit may be negative (a net loss) and is never
+clamped.

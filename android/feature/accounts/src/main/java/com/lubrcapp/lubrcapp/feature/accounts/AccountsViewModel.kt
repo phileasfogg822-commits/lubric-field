@@ -211,6 +211,15 @@ class AccountsViewModel @Inject constructor(
     ): TrialBalance =
         trialBalanceForPeriod(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
 
+    // Phase 24.2 — profit & loss report over a date range.
+    // Bounds are ISO dates, inclusive.
+    suspend fun loadProfitAndLoss(
+        scope: OperationalScope,
+        fromDate: String,
+        toDate: String,
+    ): ProfitAndLoss =
+        profitAndLoss(loadJournalEntries(scope), loadAccounts(scope), fromDate, toDate)
+
     /** Persist an account exactly as given. */
     suspend fun saveAccount(scope: OperationalScope, account: AccountRecord) {
         repository.save(scope, "accounts", account.id, AccountJson.encode(account))
