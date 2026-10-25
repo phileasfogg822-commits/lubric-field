@@ -81,17 +81,18 @@ to the ledger surfaces. No UI change.
 
 ## Package 24.4 — Party Statement report
 
-Status: NOT STARTED.
+Status: ACCEPTED on `7cb2eda` (2026-10-25). Trio green:
+Native 40201910242, Compose 40201910185, Segmented
+40201910190. 2 new files, 1 modified, no build-file
+changes, 4 new tests (all in `PartyStatementTest`).
 
-Design: the party-side reconciliation report —
-`partyStatement` in feature/accounts for one
-party, one direction (RECEIVABLE or PAYABLE)
-and one currency over an inclusive ISO date
-range: opening balance (net sum of matching
-rows before the range), the period movements
-in chronological order, and the closing
-balance. Balances are Money, per currency —
-never summed across currencies. Unknown
-directions match nothing (the 22.3 rule).
-`loadPartyStatement` on AccountsViewModel wires
-it to the ledger rows. No UI change.
+Contents: `partyStatement` in feature/accounts for
+one party, one direction and one currency over an
+inclusive ISO date range — opening balance (net
+sum of matching rows before the range), the
+period movements in chronological order, and the
+closing balance. Balances are Money, per
+currency, never summed across currencies;
+unknown directions match nothing (the 22.3
+rule). `loadPartyStatement` on AccountsViewModel
+wires it to the ledger rows. No UI change.
