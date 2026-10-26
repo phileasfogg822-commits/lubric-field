@@ -66,8 +66,16 @@ Status: NOT STARTED.
 
 ## Package 26.4 — Cash drawer
 
-Open (opening cash) / close (expected / actual /
-difference).
+`CashDrawer` in domain/payment (§151): pure session
+math. `openSession` records opening cash; `recordMovement`
+appends IN / OUT movements with an optional note;
+`expectedCash` is opening plus in minus out; `closeSession`
+returns `DrawerClose` (expected / actual / difference,
+actual minus expected — positive over, negative short).
+Movements are not categorized here (kinds are a 26.5
+concern); all amounts share one currency, mixing throws
+on Money.plus. No posting, no persistence — postings ride
+22.x machinery at shift close (26.5). 7 JVM tests.
 
 Status: NOT STARTED.
 
