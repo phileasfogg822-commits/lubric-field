@@ -39,7 +39,7 @@ jobs:
           working-directory: android
           script: |
             chmod +x gradlew
-            ./gradlew :app:connectedDebugAndroidTest :feature:items:connectedDebugAndroidTest :feature:inventory:connectedDebugAndroidTest :feature:parties:connectedDebugAndroidTest :feature:sales:connectedDebugAndroidTest :feature:purchases:connectedDebugAndroidTest :feature:accounts:connectedDebugAndroidTest :feature:printing:connectedDebugAndroidTest --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=768m"
+            ./gradlew :app:connectedDebugAndroidTest :feature:items:connectedDebugAndroidTest :feature:inventory:connectedDebugAndroidTest :feature:parties:connectedDebugAndroidTest :feature:sales:connectedDebugAndroidTest :feature:purchases:connectedDebugAndroidTest :feature:accounts:connectedDebugAndroidTest :feature:printing:connectedDebugAndroidTest :feature:business:connectedDebugAndroidTest --stacktrace --no-daemon --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=768m"
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4

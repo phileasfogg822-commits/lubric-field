@@ -31,6 +31,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.PRINTING_ID,
                 AppModuleRegistry.POS_ID,
                 AppModuleRegistry.FIELD_SALES_ID,
+                AppModuleRegistry.DATA_ID,
             ),
             AppModuleRegistry.modules.map { it.id },
         )
@@ -76,6 +77,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.PRINTING_ID,
                 AppModuleRegistry.POS_ID,
                 AppModuleRegistry.FIELD_SALES_ID,
+                AppModuleRegistry.DATA_ID,
             ),
             AppModuleRegistry.navigationModules().map { it.id },
         )

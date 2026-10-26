@@ -115,11 +115,18 @@ class ResolvedShellVisibilityTest {
     fun unknownConfigurationKeysAreIgnoredByTheShell() {
         // Deployments include keys with no shell module (reports, users,
         // future keys); the registry simply has nothing to gate with
-        // them, and overrides for unknown keys change nothing.
+        // them, and overrides for unknown keys change nothing. The
+        // deployment covers every real module key — backup joined
+        // with the data module — so the unknown keys are the only
+        // thing that could change the list, and they do not.
         assertEquals(
             AppModuleRegistry.navigationModules().map { it.id },
             visibleIds(
-                gatedKeys + setOf(FeatureFlagKeys.MODULE_REPORTS, "future_module"),
+                gatedKeys + setOf(
+                    FeatureFlagKeys.MODULE_REPORTS,
+                    FeatureFlagKeys.MODULE_BACKUP,
+                    "future_module",
+                ),
                 mapOf("another_unknown" to false),
             ),
         )
