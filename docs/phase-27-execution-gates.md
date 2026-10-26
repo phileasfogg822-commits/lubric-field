@@ -127,9 +127,35 @@ Status: ACCEPTED on `d48ed33`.
 
 ## Package 27.8 — Gate
 
-Sweep, recount, carryovers.
+Sweep `2e1be15..d48ed33`: 26 files, +1822/−4
+(the 4 deletions are 27.3's PaymentAllocation
+refactor — the original loop moved verbatim into
+the new overload, not lost). Recount: 55 tests
+added, 0 removed (27.1: 9, 27.2: 8, 27.3: 8,
+27.4: 6, 27.5: 8, 27.6: 8, 27.7: 3 mapper + 3
+screen + 2 registry). All accepted heads are
+ancestors in order: 92330ca, e7e6d1e, 80ffe15,
+86f8c7b, 639a185, 1d7f740, d48ed33. Every
+package accepted on its first head except none —
+all seven landed green first try, no fix heads
+in the whole phase.
 
-Status: NOT STARTED.
+Carryovers: route/collection/schedule/challan/
+execution/target persistence (records exist as
+pure models; whitelist + record machinery is a
+later package's call); collection posting
+(payment row, INSERT_ONLY cash movement, journal)
+rides the 22.x pattern when it lands; fast-order
+screen (27.2's mapper awaits a salesperson flow);
+dashboard actions other than Take Order await
+cross-module navigation (content signature has
+no navigate parameter — a shell-level follow-up);
+collections + target dashboard rows await their
+records persisting; GPS for visit tracking stays
+off by default (§110, owner decision); camera
+scanning still open (Phase 16 decision).
+
+Status: PASSED.
 
 27.1 ACCEPTED 2026-10-26 on `92330ca` (trio Native 40350666056 / Compose 40350666044 / Segmented 40350666046, all green, first head): route model in domain/sales, 9 JVM tests.
 
@@ -144,3 +170,5 @@ Status: NOT STARTED.
 27.6 ACCEPTED 2026-10-26 on `1d7f740` (trio Native 40369485633 / Compose 40369485609 / Segmented 40369485623, all green, first head): salesperson targets + progress in domain/sales, 8 JVM tests.
 
 27.7 ACCEPTED 2026-10-26 on `d48ed33` (trio Native 40374116014 / Compose 40374116123 / Segmented 40374116049, all green, first head): salesperson dashboard + shell wiring, 3 mapper + 3 screen + 2 registry tests.
+
+Phase 27 CLOSED 2026-10-26: gate 27.8 PASSED (sweep 26 files +1822/−4, recount 55 tests); confirmatory trio pending on the gate head.
