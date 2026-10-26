@@ -104,7 +104,26 @@ Status: ACCEPTED on `1d7f740`.
 
 ## Package 27.7 — Salesperson dashboard + shell wiring
 
-Status: NOT STARTED.
+Salesperson dashboard (§108, §158) + shell
+wiring: `SalespersonDashboardScreen` (stateless,
+rows only for non-null summary values, action
+buttons only for non-null callbacks) +
+`FieldSalesSummaryMapper` (today's sales from the
+totals engine over today's non-draft invoices,
+today's orders count; collections and target stay
+null until their records persist) +
+`FieldSalesContent` (derives the summary from
+stored documents; Take Order opens the POS counter
+— same gates, interim until a fast-order screen
+lands; the other five §108 actions stay absent,
+not dead, because the module content signature
+carries no navigate parameter). §108 visibility
+by construction: no profit, cost, bank, P&L, or
+other salespeople's data in the screen's inputs.
+Registry entry `fieldsales` (orders config, sales
+view). 3 mapper + 3 screen + 2 registry tests.
+
+Status: ACCEPTED on `d48ed33`.
 
 ## Package 27.8 — Gate
 
@@ -123,3 +142,5 @@ Status: NOT STARTED.
 27.5 ACCEPTED 2026-10-26 on `639a185` (trio Native 40365928276 / Compose 40365928172 / Segmented 40365928245, all green, first head): delivery execution outcomes + proof in domain/sales, 8 JVM tests.
 
 27.6 ACCEPTED 2026-10-26 on `1d7f740` (trio Native 40369485633 / Compose 40369485609 / Segmented 40369485623, all green, first head): salesperson targets + progress in domain/sales, 8 JVM tests.
+
+27.7 ACCEPTED 2026-10-26 on `d48ed33` (trio Native 40374116014 / Compose 40374116123 / Segmented 40374116049, all green, first head): salesperson dashboard + shell wiring, 3 mapper + 3 screen + 2 registry tests.
