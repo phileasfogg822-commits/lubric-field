@@ -229,52 +229,71 @@ preview screen a real document and a real
 action. (1) Registry entry: PRINTING_ID
 "printing", titleRes app
 R.string.feature_printing ("Printing"),
-configKey null and viewCapability null —
-no printing key exists in the flag or
-capability key spaces, and both gates pass
-null-keyed modules (the items/dashboard
-precedent), so no new keys are invented.
-The entry appears in the More list
-automatically. (2) Document source: the
-shell's printing content lambda collects
+configKey FeatureFlagKeys.MODULE_PRINTING
+and viewCapability Capabilities.
+PRINTING_VIEW ("printing.view", added to
+the catalog) — both keys already exist
+or, for the capability, extend the
+catalog the established way, so the
+entry is gated by both gates like every
+other module; it appears in the More
+list automatically. Staging corrected
+the first draft here (null/null gates),
+because a selectable module with no view
+capability would stay visible under
+empty grants — wrong for invoice data.
+(2) Document source: the shell's
+printing content lambda collects
 SalesViewModel.observeInvoices(scope) —
 the same activity-scoped ViewModel
 pattern the parties/sales entries use —
 plus parties for the party name and lines
 for the chosen invoice, and a shell-side
-mapper (shell/PrintingPreviewMapper)
-turns the LATEST invoice into a
+mapper turns the LATEST invoice into a
 PrintableDocument via the totals engine
 (never re-derived): latest = greatest ISO
 date, ties broken by greatest id, both
-deterministic. No invoices renders a
-shell-side empty state ("No invoices
-yet", app strings) with Back — never a
-preview of nothing. (3) Share wired:
-app-module share helper writes the PDF
-bytes (writePdf) to a cache file and
-builds the ACTION_SEND chooser intent
-through a FileProvider URI. The manifest
-EXISTS (app/src/main/AndroidManifest.xml
-— correcting the earlier "AGP generates
-it" note), so this is a <provider> entry
-plus res/xml/file_paths.xml, no manifest
-spike; no new dependency versions, since
-the app module already has androidx.core.
-Emulator test: cache write + provider URI
-+ intent action/type/stream/grant flags.
-(4) No dead buttons (the 13.4 rule):
+deterministic. Line amounts are the
+engine's taxable bases, not its line
+totals — the builder's grand total is
+subtotal + tax, so tax-inclusive line
+amounts would double-count the tax.
+Currency defaults to XXX, the sales
+screen's own default, until the app-wide
+currency wiring lands. No invoices
+renders a shell-side empty state ("No
+invoices yet", app strings) with Back —
+never a preview of nothing. (3) Share
+wired: an app-module share helper writes
+the PDF bytes (writePdf) to a cache file
+and builds the ACTION_SEND chooser
+intent through a FileProvider URI. The
+manifest EXISTS (app/src/main/
+AndroidManifest.xml — correcting the
+earlier "AGP generates it" note), so
+this is a <provider> entry plus
+res/xml/file_paths.xml, no manifest
+spike and no new dependency versions,
+since the app module already has
+androidx.core. Emulator test: cache
+write + provider URI + intent action/
+type/stream/grant flags. (4) No dead
+buttons (the 13.4 rule):
 onDownload/onPrint become nullable
 callbacks on PrintPreviewScreen (default
 null, button hidden when null); 25.6's
 tests pass all callbacks and still pass.
 Download (MediaStore) and system Print
 (PrintManager adapter) are 25.8/25.9, not
-this package. Deliberately OUT: a
+this package. Registry-list tests that
+pin exact module lists gain the printing
+entry (registry order, navigation
+modules, and the one capability-gated
+list where printing is granted and
+config-enabled). Deliberately OUT: a
 document picker list (a later package —
 latest-invoice is the v1 entry), sales-
 screen Preview buttons (the invoice →
 preview jump needs a feature-to-feature
 navigation mechanism this shell does not
-have yet), and any new capability/flag
-keys.
+have yet).

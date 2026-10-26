@@ -78,4 +78,8 @@
     <string name="feature_purchases">Purchases</string>
     <string name="feature_accounts">Accounts</string>
     <string name="feature_cloud_sync">Cloud sync</string>
+    <string name="feature_printing">Printing</string>
+    <string name="feature_printing_back">Back</string>
+    <string name="feature_printing_empty">No invoices yet</string>
+    <string name="feature_printing_share_title">Share invoice</string>
 </resources>

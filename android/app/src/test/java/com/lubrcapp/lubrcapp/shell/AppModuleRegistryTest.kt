@@ -28,6 +28,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.PURCHASES_ID,
                 AppModuleRegistry.ACCOUNTS_ID,
                 AppModuleRegistry.CLOUD_SYNC_ID,
+                AppModuleRegistry.PRINTING_ID,
             ),
             AppModuleRegistry.modules.map { it.id },
         )
@@ -70,6 +71,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.PURCHASES_ID,
                 AppModuleRegistry.ACCOUNTS_ID,
                 AppModuleRegistry.CLOUD_SYNC_ID,
+                AppModuleRegistry.PRINTING_ID,
             ),
             AppModuleRegistry.navigationModules().map { it.id },
         )

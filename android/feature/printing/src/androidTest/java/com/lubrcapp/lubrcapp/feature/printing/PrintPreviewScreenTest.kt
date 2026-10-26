@@ -1,7 +1,9 @@
 package com.lubrcapp.lubrcapp.feature.printing
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -67,5 +69,21 @@ class PrintPreviewScreenTest {
         assertEquals(1, download)
         assertEquals(1, print)
         assertEquals(1, back)
+    }
+
+    @Test
+    fun unwiredActionsAreHidden() {
+        compose.setContent {
+            PrintPreviewScreen(
+                document = document(1),
+                onBack = {},
+                onShare = {},
+                onDownload = null,
+                onPrint = null,
+            )
+        }
+        compose.onNodeWithText("Share").assertIsDisplayed()
+        compose.onAllNodesWithText("Download PDF").assertCountEquals(0)
+        compose.onAllNodesWithText("Print").assertCountEquals(0)
     }
 }

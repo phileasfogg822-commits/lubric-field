@@ -97,6 +97,7 @@ object AppModuleRegistry {
     const val PURCHASES_ID = "purchases"
     const val ACCOUNTS_ID = "accounts"
     const val CLOUD_SYNC_ID = "cloudsync"
+    const val PRINTING_ID = "printing"
 
     val modules: List<AppModule> = listOf(
         AppModule(
@@ -211,6 +212,14 @@ object AppModuleRegistry {
             viewCapability = Capabilities.SYNC_MANAGE,
             selectable = true,
             content = { scope, back -> CloudSyncScreen(scope, back) },
+        ),
+        AppModule(
+            id = PRINTING_ID,
+            titleRes = R.string.feature_printing,
+            configKey = FeatureFlagKeys.MODULE_PRINTING,
+            viewCapability = Capabilities.PRINTING_VIEW,
+            selectable = true,
+            content = { scope, back -> PrintingPreviewContent(scope, back) },
         ),
     )
 

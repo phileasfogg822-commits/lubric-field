@@ -46,8 +46,8 @@ fun PrintPreviewScreen(
     document: PrintableDocument,
     onBack: () -> Unit,
     onShare: () -> Unit,
-    onDownload: () -> Unit,
-    onPrint: () -> Unit,
+    onDownload: (() -> Unit)? = null,
+    onPrint: (() -> Unit)? = null,
 ) {
     val layout = remember(document) { layoutDocument(document) }
     Column(
@@ -61,8 +61,12 @@ fun PrintPreviewScreen(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onShare) { Text(stringResource(R.string.print_preview_share)) }
-            Button(onClick = onDownload) { Text(stringResource(R.string.print_preview_download)) }
-            Button(onClick = onPrint) { Text(stringResource(R.string.print_preview_print)) }
+            if (onDownload != null) {
+                Button(onClick = onDownload) { Text(stringResource(R.string.print_preview_download)) }
+            }
+            if (onPrint != null) {
+                Button(onClick = onPrint) { Text(stringResource(R.string.print_preview_print)) }
+            }
         }
         Box(modifier = Modifier.weight(1f)) {
             Column(
