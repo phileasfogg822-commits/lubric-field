@@ -140,9 +140,13 @@ Status: NOT STARTED.
 
 ## Package 26.8 — Gate
 
-Sweep, recount, carryovers.
+Sweep `2145ecf..1d00338`: 27 files, +1981/−0.
+Recount 58 tests (26.1: 15, 26.2: 8, 26.3: 7, 26.4: 7,
+26.5: 6, 26.6: 4, 26.7: 11). All seven accepted heads
+are ancestors of `1d00338` in order, each with its trio
+green on the accepted head, verified first-hand.
 
-Status: NOT STARTED.
+Status: PASSED.
 
 Status: ACCEPTED on `094f20f` (trio Native 40306531248 / Compose 40306531352 / Segmented 40306531259, all green; verified first-hand). Package head `88d4d6d` took one fix head: `094f20f` (test-only — inventory's adjustFlowPostsAMovement now waits for the "Adjustment posted" node itself before asserting it, after that test failed three consecutive Compose attempts on `88d4d6d` with zero inventory changes in the diff; the test waited for the data write but asserted the UI text with no wait, so a slow emulator's recomposition lost the race). Native and Segmented were already green on `88d4d6d`. Tests added: 15 JVM (cart model).
 
@@ -157,3 +161,14 @@ Status: ACCEPTED on `171b678` (trio Native 40316754054 / Compose 40316754049 / S
 Status: ACCEPTED on `658a278` (trio Native 40319703765 / Compose 40319703855 / Segmented 40319703755, all green; verified first-hand). Package head `658a278` green on the first head, no fix heads. Tests added: 4 JVM (manager override decision).
 
 Status: ACCEPTED on `1d00338` (trio Native 40327483898 attempt 3 / Compose 40327486413 / Segmented 40327484058, all green; verified first-hand). Package head `86b8a9a` took three fix heads: `7266d36` (PosHoldMapper import, itself broken by a conflicting wrong-package import), `8ba6e28` (correct feature.sales import + compareTo-based mapper assertions), `1d00338` (missing BigDecimal import in the screen test). Native attempt 1 failed on a lint heap-space crash in untouched feature:syncstatus and attempt 2 on the known Robolectric MavenArtifactFetcher flake in the Room integration tests — both infrastructure flakes, each cleared by a failed-jobs-only re-run with no code change. Tests added: 6 emulator (counter screen) + 3 JVM (cart-to-printable mapper) + 2 JVM (registry).
+
+## Phase 26 — CLOSED
+
+All packages 26.1–26.7 accepted; 26.8 gate passed.
+Carryovers (named, not gate blockers): barcode scanning
+(Phase 16 owner decision still open); payment posting
+from the counter (rides 22.x when the held invoice is
+finalized from sales); currency wiring still shell work
+(XXX default); tax through hold (cart carries no tax);
+printer settings screen (25.5 model only); document
+picker list (preview shows latest invoice only).
