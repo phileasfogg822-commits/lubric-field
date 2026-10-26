@@ -73,7 +73,18 @@ Status: ACCEPTED on `86f8c7b`.
 
 ## Package 27.5 — Delivery execution
 
-Status: NOT STARTED.
+Delivery execution (§161–§163) in domain/sales:
+`DeliveryExecution` (challan id, outcome, reason,
+proof) + `DeliveryExecutionOps` (delivered, failed,
+partial). Outcome is three states — DELIVERED,
+FAILED, PARTIAL — with reasons exactly the §163
+list; a reason is required for FAILED/PARTIAL and
+forbidden for DELIVERED. Proof (§162) stays
+optional and URI-only for signature and photo.
+The "today's deliveries" list is a 27.7 screen
+concern, not a stored list. 8 JVM tests.
+
+Status: ACCEPTED on `639a185`.
 
 ## Package 27.6 — Targets
 
@@ -96,3 +107,5 @@ Status: NOT STARTED.
 27.3 ACCEPTED 2026-10-26 on `80ffe15` (trio Native 40358418939 / Compose 40358419003 / Segmented 40358419094, all green, first head): field collection record + allocation via 22.1 core in domain/payment, 8 JVM tests.
 
 27.4 ACCEPTED 2026-10-26 on `86f8c7b` (trio Native 40362103584 / Compose 40362103363 / Segmented 40362103596, all green, first head): delivery scheduling + challan in domain/sales, 6 JVM tests.
+
+27.5 ACCEPTED 2026-10-26 on `639a185` (trio Native 40365928276 / Compose 40365928172 / Segmented 40365928245, all green, first head): delivery execution outcomes + proof in domain/sales, 8 JVM tests.
