@@ -59,7 +59,24 @@ object PaymentAllocation {
         ) {
             return AllocationResult(emptyList(), payment.amount)
         }
-        var remaining = payment.amount
+        return allocate(payment.partyId, payment.amount, openInvoices)
+    }
+
+    /**
+     * The same allocation, for callers that hold a party and
+     * an amount but no full [Payment] — field collections
+     * (27.3) allocate a customer's payment against open
+     * invoices before any posting record exists. The rules
+     * are identical to [allocate]: same-party, collectible,
+     * currency-matched, oldest first, clamped at
+     * outstanding, leftover reported as unallocated.
+     */
+    fun allocate(
+        partyId: PartyId,
+        amount: Money,
+        openInvoices: List<OpenInvoice>,
+    ): AllocationResult {
+        var remaining = amount
         val applications = mutableListOf<InvoiceApplication>()
         val ordered = openInvoices.sortedWith(
             compareBy({ it.dueDate }, { it.invoiceId.value }),
@@ -67,9 +84,9 @@ object PaymentAllocation {
         for (invoice in ordered) {
             if (remaining.isZero) break
             if (!invoice.collectible) continue
-            if (invoice.partyId != payment.partyId) continue
-            if (invoice.grandTotal.currency != payment.amount.currency ||
-                invoice.alreadyPaid.currency != payment.amount.currency
+            if (invoice.partyId != partyId) continue
+            if (invoice.grandTotal.currency != amount.currency ||
+                invoice.alreadyPaid.currency != amount.currency
             ) {
                 continue
             }

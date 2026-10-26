@@ -71,4 +71,16 @@
     <string name="pos_subtotal">Subtotal: %1$s</string>
     <string name="pos_hold">Hold</string>
     <string name="pos_pay">Pay</string>
+    <string name="fs_title">Field Sales</string>
+    <string name="fs_back">Back</string>
+    <string name="fs_today_sales">Today\'s sales: %1$s</string>
+    <string name="fs_orders">Orders: %1$s</string>
+    <string name="fs_collections">Collections: %1$s</string>
+    <string name="fs_target">Target: %1$s%%</string>
+    <string name="fs_my_customers">My Customers</string>
+    <string name="fs_my_route">My Route</string>
+    <string name="fs_take_order">Take Order</string>
+    <string name="fs_action_collections">Collections</string>
+    <string name="fs_my_sales">My Sales</string>
+    <string name="fs_targets">Targets</string>
 </resources>
