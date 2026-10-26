@@ -49,7 +49,18 @@ Status: NOT STARTED.
 
 ## Package 26.3 — Quick cash payment
 
-Denominations + change.
+`QuickCash` in domain/payment (§150): pure tender math.
+`settle(total, tendered)` returns `CashSettlement.Paid`
+(change, possibly zero) or `CashSettlement.Shortfall`
+(remaining due); currency mismatch throws on Money.minus.
+`buttonAmounts(total)` returns Exact (the total itself)
+followed by the denomination set in the total's currency
+— defaulting to the spec's 500 / 1000 / 5000, with the
+caller free to supply its own. Denominations below the
+total are kept: tapping one is a partial tender, reported
+as a shortfall. "Other" is free input on the screen, not
+a model value. No posting, no persistence — the payment
+rides 22.x machinery at Pay (26.7). 7 JVM tests.
 
 Status: NOT STARTED.
 
