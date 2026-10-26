@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.print.PrintAttributes
+import android.print.PageRange
 import android.print.PrintDocumentAdapter
-import android.print.PrintDocumentAdapter.PageRange
 import android.print.PrintDocumentInfo
 import android.print.PrintJob
 import android.print.PrintManager
@@ -29,13 +29,15 @@ import java.io.IOException
  * thin-glue class as the share/download content wiring.
  */
 /**
- * Named subclass (not an anonymous object): the official
- * printing sample's shape. The anonymous-object form failed
- * to resolve the nested PageRange type in this file on two
- * attempts, while the same reference resolves in a named
- * subclass body — so the adapter is a named class, with the
- * nested type additionally imported for a second resolution
- * path.
+ * Named subclass (the official printing sample's shape).
+ * Note the import above: PageRange is a TOP-LEVEL
+ * android.print class, not a nested type of
+ * PrintDocumentAdapter — the earlier heads failed because
+ * they referenced it as nested (bare, qualified, and
+ * imported-nested all fail; only the top-level import
+ * resolves). The compiler's own expected-signature
+ * rendering shows it unqualified because the base class
+ * shares its package.
  */
 private class PdfPrintDocumentAdapter(
     private val jobName: String,

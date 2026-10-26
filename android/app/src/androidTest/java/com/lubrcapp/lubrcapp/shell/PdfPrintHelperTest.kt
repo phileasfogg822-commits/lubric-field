@@ -2,6 +2,7 @@ package com.lubrcapp.lubrcapp.shell
 
 import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
+import android.print.PageRange
 import android.print.PrintDocumentAdapter
 import android.print.PrintDocumentInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -47,9 +48,9 @@ class PdfPrintHelperTest {
         val bytes = "%PDF-print".toByteArray(Charsets.US_ASCII)
         val outFile = File(context.cacheDir, "print-test.pdf")
         val pfd = ParcelFileDescriptor.open(outFile, ParcelFileDescriptor.MODE_READ_WRITE)
-        var finishedPages: Array<PrintDocumentAdapter.PageRange>? = null
+        var finishedPages: Array<PageRange>? = null
         val callback = object : PrintDocumentAdapter.WriteResultCallback() {
-            override fun onWriteFinished(pages: Array<PrintDocumentAdapter.PageRange>) {
+            override fun onWriteFinished(pages: Array<PageRange>) {
                 finishedPages = pages
             }
 
@@ -59,7 +60,7 @@ class PdfPrintHelperTest {
         }
         try {
             pdfPrintAdapter("Invoice INV-1", bytes).onWrite(
-                arrayOf(PrintDocumentAdapter.PageRange.ALL_PAGES),
+                arrayOf(PageRange.ALL_PAGES),
                 pfd,
                 CancellationSignal(),
                 callback,
