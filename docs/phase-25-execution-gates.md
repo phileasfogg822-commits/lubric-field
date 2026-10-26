@@ -222,7 +222,7 @@ with no fix cycle.
 
 ## Package 25.7 — Shell wiring: registry entry, latest-invoice preview, Share
 
-Status: NOT STARTED.
+Status: ACCEPTED on `925060f` (trio Native 40279174841 / Compose 40279174914 / Segmented 40279174825, all green; verified first-hand). Package head `63f44a2` (17 paths: mapper, preview content, share helper, FileProvider wiring, app strings, printing dependency, 10 new tests, 3 registry-list updates) took two fix heads: `3dcb1a1` (test-only — printing's key added to ResolvedShellVisibilityTest's hand-kept gated set and its expected list, after Native failed on that test alone) and `925060f` (share chooser title via stringResource, after Native lint flagged context.getString in composition). Tests added: 5 mapper, 2 registry, 2 share, 1 preview hidden-actions.
 
 Design: the shell wiring that gives the
 preview screen a real document and a real
