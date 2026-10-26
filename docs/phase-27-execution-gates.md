@@ -17,7 +17,21 @@ Status: ACCEPTED on `92330ca`.
 
 ## Package 27.2 — Fast order
 
-Status: NOT STARTED.
+Fast order (§40) as a DRAFT sales order mapping in
+feature/sales, mirroring the 26.2 hold mapper:
+`FastOrderMapper` maps a cart to a SALES_ORDER
+document plus lines through the existing record
+machinery — no new table, no whitelist change.
+Forward mapping requires a named party (the §40
+header always shows a customer; walk-in fast orders
+are the counter's job, so cartToOrder throws on
+WalkIn); resume stays lenient like hold. Same limits
+as hold: no tax through the mapping, number/date
+empty until posting, balance/credit-limit display
+left to the 27.7 screen fed by 22.x outstanding.
+8 JVM tests.
+
+Status: ACCEPTED on `e7e6d1e`.
 
 ## Package 27.3 — Collections
 
@@ -46,3 +60,5 @@ Sweep, recount, carryovers.
 Status: NOT STARTED.
 
 27.1 ACCEPTED 2026-10-26 on `92330ca` (trio Native 40350666056 / Compose 40350666044 / Segmented 40350666046, all green, first head): route model in domain/sales, 9 JVM tests.
+
+27.2 ACCEPTED 2026-10-26 on `e7e6d1e` (trio Native 40354231584 / Compose 40354231594 / Segmented 40354232019, all green, first head): fast order as DRAFT sales order mapping in feature/sales, 8 JVM tests.
