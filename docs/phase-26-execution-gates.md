@@ -74,3 +74,5 @@ Status: NOT STARTED.
 Sweep, recount, carryovers.
 
 Status: NOT STARTED.
+
+Status: ACCEPTED on `094f20f` (trio Native 40306531248 / Compose 40306531352 / Segmented 40306531259, all green; verified first-hand). Package head `88d4d6d` took one fix head: `094f20f` (test-only — inventory's adjustFlowPostsAMovement now waits for the "Adjustment posted" node itself before asserting it, after that test failed three consecutive Compose attempts on `88d4d6d` with zero inventory changes in the diff; the test waited for the data write but asserted the UI text with no wait, so a slow emulator's recomposition lost the race). Native and Segmented were already green on `88d4d6d`. Tests added: 15 JVM (cart model).
