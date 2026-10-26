@@ -71,7 +71,17 @@ Status: ACCEPTED on `382656f`.
 
 ## Package 28.5 — Restore rules
 
-Status: NOT STARTED.
+Restore rules (§127) in domain/business:
+`RestorePreview` (date, business name, record
+counts, verification problems, total), `decide`
+(Ready vs Blocked), `canRestore` (valid AND
+explicitly confirmed — neither half alone
+restores, which is "never overwrite silently" as
+a rule). No restore writes here — applying a
+snapshot's tables is a shell-layer job needing
+the whitelist and posting rules. 5 JVM tests.
+
+Status: ACCEPTED on `0491d72`.
 
 ## Package 28.6 — Archive rules
 
@@ -94,3 +104,5 @@ Status: NOT STARTED.
 28.3 ACCEPTED 2026-10-27 on `bfacac6` (trio Native 40391128526 / Compose 40391128504 / Segmented 40391128514, all green, first head): CSV import + mapping + duplicate warnings in domain/business, 13 JVM tests.
 
 28.4 ACCEPTED 2026-10-27 on `382656f` (trio Native 40393799020 / Compose 40393799102 / Segmented 40393799025, all green, first head): backup snapshot + verification in domain/business, 9 JVM tests.
+
+28.5 ACCEPTED 2026-10-27 on `0491d72` (trio Native 40397112633 / Compose 40397112668 / Segmented 40397112634, all green, first head): restore rules in domain/business, 5 JVM tests.
