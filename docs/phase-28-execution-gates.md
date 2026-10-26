@@ -96,7 +96,25 @@ Status: ACCEPTED on `16e7111`.
 
 ## Package 28.7 — Search/export/backup screens + shell wiring
 
-Status: NOT STARTED.
+New `feature/business` module (mirroring
+printing's build, runner included) with
+SearchScreen (§129, stateless over 28.1 grouped
+results), ExportScreen (§86/§169, 28.2 CSV,
+Share button only with a callback) and
+BackupScreen (§127, 28.5 preview, Restore gated
+on valid + confirmed, clickable confirm row).
+Shell `DataSearchMapper` (documents/items/
+parties → search entries, documents → CSV) +
+`DataToolsContent` (search/export/backup
+sections over real records). Registry DATA_ID
+reusing MODULE_BACKUP + new DATA_VIEW
+capability; rosters updated. Two fix heads:
+`e18deb3` (app R import + plain-String
+businessId) and `b3c57af` (MODULE_BACKUP in
+the unknown-keys visibility fixture). 17 tests
+(11 emulator + 4 mapper JVM + 2 registry JVM).
+
+Status: ACCEPTED on `b3c57af`.
 
 ## Package 28.8 — Gate
 
@@ -115,3 +133,5 @@ Status: NOT STARTED.
 28.5 ACCEPTED 2026-10-27 on `0491d72` (trio Native 40397112633 / Compose 40397112668 / Segmented 40397112634, all green, first head): restore rules in domain/business, 5 JVM tests.
 
 28.6 ACCEPTED 2026-10-27 on `16e7111` (trio Native 40399914923 / Compose 40399914892 / Segmented 40399914877, all green, first head): archive rules in domain/business, 7 JVM tests.
+
+28.7 ACCEPTED 2026-10-27 on `b3c57af` (trio Native 40407064058 / Compose 40407064069 / Segmented 40407064064, all green, after fix heads e18deb3 and b3c57af): search/export/backup screens + shell wiring in feature/business, 17 tests.
