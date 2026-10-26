@@ -377,10 +377,12 @@ printing-module change: onPrint was
 already a nullable callback, 25.9 just
 passes it; the 25.6 screen test already
 covers the button firing its callback.
-Emulator tests: adapter layout reports
-the document job, and adapter write
-copies bytes to a real file descriptor
-round-trip. The print() call itself
+Emulator tests: the reported document info, and
+the byte copy to a real file descriptor. The
+framework callback classes have package-private
+constructors, so the adapter itself is not
+subclassed in tests — it is thin glue over the
+two tested functions. The print() call itself
 opens the system UI and is intentionally
 not asserted — the same thin-glue class
 as the share/download content wiring.

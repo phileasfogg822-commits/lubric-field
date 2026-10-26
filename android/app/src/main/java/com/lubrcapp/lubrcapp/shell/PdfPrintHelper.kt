@@ -22,11 +22,14 @@ import java.io.IOException
  * the system PrintJob; the caller ignores it — the system
  * print UI owns the job from there. No permission, no new
  * dependency, no manifest change: printing is a system
- * service. The adapter is exercised directly by an
- * instrumented test (layout + write round-trip through a
- * real file descriptor); the print() call itself opens the
- * system UI and is intentionally not asserted — the same
- * thin-glue class as the share/download content wiring.
+ * service. The adapter is thin glue over two testable
+ * functions (printDocumentInfo, copyBytesToFileDescriptor);
+ * the instrumented tests exercise those directly, since
+ * the framework callback classes cannot be subclassed
+ * outside android.print. The print() call itself opens
+ * the system UI and is intentionally not asserted — the
+ * same thin-glue class as the share/download content
+ * wiring.
  */
 /**
  * Named subclass (the official printing sample's shape).
@@ -38,7 +41,25 @@ import java.io.IOException
  * resolves). The compiler's own expected-signature
  * rendering shows it unqualified because the base class
  * shares its package.
+ *
+ * Testability: the framework callback classes have
+ * package-private constructors, so app code cannot
+ * subclass them in tests — the adapter itself is thin
+ * glue over two testable functions (printDocumentInfo
+ * and copyBytesToFileDescriptor), which the instrumented
+ * tests exercise directly without any callback subclass.
  */
+fun printDocumentInfo(jobName: String): PrintDocumentInfo =
+    PrintDocumentInfo.Builder(jobName)
+        .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+        .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+        .build()
+
+@Throws(IOException::class)
+fun copyBytesToFileDescriptor(bytes: ByteArray, destination: ParcelFileDescriptor) {
+    FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
+}
+
 private class PdfPrintDocumentAdapter(
     private val jobName: String,
     private val bytes: ByteArray,
@@ -54,10 +75,7 @@ private class PdfPrintDocumentAdapter(
             callback?.onLayoutCancelled()
             return
         }
-        val info = PrintDocumentInfo.Builder(jobName)
-            .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
-            .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
-            .build()
+        val info = printDocumentInfo(jobName)
         callback?.onLayoutFinished(info, true)
     }
 
@@ -76,7 +94,7 @@ private class PdfPrintDocumentAdapter(
             return
         }
         try {
-            FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
+            copyBytesToFileDescriptor(bytes, destination)
             callback?.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
         } catch (e: IOException) {
             callback?.onWriteFailed(e.message)
