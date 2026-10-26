@@ -78,6 +78,7 @@ class CapabilityGatedVisibilityTest {
                 AppModuleRegistry.INVENTORY_ID,
                 AppModuleRegistry.PARTIES_ID,
                 AppModuleRegistry.SALES_ID,
+                AppModuleRegistry.POS_ID,
             ),
             visibleIds(config, allGrants - Capabilities.ACCOUNTING_VIEW),
         )

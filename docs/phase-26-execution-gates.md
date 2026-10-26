@@ -114,8 +114,27 @@ Status: NOT STARTED.
 
 ## Package 26.7 — POS counter screen + shell wiring
 
-Scan / Search / Quantity / Discount / Hold / Pay /
-Print actions; Pay leads to 25.x print.
+`PosCounterScreen` in feature/sales (§147): the cart's
+lines with quantity controls and per-line discount,
+search field with priced results, party row, running
+subtotal, and Hold / Pay buttons — stateless over the
+cart, every action a callback. Shell wiring in app:
+`PosCounterContent` owns the cart state (quantity edits
+through 26.1 ops, decrease at 1 a no-op; search filters
+the sales item flow to priced name matches, tapping one
+adds a unit at its sale rate; Hold saves a DRAFT invoice
+through 26.2's mapper and clears the counter; Pay renders
+the cart through the 25.x print chain via
+`cartToPrintable` — net line amounts, tax and discount
+both zero so nothing double-counts, same trap as 25.7).
+Registry entry `pos` reuses the orders config key and
+the sales view capability (no new flag, no roster
+change); the three hand-kept test lists that pin module
+order gain POS_ID. Scan is NOT built: the Phase 16 camera
+decision is still the owner's call. Payment posting rides
+22.x when the held invoice is finalized from sales —
+the counter does not post. 6 emulator tests (screen) +
+3 JVM (mapper) + 2 JVM (registry).
 
 Status: NOT STARTED.
 

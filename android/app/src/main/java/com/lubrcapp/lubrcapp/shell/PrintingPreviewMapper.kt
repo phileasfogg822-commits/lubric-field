@@ -1,6 +1,9 @@
 package com.lubrcapp.lubrcapp.shell
 
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.sales.PosCart
+import com.lubrcapp.lubrcapp.domain.sales.PosCartOps
+import com.lubrcapp.lubrcapp.domain.sales.PosParty
 import com.lubrcapp.lubrcapp.feature.printing.PrintableDocument
 import com.lubrcapp.lubrcapp.feature.printing.PrintableLine
 import com.lubrcapp.lubrcapp.feature.printing.printableDocument
@@ -48,3 +51,42 @@ fun invoiceToPrintable(
         footer = null,
     )
 }
+
+/**
+ * Phase 26.7 — the shell-side map from a live POS cart to
+ * the printable receipt Pay renders through the 25.x chain.
+ * Line amounts are the cart's NET amounts (26.1 already
+ * subtracts the discount), and the cart carries no tax, so
+ * taxTotal and discountTotal both stay at the builder's
+ * zero default — feeding either here would double-count,
+ * the same trap as 25.7's taxableBase rule. The cart has
+ * no number or date, so both stay blank; the party name
+ * comes from the caller (null for a walk-in).
+ */
+fun cartToPrintable(
+    cart: PosCart,
+    partyName: String?,
+    currency: CurrencyCode = CurrencyCode("XXX"),
+): PrintableDocument =
+    printableDocument(
+        title = "POS",
+        documentNumber = "",
+        date = "",
+        partyName = partyName,
+        lines = cart.lines.map { line ->
+            PrintableLine(
+                line.description,
+                line.quantity.amount,
+                line.rate.amount,
+                PosCartOps.lineAmount(line).amount,
+            )
+        },
+        currency = currency.value,
+    )
+
+/** The party display for a cart: null for a walk-in, the named party's id otherwise. */
+fun cartPartyName(cart: PosCart): String? =
+    when (val party = cart.party) {
+        is PosParty.WalkIn -> null
+        is PosParty.Named -> party.id.value
+    }
