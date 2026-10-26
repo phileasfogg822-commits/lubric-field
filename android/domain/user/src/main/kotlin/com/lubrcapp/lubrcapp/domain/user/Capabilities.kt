@@ -47,6 +47,7 @@ object Capabilities {
     val HISTORY_EDIT = CapabilityKey("history.edit")
     val SYNC_MANAGE = CapabilityKey("sync.manage")
     val AUDIT_VIEW = CapabilityKey("audit.view")
+    val PRINTING_VIEW = CapabilityKey("printing.view")
 
     val DEFINITIONS: List<CapabilityDefinition> = listOf(
         CapabilityDefinition(BUSINESS_MANAGE, "Manage business identity and lifecycle"),
@@ -79,6 +80,7 @@ object Capabilities {
         CapabilityDefinition(HISTORY_EDIT, "Correct history through permitted reversal/edit workflows"),
         CapabilityDefinition(SYNC_MANAGE, "Manage synchronization and conflict operations"),
         CapabilityDefinition(AUDIT_VIEW, "View audit and activity history"),
+        CapabilityDefinition(PRINTING_VIEW, "View printable documents and previews"),
     )
 
     val ALL: Set<CapabilityKey> = DEFINITIONS.mapTo(linkedSetOf()) { it.key }
