@@ -88,7 +88,19 @@ Status: ACCEPTED on `639a185`.
 
 ## Package 27.6 — Targets
 
-Status: NOT STARTED.
+Salesperson targets (§157–§158) in domain/sales:
+`SalesTarget` (salesperson, type, period, typed goal
+fields) + `TargetOps` (validate, progress). Types
+are exactly the §157 list; goal shape is validated
+per type (value kinds need a positive Money goal,
+count kinds a positive count, product needs an item
+plus a positive quantity, brand needs a brand plus
+a positive Money goal). Progress is unclamped
+(overachievement shows above 100), currency
+mismatch throws, achieved values stay parameters,
+not stored. 8 JVM tests.
+
+Status: ACCEPTED on `1d7f740`.
 
 ## Package 27.7 — Salesperson dashboard + shell wiring
 
@@ -109,3 +121,5 @@ Status: NOT STARTED.
 27.4 ACCEPTED 2026-10-26 on `86f8c7b` (trio Native 40362103584 / Compose 40362103363 / Segmented 40362103596, all green, first head): delivery scheduling + challan in domain/sales, 6 JVM tests.
 
 27.5 ACCEPTED 2026-10-26 on `639a185` (trio Native 40365928276 / Compose 40365928172 / Segmented 40365928245, all green, first head): delivery execution outcomes + proof in domain/sales, 8 JVM tests.
+
+27.6 ACCEPTED 2026-10-26 on `1d7f740` (trio Native 40369485633 / Compose 40369485609 / Segmented 40369485623, all green, first head): salesperson targets + progress in domain/sales, 8 JVM tests.
