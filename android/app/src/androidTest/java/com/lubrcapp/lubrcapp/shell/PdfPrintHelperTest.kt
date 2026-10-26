@@ -35,7 +35,12 @@ class PdfPrintHelperTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val bytes = "%PDF-print".toByteArray(Charsets.US_ASCII)
         val outFile = File(context.cacheDir, "print-test.pdf")
-        val pfd = ParcelFileDescriptor.open(outFile, ParcelFileDescriptor.MODE_READ_WRITE)
+        // MODE_READ_WRITE alone does not create the file;
+        // without MODE_CREATE the open throws ENOENT.
+        val pfd = ParcelFileDescriptor.open(
+            outFile,
+            ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE,
+        )
         try {
             copyBytesToFileDescriptor(bytes, pfd)
             assertArrayEquals(bytes, outFile.readBytes())
