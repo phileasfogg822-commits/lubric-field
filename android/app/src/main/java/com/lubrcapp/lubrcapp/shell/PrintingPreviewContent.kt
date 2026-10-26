@@ -67,6 +67,7 @@ fun PrintingPreviewContent(
             )
         }
         val context = LocalContext.current
+        val shareTitle = stringResource(R.string.feature_printing_share_title)
         PrintPreviewScreen(
             document = document,
             onBack = onBack,
@@ -79,7 +80,7 @@ fun PrintingPreviewContent(
                 context.startActivity(
                     Intent.createChooser(
                         pdfShareIntent(uri),
-                        context.getString(R.string.feature_printing_share_title),
+                        shareTitle,
                     ),
                 )
             },
