@@ -6,6 +6,7 @@ import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.print.PrintAttributes
 import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentAdapter.PageRange
 import android.print.PrintDocumentInfo
 import android.print.PrintJob
 import android.print.PrintManager
@@ -27,48 +28,62 @@ import java.io.IOException
  * system UI and is intentionally not asserted — the same
  * thin-glue class as the share/download content wiring.
  */
-fun pdfPrintAdapter(jobName: String, bytes: ByteArray): PrintDocumentAdapter =
-    object : PrintDocumentAdapter() {
-        override fun onLayout(
-            oldAttributes: PrintAttributes?,
-            newAttributes: PrintAttributes?,
-            cancellationSignal: CancellationSignal?,
-            callback: LayoutResultCallback?,
-            extras: Bundle?,
-        ) {
-            if (cancellationSignal?.isCanceled == true) {
-                callback?.onLayoutCancelled()
-                return
-            }
-            val info = PrintDocumentInfo.Builder(jobName)
-                .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
-                .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
-                .build()
-            callback?.onLayoutFinished(info, true)
+/**
+ * Named subclass (not an anonymous object): the official
+ * printing sample's shape. The anonymous-object form failed
+ * to resolve the nested PageRange type in this file on two
+ * attempts, while the same reference resolves in a named
+ * subclass body — so the adapter is a named class, with the
+ * nested type additionally imported for a second resolution
+ * path.
+ */
+private class PdfPrintDocumentAdapter(
+    private val jobName: String,
+    private val bytes: ByteArray,
+) : PrintDocumentAdapter() {
+    override fun onLayout(
+        oldAttributes: PrintAttributes?,
+        newAttributes: PrintAttributes?,
+        cancellationSignal: CancellationSignal?,
+        callback: LayoutResultCallback?,
+        extras: Bundle?,
+    ) {
+        if (cancellationSignal?.isCanceled == true) {
+            callback?.onLayoutCancelled()
+            return
         }
+        val info = PrintDocumentInfo.Builder(jobName)
+            .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+            .setPageCount(PrintDocumentInfo.PAGE_COUNT_UNKNOWN)
+            .build()
+        callback?.onLayoutFinished(info, true)
+    }
 
-        override fun onWrite(
-            pages: Array<out PrintDocumentAdapter.PageRange>,
-            destination: ParcelFileDescriptor?,
-            cancellationSignal: CancellationSignal?,
-            callback: WriteResultCallback?,
-        ) {
-            if (cancellationSignal?.isCanceled == true) {
-                callback?.onWriteCancelled()
-                return
-            }
-            if (destination == null) {
-                callback?.onWriteFailed("No destination")
-                return
-            }
-            try {
-                FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
-                callback?.onWriteFinished(arrayOf(PrintDocumentAdapter.PageRange.ALL_PAGES))
-            } catch (e: IOException) {
-                callback?.onWriteFailed(e.message)
-            }
+    override fun onWrite(
+        pages: Array<PageRange>,
+        destination: ParcelFileDescriptor?,
+        cancellationSignal: CancellationSignal?,
+        callback: WriteResultCallback?,
+    ) {
+        if (cancellationSignal?.isCanceled == true) {
+            callback?.onWriteCancelled()
+            return
+        }
+        if (destination == null) {
+            callback?.onWriteFailed("No destination")
+            return
+        }
+        try {
+            FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
+            callback?.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+        } catch (e: IOException) {
+            callback?.onWriteFailed(e.message)
         }
     }
+}
+
+fun pdfPrintAdapter(jobName: String, bytes: ByteArray): PrintDocumentAdapter =
+    PdfPrintDocumentAdapter(jobName, bytes)
 
 fun printPdf(context: Context, jobName: String, bytes: ByteArray): PrintJob? {
     val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
