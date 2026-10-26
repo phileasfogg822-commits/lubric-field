@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import java.io.File
 import java.io.IOException
 
@@ -40,6 +41,7 @@ fun downloadPdf(context: Context, fileName: String, bytes: ByteArray): Uri? {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.Q)
 private fun downloadViaMediaStore(context: Context, fileName: String, bytes: ByteArray): Uri? {
     val resolver = context.contentResolver
     val pending = ContentValues().apply {
