@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.R
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.business.BackupSnapshotOps
 import com.lubrcapp.lubrcapp.domain.business.GlobalSearch
@@ -67,7 +68,7 @@ fun DataToolsContent(scope: OperationalScope, onBack: () -> Unit) {
     val snapshot = remember(documents) {
         BackupSnapshotOps.create(
             backupDate = LocalDate.now().toString(),
-            businessName = scope.businessId.value,
+            businessName = scope.businessId,
             tables = mapOf(
                 "sales_documents" to documents.map { document ->
                     mapOf(
