@@ -4,7 +4,20 @@ Base: `phase-27-field-sales` @ `5f0c5b7`.
 
 ## Package 28.1 — Global search
 
-Status: NOT STARTED.
+Global search (§129) in domain/business:
+`SearchEntry` (group, id, title, detail,
+keywords) + `SearchGroup` (exactly the §129
+list, in spec order) + `GlobalSearch.search`
+(case-insensitive substring over title, detail
+and keywords, so names, document numbers, item
+names, phones and barcodes all match through
+one rule; empty/blank query returns nothing;
+empty groups omitted; input order kept within
+a group). Pure model over plain entries — the
+screen layer maps real records to entries, so
+no index tables and no persistence. 8 JVM tests.
+
+Status: ACCEPTED on `3e3edaf`.
 
 ## Package 28.2 — CSV export
 
@@ -35,3 +48,5 @@ Status: NOT STARTED.
 Sweep, recount, carryovers.
 
 Status: NOT STARTED.
+
+28.1 ACCEPTED 2026-10-27 on `3e3edaf` (trio Native 40384708966 / Compose 40384709095 / Segmented 40384708811, all green, first head): global search model in domain/business, 8 JVM tests.
