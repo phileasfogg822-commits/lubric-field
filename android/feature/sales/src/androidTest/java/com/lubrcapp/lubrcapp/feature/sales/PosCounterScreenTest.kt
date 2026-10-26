@@ -12,6 +12,7 @@ import com.lubrcapp.lubrcapp.domain.common.Money
 import com.lubrcapp.lubrcapp.domain.common.Quantity
 import com.lubrcapp.lubrcapp.domain.sales.PosCart
 import com.lubrcapp.lubrcapp.domain.sales.PosCartLine
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
