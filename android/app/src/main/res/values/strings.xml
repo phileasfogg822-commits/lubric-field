@@ -82,4 +82,6 @@
     <string name="feature_printing_back">Back</string>
     <string name="feature_printing_empty">No invoices yet</string>
     <string name="feature_printing_share_title">Share invoice</string>
+    <string name="feature_printing_downloaded">Invoice downloaded</string>
+    <string name="feature_printing_download_failed">Download failed</string>
 </resources>

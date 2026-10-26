@@ -297,3 +297,55 @@ screen Preview buttons (the invoice →
 preview jump needs a feature-to-feature
 navigation mechanism this shell does not
 have yet).
+
+## Package 25.8 — Download PDF via MediaStore
+
+Design: the preview's Download button
+stops being a hidden callback and writes
+the invoice PDF into the user's Downloads
+collection. (1) App-shell helper
+downloadPdf(context, fileName, bytes):
+Uri? — never throws to composition, null
+on any failure so the caller can report
+it. Android 10+ uses the MediaStore
+Downloads collection with no permission:
+insert pending (DISPLAY_NAME, MIME_TYPE
+application/pdf, RELATIVE_PATH Downloads,
+IS_PENDING 1), fill via openOutputStream,
+publish (IS_PENDING 0); a failed fill
+deletes the pending row. Below Android
+10 there is no Downloads collection, so
+the legacy public Downloads directory is
+used — that branch needs
+WRITE_EXTERNAL_STORAGE, declared with
+maxSdkVersion 28 so Android 10+ ignores
+it. (2) Content wiring: onDownload
+renders the same PDF bytes as Share
+(extracted renderPdfBytes helper, no
+duplication), calls downloadPdf with the
+same invoice-<number-or-id>.pdf name,
+and reports with a Toast from app
+strings ("Invoice downloaded" /
+"Download failed"). The pre-10
+permission is requested from the tap
+itself via rememberLauncherForActivity-
+Result(RequestPermission): the tap
+stashes its action in unconditional
+remembered state and the launcher runs
+it once granted; on 10+ the check is
+skipped outright. (3) No printing-module
+change: onDownload was already a
+nullable callback, 25.8 just passes it.
+Emulator tests: MediaStore write +
+read-back + cleanup, and same-name
+double download returning distinct Uris.
+CI's emulator runs API 35, so only the
+MediaStore branch is exercised there;
+the legacy branch is the documented
+untested path, same class as 12C-09.
+Deliberately OUT: system Print (25.9),
+a document picker list, download
+progress UI (a Toast reports the
+outcome).
+
+Status: NOT STARTED.
