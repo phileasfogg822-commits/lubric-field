@@ -10,7 +10,22 @@ workspace, not the repo).
 
 ## Package 26.1 — POS cart model
 
-Lines, quantities, discounts, walk-in default.
+Pure, immutable cart in domain/sales (`PosCart.kt`):
+`PosCart` (id, party, lines), `PosCartLine` (id, itemId?,
+description, quantity, rate, discount), `PosParty`
+(WalkIn default per §149 / Named), `PosLineDiscount`
+(Percent / Fixed), and `PosCartOps`: addLine (scan
+merges same item + rate + discount into quantity,
+different rate/discount appends, unidentified lines never
+merge), updateQuantity / removeLine (positive quantities
+only, unknown ids rejected), applyDiscount /
+removeDiscount, setParty, lineAmount (pre-tax gross
+rounded 2dp HALF_UP minus discount, clamped at zero),
+subtotal (sum of line amounts; empty cart is zero in the
+given currency; mixed currencies fail on Money.plus).
+No totals stored, no tax in the cart (invoice concern at
+conversion), no persistence (hold in 26.2 saves a DRAFT
+sales document). 15 JVM tests.
 
 Status: NOT STARTED.
 
