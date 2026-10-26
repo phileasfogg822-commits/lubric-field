@@ -111,3 +111,5 @@ Status: ACCEPTED on `094f20f` (trio Native 40306531248 / Compose 40306531352 / S
 Status: ACCEPTED on `144576c` (trio Native 40308915628 / Compose 40308915673 / Segmented 40308915722, all green; verified first-hand). Package head `144576c` green on the first head, no fix heads. Tests added: 8 JVM (hold mapper, including a full hold/resume round-trip).
 
 Status: ACCEPTED on `bca5a49` (trio Native 40311743898 / Compose 40311743686 / Segmented 40311743650, all green; verified first-hand). Package head `bca5a49` green on the first head, no fix heads. Tests added: 7 JVM (quick cash math).
+
+Status: ACCEPTED on `16c75a2` (trio Native 40314568994 / Compose 40314569019 / Segmented 40314569870, all green; verified first-hand). Package head `16c75a2` green on the first head, no fix heads. Tests added: 7 JVM (cash drawer session math).
