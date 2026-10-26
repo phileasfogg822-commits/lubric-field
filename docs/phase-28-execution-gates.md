@@ -34,7 +34,21 @@ Status: ACCEPTED on `fdd89da`.
 
 ## Package 28.3 — CSV import + mapping
 
-Status: NOT STARTED.
+CSV import (§166–§168) in domain/business:
+`CsvParser` (quoted fields, doubled quotes, CRLF
+and LF endings, no trailing newline needed;
+blank text, empty headers, misaligned rows and
+unterminated quotes all throw), `ImportMapper`
+(exact header match per §167, unmapped columns
+ignored, missing mapped columns and duplicate
+headers throw), `ImportDuplicates` (§168 warnings,
+not rejects, for caller-chosen key fields; later
+rows sharing an earlier key tuple warn with both
+indices; all-blank keys never warn). Writes
+nothing — the caller turns mapped rows into
+records through existing machinery. 13 JVM tests.
+
+Status: ACCEPTED on `bfacac6`.
 
 ## Package 28.4 — Backup snapshot
 
@@ -61,3 +75,5 @@ Status: NOT STARTED.
 28.1 ACCEPTED 2026-10-27 on `3e3edaf` (trio Native 40384708966 / Compose 40384709095 / Segmented 40384708811, all green, first head): global search model in domain/business, 8 JVM tests.
 
 28.2 ACCEPTED 2026-10-27 on `fdd89da` (trio Native 40387583865 / Compose 40387583828 / Segmented 40387584064, all green, first head): CSV export writer in domain/business, 8 JVM tests.
+
+28.3 ACCEPTED 2026-10-27 on `bfacac6` (trio Native 40391128526 / Compose 40391128504 / Segmented 40391128514, all green, first head): CSV import + mapping + duplicate warnings in domain/business, 13 JVM tests.
