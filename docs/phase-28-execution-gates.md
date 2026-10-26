@@ -118,9 +118,29 @@ Status: ACCEPTED on `b3c57af`.
 
 ## Package 28.8 — Gate
 
-Sweep, recount, carryovers.
+Sweep `5f0c5b7..b3c57af`: 34 files,
++1851/−3 (the 3 deletions are the Compose
+workflow line extended with the business module
+and 2 lines of the 28.7 visibility-fixture
+edit; 0 tests removed). Recount 67 tests
+(28.1: 8, 28.2: 8, 28.3: 13, 28.4: 9, 28.5: 5,
+28.6: 7, 28.7: 17). All seven accepted heads
+verified ancestors in order (3e3edaf, fdd89da,
+bfacac6, 382656f, 0491d72, 16e7111, b3c57af).
+Carryovers: Excel export library decision;
+backup encryption key management (owner);
+cloud backup scheduling (no endpoint exists);
+CSV share action (rides 25.7 share helpers);
+restore-apply through the repository
+(shell-layer job 28.5 named); business-name
+surface for the backup preview (business id
+stands in today); §127 file picking (backup
+screen shows a snapshot of current data, no
+file selection yet); §130/§131 recents and
+favorites (staging deferral); stock and
+opening-balance imports (follow-up after 28.3).
 
-Status: NOT STARTED.
+Status: PASSED.
 
 28.1 ACCEPTED 2026-10-27 on `3e3edaf` (trio Native 40384708966 / Compose 40384709095 / Segmented 40384708811, all green, first head): global search model in domain/business, 8 JVM tests.
 
@@ -135,3 +155,5 @@ Status: NOT STARTED.
 28.6 ACCEPTED 2026-10-27 on `16e7111` (trio Native 40399914923 / Compose 40399914892 / Segmented 40399914877, all green, first head): archive rules in domain/business, 7 JVM tests.
 
 28.7 ACCEPTED 2026-10-27 on `b3c57af` (trio Native 40407064058 / Compose 40407064069 / Segmented 40407064064, all green, after fix heads e18deb3 and b3c57af): search/export/backup screens + shell wiring in feature/business, 17 tests.
+
+Phase 28 CLOSED 2026-10-27: gate 28.8 PASSED (sweep 34 files +1851/−3, recount 67 tests); confirmatory trio pending on the gate head.
