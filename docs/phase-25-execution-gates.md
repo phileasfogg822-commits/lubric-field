@@ -348,4 +348,4 @@ a document picker list, download
 progress UI (a Toast reports the
 outcome).
 
-Status: NOT STARTED.
+Status: ACCEPTED on `cdbbfbe` (trio Native 40282320593 / Compose 40282320585 attempt 2 / Segmented 40282320647, all green; verified first-hand). Package head `452fd5f` took one fix head: `cdbbfbe` (MediaStore branch annotated RequiresApi, after Native lint flagged the API-29 field under minSdk 26). Attempt 1 of Compose failed on inventory's adjustFlowPostsAMovement with zero inventory changes since the last green run — the same test that flaked on 25.3 — so it was re-run, not fixed: attempt 2 green with no code change, and the :app: connected tests (including the 2 new download tests) passed within it. Tests added: 2 emulator (MediaStore write + read-back, same-name double download).
