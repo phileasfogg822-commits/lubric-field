@@ -81,8 +81,17 @@ Status: NOT STARTED.
 
 ## Package 26.5 — Shifts
 
-Open / close + shift summary (sales / returns / cash /
-card / expenses).
+`ShiftOps` in domain/payment (§152, optional): a shift
+owns one 26.4 drawer session plus categorized entries.
+`openShift` opens the drawer; `recordEntry` adds SALES /
+RETURNS / CARD / EXPENSES entries; `recordDrawerMovement`
+delegates to the drawer; `summary` totals each category
+with cash read from the drawer (never entered separately,
+so cash cannot drift from the count); `closeShift`
+reports cash actual and difference. All amounts share the
+drawer's currency, mixing throws. No posting, no
+persistence — postings ride 22.x machinery at shift close
+(26.7 wiring). 6 JVM tests.
 
 Status: NOT STARTED.
 
