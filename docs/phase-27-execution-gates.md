@@ -55,7 +55,21 @@ Status: ACCEPTED on `80ffe15`.
 
 ## Package 27.4 — Delivery scheduling + challan
 
-Status: NOT STARTED.
+Delivery scheduling (§46) + challan (§47) in
+domain/sales: `DeliverySchedule` (order, party,
+expected date, route id, address, vehicle, driver,
+notes) and `DeliveryChallan` (number, order, party,
+shipping address, date, lines) built from a schedule
+via `DeliveryOps.challanFor`, so the challan can
+never disagree with its schedule on customer, order
+or address. Vehicle and driver stay plain strings
+(no typed ids exist in domain/common); the challan
+number stays a plain string, empty until assigned —
+no DC prefix invented, since NumberingRecord's set
+has no DC. Execution outcomes are 27.5's job, not
+this package's. 6 JVM tests.
+
+Status: ACCEPTED on `86f8c7b`.
 
 ## Package 27.5 — Delivery execution
 
@@ -80,3 +94,5 @@ Status: NOT STARTED.
 27.2 ACCEPTED 2026-10-26 on `e7e6d1e` (trio Native 40354231584 / Compose 40354231594 / Segmented 40354232019, all green, first head): fast order as DRAFT sales order mapping in feature/sales, 8 JVM tests.
 
 27.3 ACCEPTED 2026-10-26 on `80ffe15` (trio Native 40358418939 / Compose 40358419003 / Segmented 40358419094, all green, first head): field collection record + allocation via 22.1 core in domain/payment, 8 JVM tests.
+
+27.4 ACCEPTED 2026-10-26 on `86f8c7b` (trio Native 40362103584 / Compose 40362103363 / Segmented 40362103596, all green, first head): delivery scheduling + challan in domain/sales, 6 JVM tests.
