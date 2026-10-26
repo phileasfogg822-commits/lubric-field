@@ -99,6 +99,7 @@ object AppModuleRegistry {
     const val CLOUD_SYNC_ID = "cloudsync"
     const val PRINTING_ID = "printing"
     const val POS_ID = "pos"
+    const val FIELD_SALES_ID = "fieldsales"
 
     val modules: List<AppModule> = listOf(
         AppModule(
@@ -233,6 +234,18 @@ object AppModuleRegistry {
             viewCapability = Capabilities.SALES_VIEW,
             selectable = true,
             content = { scope, back -> PosCounterContent(scope, back) },
+        ),
+        AppModule(
+            id = FIELD_SALES_ID,
+            titleRes = R.string.feature_fieldsales,
+            // The field sales dashboard is the sales pipeline's
+            // field mode: it reuses the orders config key and
+            // the sales view capability rather than minting a
+            // new flag, so no deployment roster changes.
+            configKey = FeatureFlagKeys.MODULE_ORDERS,
+            viewCapability = Capabilities.SALES_VIEW,
+            selectable = true,
+            content = { scope, back -> FieldSalesContent(scope, back) },
         ),
     )
 

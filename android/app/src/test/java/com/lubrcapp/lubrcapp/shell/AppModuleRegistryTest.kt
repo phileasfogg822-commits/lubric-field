@@ -30,6 +30,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.CLOUD_SYNC_ID,
                 AppModuleRegistry.PRINTING_ID,
                 AppModuleRegistry.POS_ID,
+                AppModuleRegistry.FIELD_SALES_ID,
             ),
             AppModuleRegistry.modules.map { it.id },
         )
@@ -74,6 +75,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.CLOUD_SYNC_ID,
                 AppModuleRegistry.PRINTING_ID,
                 AppModuleRegistry.POS_ID,
+                AppModuleRegistry.FIELD_SALES_ID,
             ),
             AppModuleRegistry.navigationModules().map { it.id },
         )

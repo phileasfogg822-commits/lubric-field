@@ -85,4 +85,5 @@
     <string name="feature_printing_downloaded">Invoice downloaded</string>
     <string name="feature_printing_download_failed">Download failed</string>
     <string name="feature_pos">POS</string>
+    <string name="feature_fieldsales">Field Sales</string>
 </resources>
