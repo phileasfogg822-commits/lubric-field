@@ -98,6 +98,7 @@ object AppModuleRegistry {
     const val ACCOUNTS_ID = "accounts"
     const val CLOUD_SYNC_ID = "cloudsync"
     const val PRINTING_ID = "printing"
+    const val POS_ID = "pos"
 
     val modules: List<AppModule> = listOf(
         AppModule(
@@ -220,6 +221,18 @@ object AppModuleRegistry {
             viewCapability = Capabilities.PRINTING_VIEW,
             selectable = true,
             content = { scope, back -> PrintingPreviewContent(scope, back) },
+        ),
+        AppModule(
+            id = POS_ID,
+            titleRes = R.string.feature_pos,
+            // The counter is the sales pipeline's POS mode: it
+            // reuses the orders config key and the sales view
+            // capability rather than minting a new flag, so no
+            // deployment roster changes.
+            configKey = FeatureFlagKeys.MODULE_ORDERS,
+            viewCapability = Capabilities.SALES_VIEW,
+            selectable = true,
+            content = { scope, back -> PosCounterContent(scope, back) },
         ),
     )
 

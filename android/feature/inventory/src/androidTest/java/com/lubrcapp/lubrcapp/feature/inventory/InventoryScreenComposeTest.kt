@@ -84,6 +84,14 @@ class InventoryScreenComposeTest {
         compose.onNodeWithText("Reason").performScrollTo().performTextInput("Leaking cans")
         compose.onNodeWithText("Post adjustment").performClick()
         compose.waitUntil(5000) { (fake.flowFor("stock_movements").value.size) == 1 }
+        // The data write and the confirmation text do not land
+        // together: on a slow emulator the flow updates before
+        // the message recomposes, and assertIsDisplayed does not
+        // wait. Wait for the node itself, the same idiom the
+        // items/parties dialog tests use — this test failed
+        // three consecutive Compose attempts on 26.1's head
+        // (zero inventory changes) on exactly this assertion.
+        compose.waitUntil(5000) { compose.onAllNodesWithText("Adjustment posted").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Adjustment posted").assertIsDisplayed()
         val saved = StockMovementJson.decode(
             fake.flowFor("stock_movements").value[0].id,

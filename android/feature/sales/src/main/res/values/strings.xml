@@ -54,4 +54,21 @@
     <string name="sales_posting_no_tax">No tax account</string>
     <string name="sales_timeline">Timeline</string>
     <string name="sales_timeline_entry">%1$s · %2$s · %3$s</string>
+    <string name="pos_title">POS Counter</string>
+    <string name="pos_back">Back</string>
+    <string name="pos_party_walkin">Walk-in customer</string>
+    <string name="pos_party_named">Customer: %1$s</string>
+    <string name="pos_search_label">Search items</string>
+    <string name="pos_search">Search</string>
+    <string name="pos_search_result">%1$s · %2$s</string>
+    <string name="pos_empty">No items yet</string>
+    <string name="pos_line">%1$s · %2$s × %3$s = %4$s</string>
+    <string name="pos_discount_percent">Discount: %1$s%%</string>
+    <string name="pos_discount_fixed">Discount: %1$s</string>
+    <string name="pos_decrease">−</string>
+    <string name="pos_increase">+</string>
+    <string name="pos_remove_line">Remove</string>
+    <string name="pos_subtotal">Subtotal: %1$s</string>
+    <string name="pos_hold">Hold</string>
+    <string name="pos_pay">Pay</string>
 </resources>

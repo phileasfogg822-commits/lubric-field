@@ -78,6 +78,7 @@ class ResolvedShellVisibilityTest {
                 AppModuleRegistry.ACCOUNTS_ID,
                 AppModuleRegistry.CLOUD_SYNC_ID,
                 AppModuleRegistry.PRINTING_ID,
+                AppModuleRegistry.POS_ID,
             ),
             visibleIds(gatedKeys, mapOf(FeatureFlagKeys.MODULE_PURCHASES to false)),
         )
