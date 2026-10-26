@@ -48,7 +48,7 @@ fun pdfPrintAdapter(jobName: String, bytes: ByteArray): PrintDocumentAdapter =
         }
 
         override fun onWrite(
-            pages: Array<PageRange>,
+            pages: Array<out PrintDocumentAdapter.PageRange>,
             destination: ParcelFileDescriptor?,
             cancellationSignal: CancellationSignal?,
             callback: WriteResultCallback?,
@@ -63,7 +63,7 @@ fun pdfPrintAdapter(jobName: String, bytes: ByteArray): PrintDocumentAdapter =
             }
             try {
                 FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
-                callback?.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+                callback?.onWriteFinished(arrayOf(PrintDocumentAdapter.PageRange.ALL_PAGES))
             } catch (e: IOException) {
                 callback?.onWriteFailed(e.message)
             }
