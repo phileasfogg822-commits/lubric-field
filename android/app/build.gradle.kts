@@ -215,6 +215,7 @@ dependencies {
     implementation(project(":feature:auth"))
     implementation(project(":feature:syncstatus"))
     implementation(project(":feature:printing"))
+    implementation(project(":feature:business"))
 
     implementation(project(":whitelist:config"))
     implementation(project(":whitelist:branding"))

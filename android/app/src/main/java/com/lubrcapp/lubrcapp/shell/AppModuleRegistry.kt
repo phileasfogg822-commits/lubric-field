@@ -100,6 +100,7 @@ object AppModuleRegistry {
     const val PRINTING_ID = "printing"
     const val POS_ID = "pos"
     const val FIELD_SALES_ID = "fieldsales"
+    const val DATA_ID = "data"
 
     val modules: List<AppModule> = listOf(
         AppModule(
@@ -246,6 +247,19 @@ object AppModuleRegistry {
             viewCapability = Capabilities.SALES_VIEW,
             selectable = true,
             content = { scope, back -> FieldSalesContent(scope, back) },
+        ),
+        AppModule(
+            id = DATA_ID,
+            titleRes = R.string.feature_data,
+            // Data tools ride the backup config key that
+            // already exists in the flag set, so no flag
+            // roster changes; the capability is new (see
+            // DATA_VIEW) because no existing view
+            // capability covers search, export and backup.
+            configKey = FeatureFlagKeys.MODULE_BACKUP,
+            viewCapability = Capabilities.DATA_VIEW,
+            selectable = true,
+            content = { scope, back -> DataToolsContent(scope, back) },
         ),
     )
 
