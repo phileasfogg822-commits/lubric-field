@@ -11,6 +11,7 @@ import com.lubrcapp.lubrcapp.domain.sales.PosParty
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PosCounterMapperTest {
@@ -44,11 +45,13 @@ class PosCounterMapperTest {
         assertNull(document.partyName)
         // Line 1: 2 x 500 = 1000, less 10% = 900 net. No tax, no
         // further discount: the builder must not subtract again.
+        // Money-derived amounts are scale-normalized, so compare
+        // with compareTo, never BigDecimal.equals.
         assertEquals(2, document.lines.size)
-        assertEquals(BigDecimal("900"), document.lines[0].amount)
-        assertEquals(BigDecimal("300"), document.lines[1].amount)
-        assertEquals(BigDecimal("1200"), document.subtotal)
-        assertEquals(BigDecimal("1200"), document.grandTotal)
+        assertTrue(document.lines[0].amount.compareTo(BigDecimal("900")) == 0)
+        assertTrue(document.lines[1].amount.compareTo(BigDecimal("300")) == 0)
+        assertTrue(document.subtotal.compareTo(BigDecimal("1200")) == 0)
+        assertTrue(document.grandTotal.compareTo(BigDecimal("1200")) == 0)
     }
 
     @Test fun emptyCartMapsToZeroTotals() {
