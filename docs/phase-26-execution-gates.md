@@ -31,7 +31,19 @@ Status: NOT STARTED.
 
 ## Package 26.2 — Hold sale
 
-Hold / resume a bill.
+`PosHoldMapper` in feature/sales (§148): a held bill IS
+a DRAFT invoice document, saved through the existing
+record machinery (saveDocument / saveLine) and resumed by
+loading it back — no new table, no whitelist change, no
+hold marker. Cart id becomes the document id; lines keep
+ids and take positions in cart order; WalkIn maps to a
+null partyId, Named to its id value; rates and discount
+values are plain BigDecimals in the document layer, so
+currency is a mapping parameter, not a stored field;
+number and date stay empty until posting. Tax components
+do NOT survive hold (the cart carries no tax; tax is
+re-derived at invoice conversion) — documented limit.
+8 JVM tests, including a full hold/resume round-trip.
 
 Status: NOT STARTED.
 
