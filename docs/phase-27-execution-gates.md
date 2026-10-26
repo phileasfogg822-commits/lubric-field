@@ -35,7 +35,23 @@ Status: ACCEPTED on `e7e6d1e`.
 
 ## Package 27.3 — Collections
 
-Status: NOT STARTED.
+Field collection (§111) in domain/payment:
+`FieldCollection` (party, amount, mode, reference,
+receipt number, date) + `FieldCollectionOps`
+(validate positive amount; allocate). Allocation
+reuses the 22.1 core: a party/amount overload was
+added to `PaymentAllocation` and the existing
+payment-based entry now delegates to it, so
+oldest-first, same-party, collectible-only,
+currency-matched, clamped-at-outstanding behavior
+stays single-sourced. Outstanding stays derived,
+never stored. Posting (payment row, INSERT_ONLY cash
+movement, journal) is a later package / shell
+decision. Record named `FieldCollection`, not
+`Collection`, to avoid shadowing Kotlin's stdlib
+type. 8 JVM tests.
+
+Status: ACCEPTED on `80ffe15`.
 
 ## Package 27.4 — Delivery scheduling + challan
 
@@ -62,3 +78,5 @@ Status: NOT STARTED.
 27.1 ACCEPTED 2026-10-26 on `92330ca` (trio Native 40350666056 / Compose 40350666044 / Segmented 40350666046, all green, first head): route model in domain/sales, 9 JVM tests.
 
 27.2 ACCEPTED 2026-10-26 on `e7e6d1e` (trio Native 40354231584 / Compose 40354231594 / Segmented 40354232019, all green, first head): fast order as DRAFT sales order mapping in feature/sales, 8 JVM tests.
+
+27.3 ACCEPTED 2026-10-26 on `80ffe15` (trio Native 40358418939 / Compose 40358419003 / Segmented 40358419094, all green, first head): field collection record + allocation via 22.1 core in domain/payment, 8 JVM tests.
