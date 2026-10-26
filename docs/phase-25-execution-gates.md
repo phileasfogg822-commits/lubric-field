@@ -348,4 +348,47 @@ a document picker list, download
 progress UI (a Toast reports the
 outcome).
 
+## Package 25.9 — System Print via PrintManager
+
+Design: the preview's Print button stops
+being a hidden callback and hands the
+invoice PDF to Android's print framework.
+(1) App-shell helper: pdfPrintAdapter
+(jobName, bytes) builds a
+PrintDocumentAdapter whose onLayout
+reports the job (CONTENT_TYPE_DOCUMENT,
+PAGE_COUNT_UNKNOWN — the bytes are
+pre-rendered, never parsed) and whose
+onWrite copies the bytes to the
+spooler's file descriptor, plus printPdf
+(context, jobName, bytes) which resolves
+the PrintManager and prints with null
+attributes, returning the system
+PrintJob. The caller ignores the job —
+the system print UI owns it from there.
+No permission, no new dependency, no
+manifest change: printing is a system
+service. (2) Content wiring: onPrint
+renders the same PDF bytes as Share and
+Download (renderPdfBytes, no
+duplication) and prints under job name
+"Invoice <number-or-id>". (3) No
+printing-module change: onPrint was
+already a nullable callback, 25.9 just
+passes it; the 25.6 screen test already
+covers the button firing its callback.
+Emulator tests: adapter layout reports
+the document job, and adapter write
+copies bytes to a real file descriptor
+round-trip. The print() call itself
+opens the system UI and is intentionally
+not asserted — the same thin-glue class
+as the share/download content wiring.
+Deliberately OUT: printer settings UI
+(the 25.5 model stays model-only),
+thermal transport (25.4 bytes stay
+bytes), a document picker list.
+
+Status: NOT STARTED.
+
 Status: ACCEPTED on `cdbbfbe` (trio Native 40282320593 / Compose 40282320585 attempt 2 / Segmented 40282320647, all green; verified first-hand). Package head `452fd5f` took one fix head: `cdbbfbe` (MediaStore branch annotated RequiresApi, after Native lint flagged the API-29 field under minSdk 26). Attempt 1 of Compose failed on inventory's adjustFlowPostsAMovement with zero inventory changes since the last green run — the same test that flaked on 25.3 — so it was re-run, not fixed: attempt 2 green with no code change, and the :app: connected tests (including the 2 new download tests) passed within it. Tests added: 2 emulator (MediaStore write + read-back, same-name double download).

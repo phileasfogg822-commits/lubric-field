@@ -45,8 +45,8 @@ import java.io.ByteArrayOutputStream
  * document to PDF bytes and hands them to the share helper;
  * Download writes the same bytes to the Downloads
  * collection (25.8) and reports success or failure with a
- * Toast. Print stays hidden until its package lands
- * (its callback is null — no dead buttons, the 13.4 rule).
+ * Toast. Print hands the same bytes to the system print
+ * service (25.9); the system UI owns the job from there.
  */
 @Composable
 fun PrintingPreviewContent(
@@ -130,7 +130,13 @@ fun PrintingPreviewContent(
                     performDownload()
                 }
             },
-            onPrint = null,
+            onPrint = {
+                printPdf(
+                    context,
+                    "Invoice ${latest.number.ifBlank { latest.id }}",
+                    renderPdfBytes(document),
+                )
+            },
         )
     }
 }
