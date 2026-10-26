@@ -52,7 +52,22 @@ Status: ACCEPTED on `bfacac6`.
 
 ## Package 28.4 — Backup snapshot
 
-Status: NOT STARTED.
+Backup snapshot (§124–§126) in domain/business:
+`BackupManifest` (date, business, per-table
+record counts) + `BackupSnapshot` (manifest +
+tables) + `BackupSnapshotOps.create` (counts
+computed from the tables, so a created snapshot
+always verifies), `verify` (lists every
+inconsistency — blank name/date, count
+disagreements, manifest/snapshot table mismatches;
+empty means valid), `fileName` (§126:
+`business_<ISO date>.busbackup`, non-ISO dates
+rejected). No encryption (key management is an
+owner decision) and no cloud scheduling (no
+endpoint exists) — both named, not invented.
+9 JVM tests.
+
+Status: ACCEPTED on `382656f`.
 
 ## Package 28.5 — Restore rules
 
@@ -77,3 +92,5 @@ Status: NOT STARTED.
 28.2 ACCEPTED 2026-10-27 on `fdd89da` (trio Native 40387583865 / Compose 40387583828 / Segmented 40387584064, all green, first head): CSV export writer in domain/business, 8 JVM tests.
 
 28.3 ACCEPTED 2026-10-27 on `bfacac6` (trio Native 40391128526 / Compose 40391128504 / Segmented 40391128514, all green, first head): CSV import + mapping + duplicate warnings in domain/business, 13 JVM tests.
+
+28.4 ACCEPTED 2026-10-27 on `382656f` (trio Native 40393799020 / Compose 40393799102 / Segmented 40393799025, all green, first head): backup snapshot + verification in domain/business, 9 JVM tests.
