@@ -34,6 +34,7 @@ object Capabilities {
     val SALES_EDIT = CapabilityKey("sales.edit")
     val SALES_POST = CapabilityKey("sales.post")
     val DISCOUNT_OVERRIDE = CapabilityKey("invoice.discount.override")
+    val PRICE_OVERRIDE = CapabilityKey("invoice.price.override")
     val PURCHASES_VIEW = CapabilityKey("purchases.view")
     val PURCHASES_MANAGE = CapabilityKey("purchases.manage")
     val PAYMENTS_VIEW = CapabilityKey("payments.view")
@@ -67,6 +68,7 @@ object Capabilities {
         CapabilityDefinition(SALES_EDIT, "Edit eligible sales documents"),
         CapabilityDefinition(SALES_POST, "Post/finalize sales documents"),
         CapabilityDefinition(DISCOUNT_OVERRIDE, "Override configured invoice discount limits"),
+        CapabilityDefinition(PRICE_OVERRIDE, "Override configured item prices"),
         CapabilityDefinition(PURCHASES_VIEW, "View purchase documents"),
         CapabilityDefinition(PURCHASES_MANAGE, "Create and post purchase documents"),
         CapabilityDefinition(PAYMENTS_VIEW, "View receipts, payments and allocations"),

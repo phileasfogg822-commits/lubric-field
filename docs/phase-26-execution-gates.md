@@ -97,8 +97,18 @@ Status: NOT STARTED.
 
 ## Package 26.6 — Overrides
 
-Price override + discount approval via the
-manager-override mechanism.
+`ManagerOverride` in domain/sales (§153 price override,
+§154 discount approval): `evaluate(request,
+hasOverrideCapability)` returns Allowed or
+RequiresManagerApproval. No PIN store is invented: the
+existing mechanism is capabilities — the discount side
+already had `invoice.discount.override`, and 26.6 adds
+the missing price side (`invoice.price.override`,
+constant + DEFINITIONS entry in domain/user, ALL
+derives automatically). The caller maps grants to the
+boolean, or a manager approval collected out of band at
+26.7. Without it the cart edit must not apply. 4 JVM
+tests.
 
 Status: NOT STARTED.
 
