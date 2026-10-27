@@ -117,7 +117,26 @@ Status: ACCEPTED on `6e616a9`.
 
 ## Package 30.7 — Cloud status surface
 
-Status: NOT STARTED.
+Cloud status surface in domain/business.
+This does NOT duplicate feature/syncstatus:
+that module owns pairing (paired,
+endpoint, error) and its screen. This
+model answers the Phase 30 question the
+pairing screen does not: given the
+storage mode, the pairing state and the
+tenant scope (30.1), which cloud
+surfaces — portal (30.3), store (30.4),
+admin (30.5) — are actually available?
+CloudStatusOps.isCloudReady requires all
+three (connected mode, paired, tenant
+present); availableSurfaces returns
+nothing until ready. The mode is local to
+this model because domain/business cannot
+depend on core/sync's StorageMode; the
+app shell maps one to the other. 8 JVM
+tests.
+
+Status: ACCEPTED on `c6e35d1`.
 
 ## Package 30.8 — Gate
 
@@ -134,3 +153,5 @@ Status: NOT STARTED.
 30.5 ACCEPTED 2026-10-27 on `408bfd0` (trio Native 40491303632 / Compose 40491303590 / Segmented 40491303634, all green, first head): web admin + SaaS models in domain/business, 8 JVM tests.
 
 30.6 ACCEPTED 2026-10-27 on `6e616a9` (trio Native 40493741236 / Compose 40493741247 attempt 2 / Segmented 40493741283, all green; first Compose attempt failed on the known inventory adjust-flow flake only, proven via raw log, then passed on a failed-jobs re-run): cross-device numbering in domain/business, 8 JVM tests.
+
+30.7 ACCEPTED 2026-10-27 on `c6e35d1` (trio Native 40497467582 / Compose 40497467676 / Segmented 40497467511, all green, first head): cloud status surface in domain/business, 8 JVM tests.
