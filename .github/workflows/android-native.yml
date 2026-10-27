@@ -286,6 +286,11 @@ jobs:
       - name: "15.5 Debug APK"
         run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
+      - name: "15.5a Preserve full-module debug APK"
+        run: |
+          mkdir -p acceptance-evidence
+          cp app/build/outputs/apk/debug/app-debug.apk acceptance-evidence/app-debug-full-modules.apk
+
       - name: "15.6 Release APK"
         run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
 
@@ -309,6 +314,11 @@ jobs:
             -Pwl.design.defaultLargeTouchTargets=true \
             -Pwl.paymentMethods=cash:Cash,insurance:Insurance
 
+      - name: "17a. Preserve demo white-label APK"
+        run: |
+          mkdir -p acceptance-evidence
+          cp app/build/outputs/apk/debug/app-debug.apk acceptance-evidence/app-debug-demo-abc-pharmacy.apk
+
       - name: "17.1 Compile Compose UI instrumentation tests"
         run: ./gradlew :feature:items:assembleDebugAndroidTest --stacktrace --no-daemon
 
@@ -325,6 +335,8 @@ jobs:
             test -s "$apk"
             sha256sum "$apk" >> acceptance-evidence/apk-sha256.txt
           done < acceptance-evidence/apk-files.txt
+          sha256sum acceptance-evidence/app-debug-full-modules.apk >> acceptance-evidence/apk-sha256.txt
+          sha256sum acceptance-evidence/app-debug-demo-abc-pharmacy.apk >> acceptance-evidence/apk-sha256.txt
           cat acceptance-evidence/apk-sha256.txt
           echo "Verified APK paths and SHA-256 hashes for commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lubrcapp.lubrcapp.core.repository.AuditActions
@@ -641,19 +643,26 @@ private fun CapabilityDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {
                 Capabilities.DEFINITIONS.forEach { definition ->
+                    // Selectable row, not a bare Checkbox beside text: a
+                    // tap anywhere on the row toggles, so tapping the
+                    // permission name cannot silently leave it unselected.
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().selectable(
+                            selected = definition.key in selected,
+                            onClick = {
+                                selected = if (definition.key in selected) {
+                                    selected - definition.key
+                                } else {
+                                    selected + definition.key
+                                }
+                            },
+                            role = Role.Checkbox,
+                        ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(
                             checked = definition.key in selected,
-                            onCheckedChange = { checked ->
-                                selected = if (checked) {
-                                    selected + definition.key
-                                } else {
-                                    selected - definition.key
-                                }
-                            },
+                            onCheckedChange = null,
                         )
                         Column {
                             Text(definition.key.value, style = MaterialTheme.typography.labelLarge)

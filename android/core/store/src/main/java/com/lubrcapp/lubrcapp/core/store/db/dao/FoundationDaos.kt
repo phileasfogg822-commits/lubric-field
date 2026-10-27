@@ -273,6 +273,47 @@ interface AccessDao {
         updatedBy: String?,
     ): Int
 
+    // Refresh touch: capability edits and role assignments change only
+    // the link tables (role_permissions, user_business_roles), which the
+    // roles/memberships Flows do not observe — without a touch on the
+    // row itself, the list never re-emits and the UI keeps stale
+    // capabilities/roleIds after a silent, successful save.
+    @Query(
+        """
+        UPDATE roles
+        SET updatedAt = :updatedAt,
+            updatedBy = :updatedBy,
+            revision = revision + 1
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :roleId AND deletedAt IS NULL
+        """
+    )
+    suspend fun touchRole(
+        tenantId: String,
+        businessId: String,
+        roleId: String,
+        updatedAt: Long,
+        updatedBy: String?,
+    ): Int
+
+    @Query(
+        """
+        UPDATE user_businesses
+        SET updatedAt = :updatedAt,
+            updatedBy = :updatedBy,
+            revision = revision + 1
+        WHERE tenantId = :tenantId AND businessId = :businessId
+          AND id = :membershipId AND deletedAt IS NULL
+        """
+    )
+    suspend fun touchMembership(
+        tenantId: String,
+        businessId: String,
+        membershipId: String,
+        updatedAt: Long,
+        updatedBy: String?,
+    ): Int
+
     @Query(
         """
         SELECT * FROM roles
