@@ -60,7 +60,30 @@ Status: ACCEPTED on `06553fd`.
 
 ## Package 29.5 — Notification center screens + shell wiring
 
-Status: NOT STARTED.
+Notification center (§165) end to end: a new
+`feature/notifications` module with
+NotificationCenterScreen (title, unread count,
+scrolling rows, empty state, tap-to-mark-read
+only when a callback is supplied), a shell
+NotificationsMapper (overdue = non-draft INVOICE
+with a past due date, party name or document
+fallback), and NotificationsContent wiring real
+documents into the screen. Registry entry
+reuses the existing notifications config key
+with a new NOTIFICATIONS_VIEW capability;
+the Compose workflow runs the new module's
+emulator tests. 11 tests (4 screen emulator,
+5 mapper JVM, 2 registry JVM).
+
+Only overdue invoices are wired today: low
+stock needs a stock-quantity surface the shell
+does not have, and expiry, purchase-due and
+credit inputs need their record surfaces —
+named follow-ups, not fake rows. Mark-read
+state is in-memory only, since derived
+notifications are not stored.
+
+Status: ACCEPTED on `449480c`.
 
 ## Package 29.6 — Gate
 
@@ -75,3 +98,5 @@ Status: NOT STARTED.
 29.3 ACCEPTED 2026-10-27 on `0a893a7` (trio Native 40452584648 / Compose 40452584722 / Segmented 40452584646, all green, first head): reminder templates in domain/business, 8 JVM tests.
 
 29.4 ACCEPTED 2026-10-27 on `06553fd` (trio Native 40456825255 / Compose 40456825285 / Segmented 40456825279, all green, first head): automation evaluators in domain/business, 8 JVM tests.
+
+29.5 ACCEPTED 2026-10-27 on `449480c` (trio Native 40463981958 / Compose 40463981888 / Segmented 40463981874, all green, after fix heads 346fa1c and 449480c): notification center screens + shell wiring, 11 tests.
