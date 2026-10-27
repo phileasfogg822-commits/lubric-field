@@ -6,6 +6,12 @@ import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.business.DocumentNumbering
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.common.InvoiceId
+import com.lubrcapp.lubrcapp.domain.common.Money
+import com.lubrcapp.lubrcapp.domain.payment.AllocationResult
+import com.lubrcapp.lubrcapp.domain.payment.OpenInvoice
+import com.lubrcapp.lubrcapp.domain.payment.Payment
+import com.lubrcapp.lubrcapp.domain.payment.PaymentAllocation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.math.BigDecimal
 import java.time.Instant
@@ -286,6 +292,75 @@ class SalesViewModel @Inject constructor(
         val result = SalesDocumentStatus.recordDelivery(order, lines, lineId, quantity)
         saveDocumentWithLines(scope, result.document, result.lines)
         return result.document
+    }
+
+    // Phase 31.2 — receive money on invoices. The journal posting
+    // happens in the shell (SalesPaymentPosting + AccountsViewModel)
+    // BEFORE this runs; this only applies the money to invoices and
+    // records the history. alreadyPaid is derived from prior
+    // PAYMENT_RECEIVED timeline entries (21.1: no stored paidAmount
+    // on the invoice), so a second receipt accumulates correctly.
+    // Totals are recomputed from current lines through the engine
+    // (the same basis as the invoice posting builder); invoice-level
+    // charges/discounts held only in editor state are not part of
+    // the stored document and are not included here. A timeline
+    // entry is written for every positive application even when the
+    // status does not change (a second partial payment on an
+    // already PARTIALLY_PAID invoice must still accumulate).
+    suspend fun applyReceipt(
+        scope: OperationalScope,
+        payment: Payment,
+        currency: CurrencyCode,
+    ): AllocationResult {
+        val payableStatuses = setOf("SENT", "PARTIALLY_PAID", "OVERDUE")
+        val invoices = loadInvoices(scope).filter {
+            it.type == SalesDocumentType.INVOICE &&
+                it.partyId == payment.partyId.value &&
+                it.status in payableStatuses
+        }
+        val openInvoices = invoices.mapNotNull { invoice ->
+            val lines = loadLines(scope, invoice.id)
+            val grandTotal = SalesDocumentEngine.totals(lines, currency).grandTotal
+            val alreadyPaid = loadTimeline(scope, invoice.id)
+                .filter { it.action == "PAYMENT_RECEIVED" }
+                .fold(Money.zero(currency)) { acc, entry ->
+                    val applied = entry.grandTotal.toBigDecimalOrNull()
+                    if (applied == null) acc else acc + Money.of(applied, currency)
+                }
+            val outstanding = grandTotal - alreadyPaid
+            if (outstanding.isZero || outstanding.amount < BigDecimal.ZERO) null
+            else OpenInvoice(
+                invoiceId = InvoiceId(invoice.id),
+                partyId = payment.partyId,
+                grandTotal = grandTotal,
+                alreadyPaid = alreadyPaid,
+                dueDate = runCatching { LocalDate.parse(invoice.dueDate ?: "") }.getOrNull()
+                    ?: runCatching { LocalDate.parse(invoice.date) }.getOrNull()
+                    ?: LocalDate.MAX,
+                collectible = true,
+            )
+        }
+        val result = PaymentAllocation.allocate(payment, openInvoices)
+        for (application in result.applications) {
+            if (application.applied.isZero) continue
+            val invoice = invoices.firstOrNull { it.id == application.invoiceId.value } ?: continue
+            val updated = SalesDocumentStatus.applyPayment(invoice, application)
+            if (updated != invoice) saveDocument(scope, updated)
+            saveTimelineEntry(
+                scope,
+                TimelineEntry(
+                    id = UUID.randomUUID().toString(),
+                    documentId = invoice.id,
+                    documentType = SalesDocumentType.INVOICE.name,
+                    documentNumber = invoice.number,
+                    partyId = invoice.partyId,
+                    action = "PAYMENT_RECEIVED",
+                    grandTotal = application.applied.amount.toPlainString(),
+                    timestamp = Instant.now().toString(),
+                ),
+            )
+        }
+        return result
     }
 
     // Phase 21.2 §213 reservations surface. Reservations are

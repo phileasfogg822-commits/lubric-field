@@ -291,4 +291,60 @@ class SalesScreenComposeTest {
         }
         compose.onAllNodesWithText("Status: PARTIALLY_FULFILLED").assertCountEquals(1)
     }
+
+    @Test fun receivePaymentOnSentInvoiceMovesStatusToPartiallyPaid() {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        runBlocking {
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(
+                    id = "doc-1",
+                    type = SalesDocumentType.INVOICE,
+                    number = "INV-1",
+                    partyId = "party-1",
+                    date = "2026-10-27",
+                    status = "SENT",
+                ),
+                listOf(
+                    SalesDocumentLine(
+                        id = "l-1",
+                        orderId = "doc-1",
+                        position = 0,
+                        quantity = BigDecimal("10"),
+                        rate = BigDecimal("100"),
+                    ),
+                ),
+            )
+        }
+        compose.setContent {
+            SalesScreen(
+                scope,
+                onBack = {},
+                viewModel = vm,
+                accountOptions = listOf(
+                    PostingAccountOption("cash-1", "Cash"),
+                    PostingAccountOption("recv-1", "Receivable"),
+                ),
+                onPostPayment = { _, _, _ -> SalesPostResult.Posted("INV-1", emptyList()) },
+            )
+        }
+        compose.onNodeWithText("INV-1 · Invoice · SENT · 2026-10-27").performClick()
+        compose.onNodeWithTag("receiveAmount").performScrollTo().performTextInput("500")
+        // Both pickers list both accounts: the first "Cash" is the
+        // cash picker, the second "Receivable" is the receivable
+        // picker. (The section titles are "Cash account" /
+        // "Receivable account", so exact matches hit only rows.)
+        compose.onAllNodesWithText("Cash")[0].performScrollTo().performClick()
+        compose.onAllNodesWithText("Receivable")[1].performScrollTo().performClick()
+        compose.onNodeWithTag("receiveButton").performScrollTo().performClick()
+        compose.waitUntil(10000) {
+            try {
+                compose.onAllNodesWithText("Status: PARTIALLY_PAID").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+    }
 }

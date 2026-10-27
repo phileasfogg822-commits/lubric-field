@@ -34,7 +34,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.EntityMetadata
+import com.lubrcapp.lubrcapp.domain.common.InvoiceId
+import com.lubrcapp.lubrcapp.domain.common.Money
+import com.lubrcapp.lubrcapp.domain.common.PartyId
+import com.lubrcapp.lubrcapp.domain.common.TenantId
+import com.lubrcapp.lubrcapp.domain.payment.Payment
+import com.lubrcapp.lubrcapp.domain.payment.PaymentDirection
+import com.lubrcapp.lubrcapp.domain.payment.PaymentId
+import com.lubrcapp.lubrcapp.domain.payment.PaymentMethodId
 import com.lubrcapp.lubrcapp.domain.sales.DocumentStatusRules
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
@@ -66,6 +77,7 @@ fun SalesScreen(
     viewModel: SalesViewModel = hiltViewModel(),
     accountOptions: List<PostingAccountOption> = emptyList(),
     onPostDocument: (suspend (SalesDocument, InvoicePostingAccounts, CurrencyCode) -> SalesPostResult)? = null,
+    onPostPayment: (suspend (Payment, String, PaymentPostingAccounts) -> SalesPostResult)? = null,
 ) {
     val documents by remember(viewModel, scope) { viewModel.observeDocuments(scope) }
         .collectAsState(initial = emptyList())
@@ -82,6 +94,8 @@ fun SalesScreen(
     val saveError = stringResource(R.string.sales_error)
     val postedTemplate = stringResource(R.string.sales_posted)
     val deliveredNotice = stringResource(R.string.sales_delivered_notice)
+    val receivedNotice = stringResource(R.string.sales_payment_received)
+    val unallocatedTemplate = stringResource(R.string.sales_payment_unallocated)
     val postingRejectedTemplate = stringResource(R.string.sales_posting_rejected)
     val currency = remember(currencyCode) { CurrencyCode.of(currencyCode) }
 
@@ -337,6 +351,57 @@ fun SalesScreen(
                 } else {
                     { document, accounts -> postDocument(document, accounts) }
                 },
+                onReceivePayment = if (onPostPayment == null) {
+                    null
+                } else {
+                    { amount, accounts ->
+                        val paymentHandler = onPostPayment ?: return@DocumentEditor
+                        val invoiceId = currentForm.existingId ?: return@DocumentEditor
+                        val partyId = currentForm.partyId ?: return@DocumentEditor
+                        saving = true
+                        coroutineScope.launch {
+                            try {
+                                val payment = Payment(
+                                    id = PaymentId(UUID.randomUUID().toString()),
+                                    tenantId = TenantId(scope.tenantId),
+                                    businessId = BusinessId(scope.businessId),
+                                    partyId = PartyId(partyId),
+                                    direction = PaymentDirection.RECEIVED,
+                                    methodId = PaymentMethodId("CASH"),
+                                    amount = Money.of(amount, currency),
+                                    relatedInvoiceId = InvoiceId(invoiceId),
+                                    date = LocalDate.now(),
+                                    metadata = EntityMetadata.newLocal(Instant.now(), DeviceId(scope.deviceId)),
+                                )
+                                when (val result = paymentHandler(payment, currentForm.number, accounts)) {
+                                    is SalesPostResult.Posted -> {
+                                        val allocation = viewModel.applyReceipt(scope, payment, currency)
+                                        val updated = viewModel.loadInvoices(scope)
+                                            .firstOrNull { it.id == invoiceId }
+                                        if (updated != null) openDocument(updated)
+                                        notice = if (allocation.unallocated.isZero) {
+                                            receivedNotice
+                                        } else {
+                                            unallocatedTemplate.format(
+                                                allocation.unallocated.amount.toPlainString(),
+                                            )
+                                        }
+                                        error = null
+                                    }
+                                    is SalesPostResult.Rejected -> {
+                                        error = postingRejectedTemplate.format(
+                                            result.reasons.joinToString(", "),
+                                        )
+                                    }
+                                }
+                            } catch (_: Exception) {
+                                error = saveError
+                            } finally {
+                                saving = false
+                            }
+                        }
+                    }
+                },
             )
         }
     }
@@ -360,6 +425,7 @@ private fun DocumentEditor(
     onDeliverLine: ((lineId: String, quantity: BigDecimal) -> Unit)? = null,
     accountOptions: List<PostingAccountOption>,
     onPostDocument: ((SalesDocument, InvoicePostingAccounts) -> Unit)?,
+    onReceivePayment: ((amount: BigDecimal, accounts: PaymentPostingAccounts) -> Unit)? = null,
 ) {
     var pickerLineId by remember(form.existingId) { mutableStateOf<String?>(null) }
     var deliverQuantities by remember(form.existingId) { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -367,6 +433,9 @@ private fun DocumentEditor(
     var receivableId by remember(form.existingId) { mutableStateOf<String?>(null) }
     var revenueId by remember(form.existingId) { mutableStateOf<String?>(null) }
     var taxId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var payAmount by remember(form.existingId) { mutableStateOf("") }
+    var payCashId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var payReceivableId by remember(form.existingId) { mutableStateOf<String?>(null) }
     val totals = remember(form, currency) { form.totalsOrNull(currency) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -715,6 +784,89 @@ private fun DocumentEditor(
                                 modifier = Modifier.weight(1f),
                             ) { Text(stringResource(R.string.sales_posting_cancel)) }
                         }
+                    }
+                }
+            }
+            // Phase 31.2 — receive money on an open invoice. The
+            // section shows only for payable invoice statuses; the
+            // screen builds the Payment and posts it, then applies
+            // the receipt across the party's open invoices.
+            val receivePayment = onReceivePayment
+            if (receivePayment != null &&
+                form.type == SalesDocumentType.INVOICE &&
+                form.existingId != null &&
+                (form.status == "SENT" || form.status == "PARTIALLY_PAID" || form.status == "OVERDUE")
+            ) {
+                run {
+                    Text(stringResource(R.string.sales_payment_title), style = MaterialTheme.typography.titleMedium)
+                }
+                if (accountOptions.isEmpty()) {
+                    run {
+                        Text(stringResource(R.string.sales_posting_no_accounts))
+                    }
+                } else {
+                    run {
+                        OutlinedTextField(
+                            value = payAmount,
+                            onValueChange = { payAmount = it },
+                            label = { Text(stringResource(R.string.sales_payment_amount)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth().testTag("receiveAmount"),
+                        )
+                    }
+                    run {
+                        Text(stringResource(R.string.sales_payment_cash), style = MaterialTheme.typography.titleMedium)
+                    }
+                    accountOptions.forEach { option ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.selectable(
+                                selected = payCashId == option.id,
+                                onClick = { payCashId = option.id },
+                                role = Role.RadioButton,
+                            ),
+                        ) {
+                            RadioButton(
+                                selected = payCashId == option.id,
+                                onClick = null,
+                            )
+                            Text(option.name)
+                        }
+                    }
+                    run {
+                        Text(stringResource(R.string.sales_payment_receivable), style = MaterialTheme.typography.titleMedium)
+                    }
+                    accountOptions.forEach { option ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.selectable(
+                                selected = payReceivableId == option.id,
+                                onClick = { payReceivableId = option.id },
+                                role = Role.RadioButton,
+                            ),
+                        ) {
+                            RadioButton(
+                                selected = payReceivableId == option.id,
+                                onClick = null,
+                            )
+                            Text(option.name)
+                        }
+                    }
+                    run {
+                        Button(
+                            onClick = {
+                                val amount = payAmount.toBigDecimalOrNull()
+                                val cashId = payCashId
+                                val receivableId = payReceivableId
+                                if (amount != null && cashId != null && receivableId != null) {
+                                    receivePayment(amount, PaymentPostingAccounts(cashId, receivableId))
+                                }
+                            },
+                            enabled = !saving &&
+                                (payAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true) &&
+                                payCashId != null && payReceivableId != null,
+                            modifier = Modifier.fillMaxWidth().testTag("receiveButton"),
+                        ) { Text(stringResource(R.string.sales_payment_button)) }
                     }
                 }
             }
