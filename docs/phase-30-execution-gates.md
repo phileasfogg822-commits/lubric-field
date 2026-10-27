@@ -48,7 +48,19 @@ Status: ACCEPTED on `0965ab2`.
 
 ## Package 30.3 — Customer portal models
 
-Status: NOT STARTED.
+Customer portal models (§227 + §226) in
+domain/business: five sections in spec order
+(Orders, Invoices, Statements, Payments,
+Catalog), portal account, order/invoice/
+payment/catalog rows, and PortalOps with due
+(amount minus paid, negative when overpaid),
+canPay (positive due only), and dueByCurrency
+(totals grouped per currency, never mixed).
+Download and Pay from §226 are portal
+actions, not model fields, so they stay in
+the UI layer. 8 JVM tests.
+
+Status: ACCEPTED on `3c4bf46`.
 
 ## Package 30.4 — Online store models
 
@@ -73,3 +85,5 @@ Status: NOT STARTED.
 30.1 ACCEPTED 2026-10-27 on `d7e05c8` (trio Native 40479707310 / Compose 40479707312 / Segmented 40479707346, all green, first head): multi-tenancy guards in domain/business, 8 JVM tests.
 
 30.2 ACCEPTED 2026-10-27 on `0965ab2` (trio Native 40484121488 / Compose 40484121644 / Segmented 40484121438, all green, after fix head 0965ab2): API surface contracts in domain/business, 8 JVM tests.
+
+30.3 ACCEPTED 2026-10-27 on `3c4bf46` (trio Native 40486002318 / Compose 40486002301 / Segmented 40486002283, all green, first head): customer portal models in domain/business, 8 JVM tests.
