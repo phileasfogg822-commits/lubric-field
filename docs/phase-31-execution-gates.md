@@ -62,6 +62,20 @@ CashBook filter/order + balance, cash-book emulator flow.
 
 ## Package 31.4 — Pending orders view
 
+A status filter row (All / Pending / Fulfilled / Cancelled)
+above the sales list, feeding the existing LazyColumn
+unchanged — no row changes, so existing row-text tests keep
+passing. The filter is the pure `SalesDocumentFilters`
+function, order-scoped by design (the walkthrough asked about
+pending ORDERS): PENDING = sales orders in DRAFT / CONFIRMED /
+PARTIALLY_FULFILLED, FULFILLED = sales orders FULFILLED only,
+CANCELLED = any document type CANCELLED, ALL = previous
+behaviour. Quotations and invoices are never "pending orders",
+and a PAID invoice is not a fulfilled order. Accepted first
+try on `4a46310`, no fix needed. Tests: 5 new — one JVM test
+per filter branch plus a mixed list, and an emulator test
+tapping Pending then Fulfilled over seeded orders.
+
 ## Package 31.5 — Overdue alerts
 
 ## Package 31.6 — Gate
@@ -73,3 +87,5 @@ Device fix ACCEPTED at `ef32f19`: Native 40567265119 / Compose 40567265106 / Seg
 31.2 ACCEPTED at `7a8a18f`: Native 40574224417 / Compose 40574224443 / Segmented 40574224430, all success. First head `acee5fc` went all red on the wrong import package (no test ran); the fix is import moves only.
 
 31.3 ACCEPTED at `74d533c`: Native 40581568347 / Compose 40581568321 / Segmented 40581568362, all success. First head `43de9cb` went all red on the unqualified nested result type (no test ran); the fix is one line.
+
+31.4 ACCEPTED at `4a46310`: Native 40587885090 / Compose 40587885227 / Segmented 40587884993, all success. First-try green, no fix needed.
