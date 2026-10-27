@@ -32,7 +32,15 @@ Status: ACCEPTED on `5055ed4`.
 
 ## Package 29.3 — Reminder templates
 
-Status: NOT STARTED.
+Reminder templates (§102) in domain/business:
+`ReminderTemplate` (id, body) + `ReminderTemplateOps`
+(`placeholders` extraction, `render` substituting
+`{name}` values; unsupplied placeholders left
+intact, never dropped; spaced braces literal).
+Templates are data, not hardcoded strings —
+§102 says editable. 8 JVM tests.
+
+Status: ACCEPTED on `0a893a7`.
 
 ## Package 29.4 — Automation evaluators
 
@@ -51,3 +59,5 @@ Status: NOT STARTED.
 29.1 ACCEPTED 2026-10-27 on `f82914d` (trio Native 40443611765 / Compose 40443611613 / Segmented 40443611671, all green, after fix head f82914d): notification model in domain/business, 8 JVM tests.
 
 29.2 ACCEPTED 2026-10-27 on `5055ed4` (trio Native 40448372443 / Compose 40448372510 / Segmented 40448372507, all green, first head): reminder schedule rules in domain/business, 8 JVM tests.
+
+29.3 ACCEPTED 2026-10-27 on `0a893a7` (trio Native 40452584648 / Compose 40452584722 / Segmented 40452584646, all green, first head): reminder templates in domain/business, 8 JVM tests.
