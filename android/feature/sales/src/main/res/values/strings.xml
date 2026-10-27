@@ -95,4 +95,8 @@
     <string name="fs_action_collections">Collections</string>
     <string name="fs_my_sales">My Sales</string>
     <string name="fs_targets">Targets</string>
+    <string name="sales_filter_all">All</string>
+    <string name="sales_filter_pending">Pending</string>
+    <string name="sales_filter_fulfilled">Fulfilled</string>
+    <string name="sales_filter_cancelled">Cancelled</string>
 </resources>

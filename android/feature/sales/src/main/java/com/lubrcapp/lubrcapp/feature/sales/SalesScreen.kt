@@ -90,6 +90,7 @@ fun SalesScreen(
     var saving by remember(scope) { mutableStateOf(false) }
     var error by remember(scope) { mutableStateOf<String?>(null) }
     var notice by remember(scope) { mutableStateOf<String?>(null) }
+    var filter by remember(scope) { mutableStateOf(SalesDocumentFilter.ALL) }
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.sales_error)
     val postedTemplate = stringResource(R.string.sales_posted)
@@ -170,11 +171,26 @@ fun SalesScreen(
                     )
                 }) { Text(stringResource(R.string.sales_new_order)) }
             }
-            if (documents.isEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { filter = SalesDocumentFilter.ALL }) {
+                    Text(stringResource(R.string.sales_filter_all))
+                }
+                Button(onClick = { filter = SalesDocumentFilter.PENDING }) {
+                    Text(stringResource(R.string.sales_filter_pending))
+                }
+                Button(onClick = { filter = SalesDocumentFilter.FULFILLED }) {
+                    Text(stringResource(R.string.sales_filter_fulfilled))
+                }
+                Button(onClick = { filter = SalesDocumentFilter.CANCELLED }) {
+                    Text(stringResource(R.string.sales_filter_cancelled))
+                }
+            }
+            val visibleDocuments = SalesDocumentFilters.filterDocuments(documents, filter)
+            if (visibleDocuments.isEmpty()) {
                 Text(stringResource(R.string.sales_empty))
             }
             LazyColumn {
-                items(documents, key = { it.id }) { document ->
+                items(visibleDocuments, key = { it.id }) { document ->
                     Button(
                         onClick = { openDocument(document) },
                         modifier = Modifier.fillMaxWidth(),

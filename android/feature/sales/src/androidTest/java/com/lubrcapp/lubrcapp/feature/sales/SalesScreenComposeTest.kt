@@ -347,4 +347,50 @@ class SalesScreenComposeTest {
             }
         }
     }
+
+    @Test fun pendingFilterShowsOnlyOpenOrders() {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        runBlocking {
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(id = "o-1", type = SalesDocumentType.SALES_ORDER, number = "SO-1", date = "2026-10-27", status = "DRAFT"),
+                emptyList(),
+            )
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(id = "o-2", type = SalesDocumentType.SALES_ORDER, number = "SO-2", date = "2026-10-27", status = "CONFIRMED"),
+                emptyList(),
+            )
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(id = "o-3", type = SalesDocumentType.SALES_ORDER, number = "SO-3", date = "2026-10-27", status = "FULFILLED"),
+                emptyList(),
+            )
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(id = "o-4", type = SalesDocumentType.SALES_ORDER, number = "SO-4", date = "2026-10-27", status = "CANCELLED"),
+                emptyList(),
+            )
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(id = "i-1", type = SalesDocumentType.INVOICE, number = "INV-1", date = "2026-10-27", status = "SENT"),
+                emptyList(),
+            )
+        }
+        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.onNodeWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertIsDisplayed()
+        compose.onNodeWithText("Pending").performClick()
+        compose.onNodeWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertIsDisplayed()
+        compose.onNodeWithText("SO-2 · Sales order · CONFIRMED · 2026-10-27").assertIsDisplayed()
+        // The filtered list holds only two rows, so every row is
+        // composed: a zero count here means genuinely filtered out,
+        // not merely below the LazyColumn fold.
+        compose.onAllNodesWithText("SO-3 · Sales order · FULFILLED · 2026-10-27").assertCountEquals(0)
+        compose.onAllNodesWithText("SO-4 · Sales order · CANCELLED · 2026-10-27").assertCountEquals(0)
+        compose.onAllNodesWithText("INV-1 · Invoice · SENT · 2026-10-27").assertCountEquals(0)
+        compose.onNodeWithText("Fulfilled").performClick()
+        compose.onNodeWithText("SO-3 · Sales order · FULFILLED · 2026-10-27").assertIsDisplayed()
+        compose.onAllNodesWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertCountEquals(0)
+    }
 }
