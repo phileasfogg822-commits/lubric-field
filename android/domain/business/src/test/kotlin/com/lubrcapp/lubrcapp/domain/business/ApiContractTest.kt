@@ -38,8 +38,8 @@ class ApiContractTest {
     }
 
     @Test
-    fun routeTableHasNineteenRoutes() {
-        assertEquals(19, ApiContract.routes.size)
+    fun routeTableHasTwelveRoutes() {
+        assertEquals(12, ApiContract.routes.size)
     }
 
     @Test
