@@ -97,7 +97,23 @@ Status: ACCEPTED on `408bfd0`.
 
 ## Package 30.6 — Cross-device numbering
 
-Status: NOT STARTED.
+Cross-device numbering in domain/business,
+built on the existing DocumentNumbering
+engine: the device id becomes the branch
+prefix, so a formatted number looks like
+`DEV1-INV-2026-00001` and two devices can
+never hand out the same number for the
+same document type, even with independent
+local counters. Merging collapses
+same-device, same-period state to the max
+and keeps different devices separate; a
+duplicate formatted number is flagged as
+a collision. Holds only while device ids
+are unique per device; server-side
+coordination stays a backend follow-up.
+8 JVM tests.
+
+Status: ACCEPTED on `6e616a9`.
 
 ## Package 30.7 — Cloud status surface
 
@@ -116,3 +132,5 @@ Status: NOT STARTED.
 30.4 ACCEPTED 2026-10-27 on `c81cca9` (trio Native 40488480350 / Compose 40488480331 / Segmented 40488480324, all green, first head): online store models in domain/business, 8 JVM tests.
 
 30.5 ACCEPTED 2026-10-27 on `408bfd0` (trio Native 40491303632 / Compose 40491303590 / Segmented 40491303634, all green, first head): web admin + SaaS models in domain/business, 8 JVM tests.
+
+30.6 ACCEPTED 2026-10-27 on `6e616a9` (trio Native 40493741236 / Compose 40493741247 attempt 2 / Segmented 40493741283, all green; first Compose attempt failed on the known inventory adjust-flow flake only, proven via raw log, then passed on a failed-jobs re-run): cross-device numbering in domain/business, 8 JVM tests.
