@@ -19,7 +19,16 @@ Status: ACCEPTED on `f82914d`.
 
 ## Package 29.2 — Reminder schedule rules
 
-Status: NOT STARTED.
+Reminder schedule rules (§103) in domain/business:
+`ReminderRule` (id, partyId, per-customer enabled
+flag) + `ReminderSchedule` (cadence −3, 0, +3,
++7, then every 7 days; `isReminderDate`,
+`nextReminderAfter` strictly after a given
+date, `isOverdue` strictly past due). Pure date
+math over ISO text; malformed input throws
+rather than computing silently. 8 JVM tests.
+
+Status: ACCEPTED on `5055ed4`.
 
 ## Package 29.3 — Reminder templates
 
@@ -40,3 +49,5 @@ Sweep, recount, carryovers.
 Status: NOT STARTED.
 
 29.1 ACCEPTED 2026-10-27 on `f82914d` (trio Native 40443611765 / Compose 40443611613 / Segmented 40443611671, all green, after fix head f82914d): notification model in domain/business, 8 JVM tests.
+
+29.2 ACCEPTED 2026-10-27 on `5055ed4` (trio Native 40448372443 / Compose 40448372510 / Segmented 40448372507, all green, first head): reminder schedule rules in domain/business, 8 JVM tests.
