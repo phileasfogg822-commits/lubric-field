@@ -39,7 +39,11 @@ class RoomVpsBusinessRepository @Inject constructor(
     override suspend fun save(scope: OperationalScope, table: String, id: String, json: String, revision: Long) =
         saveOffline(SyncIdentity(scope.tenantId, scope.businessId, scope.deviceId), table, id, json, revision)
 
-    private val deletableTypes = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations")
+    private val deletableTypes = setOf("products", "services", "customers", "vehicles", "vendors", "reminders", "price_lists", "price_list_items", "party_price_lists", "party_prices", "customer_groups", "units", "unit_conversions", "warehouses", "warehouse_locations",
+        // Nonfinancial master data the items screens delete by tombstone, like products:
+        // categories, brands, branches and batches are record types the Phase 15/16
+        // features own, and their screens call delete on them.
+        "categories", "brands", "branches", "batches")
 
     override suspend fun delete(scope: OperationalScope, table: String, id: String) {
         validate(scope.tenantId, scope.businessId, table)
@@ -66,7 +70,15 @@ class RoomVpsBusinessRepository @Inject constructor(
         "cash_movements", "reservations", "party_ledger", "commitments",
         "stock_movements", "price_lists", "price_list_items", "party_price_lists",
         "party_prices", "customer_groups", "units", "unit_conversions",
-        "warehouses", "warehouse_locations"
+        "warehouses", "warehouse_locations",
+        // Record types later phases added without updating this list — the
+        // screens that own them crashed on open (validate throws during
+        // composition) and their saves were rejected outright:
+        // items master data (15/16), inventory records (19), accounts
+        // journal (20) and sales numbering/timeline (18).
+        "categories", "brands", "branches", "batches",
+        "stock_levels", "stock_transfers", "serial_numbers",
+        "journal_entries", "timeline_entries", "numbering_sequences",
     )
 
     private fun validate(tenantId: String, businessId: String, entityType: String) {
@@ -99,7 +111,15 @@ class RoomVpsBusinessRepository @Inject constructor(
         require(identity.deviceId.isNotBlank() && entityId.isNotBlank())
         require(revision >= 0)
         val payload = JSONObject(payloadJson)
-        require(payload.getString("uuid") == entityId) { "Payload UUID mismatch" }
+        // The record id is authoritative: typed codecs (ItemJson, PartyJson,
+        // and friends) do not write a uuid key, so a missing uuid is
+        // injected here rather than rejecting every typed save. An
+        // explicitly mismatched uuid is still rejected, as before.
+        if (payload.has("uuid")) {
+            require(payload.getString("uuid") == entityId) { "Payload UUID mismatch" }
+        } else {
+            payload.put("uuid", entityId)
+        }
         require(!payload.optBoolean("_deleted", false)) { "Cannot save a tombstone as a live record" }
         val now = System.currentTimeMillis()
         database.withTransaction {
