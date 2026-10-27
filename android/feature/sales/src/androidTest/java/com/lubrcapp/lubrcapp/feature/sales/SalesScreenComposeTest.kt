@@ -250,4 +250,45 @@ class SalesScreenComposeTest {
         assertEquals(null, posted[0].second.taxAccountId)
         assertEquals("XXX", posted[0].third)
     }
+
+    @Test fun deliverLineOnConfirmedOrderMovesStatusToPartiallyFulfilled() {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        runBlocking {
+            vm.saveDocumentWithLines(
+                scope,
+                SalesDocument(
+                    id = "doc-1",
+                    type = SalesDocumentType.SALES_ORDER,
+                    number = "SO-1",
+                    date = "2026-10-27",
+                    status = "CONFIRMED",
+                ),
+                listOf(
+                    SalesDocumentLine(
+                        id = "l-1",
+                        orderId = "doc-1",
+                        position = 0,
+                        description = "Engine Oil",
+                        quantity = BigDecimal("10"),
+                        rate = BigDecimal("100"),
+                    ),
+                ),
+            )
+        }
+        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.onNodeWithText("SO-1 · Sales order · CONFIRMED · 2026-10-27").performClick()
+        compose.onAllNodesWithText("Delivered: 0 of 10").assertCountEquals(1)
+        compose.onNodeWithTag("deliverQty_l-1").performScrollTo().performTextInput("4")
+        compose.onNodeWithTag("deliverButton_l-1").performScrollTo().performClick()
+        compose.waitUntil(10000) {
+            try {
+                compose.onAllNodesWithText("Delivered: 4 of 10").assertCountEquals(1)
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+        compose.onAllNodesWithText("Status: PARTIALLY_FULFILLED").assertCountEquals(1)
+    }
 }

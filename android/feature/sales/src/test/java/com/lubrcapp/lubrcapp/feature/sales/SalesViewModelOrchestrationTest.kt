@@ -48,6 +48,27 @@ class SalesViewModelOrchestrationTest {
     )
 
     @Test
+    fun recordDeliveryPartialThenFullMovesOrderStatus() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val document = SalesDocument(id = "doc-1", type = SalesDocumentType.SALES_ORDER, status = "CONFIRMED")
+        val line = SalesDocumentLine(
+            id = "l-1",
+            orderId = "doc-1",
+            position = 0,
+            quantity = BigDecimal("10"),
+            rate = BigDecimal("100"),
+        )
+        vm.saveDocumentWithLines(scope, document, listOf(line))
+        val partial = vm.recordDelivery(scope, "doc-1", "l-1", BigDecimal("4"))
+        assertEquals("PARTIALLY_FULFILLED", partial.status)
+        assertEquals(BigDecimal("4"), vm.loadLines(scope, "doc-1").single().fulfilledQuantity)
+        val full = vm.recordDelivery(scope, "doc-1", "l-1", BigDecimal("6"))
+        assertEquals("FULFILLED", full.status)
+        assertEquals(BigDecimal("10"), vm.loadLines(scope, "doc-1").single().fulfilledQuantity)
+    }
+
+    @Test
     fun savingADocumentDeletesLinesThatWereRemovedInTheEditor() = runBlocking {
         val fake = FakeRepository()
         val vm = SalesViewModel(fake)

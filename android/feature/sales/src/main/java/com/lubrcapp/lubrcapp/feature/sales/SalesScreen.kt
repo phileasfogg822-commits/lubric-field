@@ -39,6 +39,7 @@ import com.lubrcapp.lubrcapp.domain.sales.DocumentStatusRules
 import com.lubrcapp.lubrcapp.domain.sales.QuotationStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesOrderStatus
 import com.lubrcapp.lubrcapp.domain.sales.SalesStatus
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -80,6 +81,7 @@ fun SalesScreen(
     val coroutineScope = rememberCoroutineScope()
     val saveError = stringResource(R.string.sales_error)
     val postedTemplate = stringResource(R.string.sales_posted)
+    val deliveredNotice = stringResource(R.string.sales_delivered_notice)
     val postingRejectedTemplate = stringResource(R.string.sales_posting_rejected)
     val currency = remember(currencyCode) { CurrencyCode.of(currencyCode) }
 
@@ -312,6 +314,23 @@ fun SalesScreen(
                         }
                     }
                 },
+                onDeliverLine = { lineId, quantity ->
+                    val orderId = currentForm.existingId ?: return@DocumentEditor
+                    saving = true
+                    coroutineScope.launch {
+                        try {
+                            val updated = viewModel.recordDelivery(scope, orderId, lineId, quantity)
+                            val lines = viewModel.loadLines(scope, orderId)
+                            form = SalesDocumentFormState.fromDocument(updated, lines)
+                            notice = deliveredNotice
+                            error = null
+                        } catch (_: Exception) {
+                            error = saveError
+                        } finally {
+                            saving = false
+                        }
+                    }
+                },
                 accountOptions = accountOptions,
                 onPostDocument = if (onPostDocument == null) {
                     null
@@ -338,10 +357,12 @@ private fun DocumentEditor(
     onConvert: () -> Unit,
     onConvertToInvoice: () -> Unit,
     onConvertToReturn: () -> Unit,
+    onDeliverLine: ((lineId: String, quantity: BigDecimal) -> Unit)? = null,
     accountOptions: List<PostingAccountOption>,
     onPostDocument: ((SalesDocument, InvoicePostingAccounts) -> Unit)?,
 ) {
     var pickerLineId by remember(form.existingId) { mutableStateOf<String?>(null) }
+    var deliverQuantities by remember(form.existingId) { mutableStateOf<Map<String, String>>(emptyMap()) }
     var showPostingPicker by remember(form.existingId) { mutableStateOf(false) }
     var receivableId by remember(form.existingId) { mutableStateOf<String?>(null) }
     var revenueId by remember(form.existingId) { mutableStateOf<String?>(null) }
@@ -508,6 +529,55 @@ private fun DocumentEditor(
                     run {
                         Button(onClick = onConvertToReturn, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.sales_convert_to_return))
+                        }
+                    }
+                }
+            }
+            // 31.1 — delivery against a saved order's lines. Only orders
+            // that can take deliveries (CONFIRMED and beyond) offer it;
+            // the engine re-derives the order status from fulfilled
+            // quantities. A line added in this editor but never saved
+            // fails in the handler with the generic error, not a crash.
+            val deliverHandler = onDeliverLine
+            if (form.type == SalesDocumentType.SALES_ORDER &&
+                form.existingId != null && deliverHandler != null
+            ) {
+                val orderStatus = SalesDocumentStatus.orderStatus(form.toDocument(form.existingId))
+                if (orderStatus == SalesOrderStatus.CONFIRMED ||
+                    orderStatus == SalesOrderStatus.PARTIALLY_FULFILLED ||
+                    orderStatus == SalesOrderStatus.FULFILLED
+                ) {
+                    run {
+                        Text(
+                            stringResource(R.string.sales_delivery_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    form.lines.forEach { draft ->
+                        val qtyText = deliverQuantities[draft.id] ?: ""
+                        val qty = qtyText.trim().toBigDecimalOrNull()
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                stringResource(
+                                    R.string.sales_delivered_line,
+                                    draft.fulfilledQuantity.toPlainString(),
+                                    draft.quantity.ifBlank { "0" },
+                                ),
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = qtyText,
+                                    onValueChange = { deliverQuantities = deliverQuantities + (draft.id to it) },
+                                    label = { Text(stringResource(R.string.sales_deliver_quantity)) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.weight(1f).testTag("deliverQty_${draft.id}"),
+                                )
+                                Button(
+                                    onClick = { deliverHandler(draft.id, qty!!) },
+                                    enabled = !saving && qty != null && qty.signum() > 0,
+                                    modifier = Modifier.testTag("deliverButton_${draft.id}"),
+                                ) { Text(stringResource(R.string.sales_deliver_button)) }
+                            }
                         }
                     }
                 }

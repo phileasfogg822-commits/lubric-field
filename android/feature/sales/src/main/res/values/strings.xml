@@ -39,6 +39,11 @@
     <string name="sales_type_credit_note">Credit note</string>
     <string name="sales_convert_to_invoice">Convert to invoice</string>
     <string name="sales_convert_to_return">Convert to return</string>
+    <string name="sales_delivery_title">Delivery</string>
+    <string name="sales_delivered_line">Delivered: %1$s of %2$s</string>
+    <string name="sales_deliver_quantity">Deliver quantity</string>
+    <string name="sales_deliver_button">Deliver</string>
+    <string name="sales_delivered_notice">Delivery recorded</string>
     <string name="sales_post_invoice">Post invoice</string>
     <string name="sales_post_return">Post return</string>
     <string name="sales_post_credit_note">Post credit note</string>
