@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -121,5 +123,41 @@ class AccountsScreenComposeTest {
         compose.onNodeWithText("Save account").assertIsNotEnabled()
         compose.onNodeWithText("Name").performScrollTo().performTextInput("Cash")
         compose.onNodeWithText("Save account").assertIsEnabled()
+    }
+
+    @Test fun cashBookRecordsOutEntryAndMovesBalance() {
+        val fake = FakeRepository()
+        fake.seedAccount(AccountRecord("cash", "1000", "Cash", AccountType.ASSET, null, true, ""))
+        fake.seedAccount(AccountRecord("sales", "4000", "Sales", AccountType.INCOME, null, true, ""))
+        fake.seedEntry(
+            JournalEntryRecord(
+                id = "je-1",
+                date = "2026-10-24",
+                description = "Opening cash",
+                lines = listOf(
+                    JournalLineRecord("cash", BigDecimal("100000"), BigDecimal.ZERO),
+                    JournalLineRecord("sales", BigDecimal.ZERO, BigDecimal("100000")),
+                ),
+                createdAt = "2026-10-24T00:00:00Z",
+            ),
+        )
+        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        compose.onNodeWithText("Cash book").performClick()
+        // Both pickers list both accounts, so the cash picker's row is
+        // the first "Cash" node and the counterpart picker's "Sales"
+        // row is the second "Sales" node; the mode button says
+        // "Cash book", so it never collides with the "Cash" rows.
+        compose.onAllNodesWithText("Cash")[0].performScrollTo().performClick()
+        compose.onAllNodesWithText("Sales")[1].performScrollTo().performClick()
+        compose.onNodeWithText("Cash balance: 100000").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Cash out").performScrollTo().performClick()
+        compose.onNodeWithText("Amount").performScrollTo().performTextInput("50000")
+        compose.onNodeWithText("Description").performScrollTo().performTextInput("Petty expense")
+        compose.onNodeWithTag("cashRecordButton").performScrollTo().performClick()
+        compose.waitUntil(5000) {
+            fake.state.value.any { it.first == "journal_entries" &&
+                JournalEntryJson.decode(it.second.id, it.second.json).description == "Petty expense" }
+        }
+        compose.onNodeWithText("Cash balance: 50000").performScrollTo().assertIsDisplayed()
     }
 }

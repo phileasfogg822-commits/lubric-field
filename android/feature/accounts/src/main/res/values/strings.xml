@@ -24,4 +24,19 @@
     <string name="accounts_entry_row">%1$s · %2$s · Dr %3$s / Cr %4$s</string>
     <string name="accounts_line_row">%1$s · Dr %2$s / Cr %3$s</string>
     <string name="accounts_back_to_journal">Back to journal</string>
+    <string name="accounts_mode_cash">Cash book</string>
+    <string name="accounts_cash_title">Cash in / out</string>
+    <string name="accounts_cash_account_label">Cash account</string>
+    <string name="accounts_cash_counterpart_label">Counterpart account</string>
+    <string name="accounts_cash_in">Cash in</string>
+    <string name="accounts_cash_out">Cash out</string>
+    <string name="accounts_cash_amount_label">Amount</string>
+    <string name="accounts_cash_description_label">Description</string>
+    <string name="accounts_cash_record">Record cash entry</string>
+    <string name="accounts_cash_recorded">Cash entry recorded</string>
+    <string name="accounts_cash_rejected">Cash entry rejected</string>
+    <string name="accounts_cash_error">Unable to record cash entry</string>
+    <string name="accounts_cash_balance_row">%1$s balance: %2$s</string>
+    <string name="accounts_cash_entry_row">%1$s · %2$s · Dr %3$s / Cr %4$s</string>
+    <string name="accounts_cash_entry_empty">No cash entries yet</string>
 </resources>
