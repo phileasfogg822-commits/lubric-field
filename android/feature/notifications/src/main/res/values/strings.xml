@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_center_title">Notifications</string>
+    <string name="notification_empty">No notifications</string>
+    <string name="notification_unread">Unread</string>
+    <string name="notification_unread_count">%1$d unread</string>
+</resources>

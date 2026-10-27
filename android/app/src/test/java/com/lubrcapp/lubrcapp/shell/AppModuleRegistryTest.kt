@@ -32,6 +32,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.POS_ID,
                 AppModuleRegistry.FIELD_SALES_ID,
                 AppModuleRegistry.DATA_ID,
+                AppModuleRegistry.NOTIFICATIONS_ID,
             ),
             AppModuleRegistry.modules.map { it.id },
         )
@@ -78,6 +79,7 @@ class AppModuleRegistryTest {
                 AppModuleRegistry.POS_ID,
                 AppModuleRegistry.FIELD_SALES_ID,
                 AppModuleRegistry.DATA_ID,
+                AppModuleRegistry.NOTIFICATIONS_ID,
             ),
             AppModuleRegistry.navigationModules().map { it.id },
         )
