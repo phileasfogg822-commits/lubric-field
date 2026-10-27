@@ -378,7 +378,7 @@ private fun CashContent(
                             now = Instant.now(),
                             deviceId = DeviceId(scope.deviceId),
                         )
-                        if (result is DocumentPostResult.Posted) {
+                        if (result is AccountsViewModel.DocumentPostResult.Posted) {
                             notice = recordedText
                             error = null
                             amount = ""
