@@ -39,6 +39,27 @@ receive emulator. Gap: no purchases compose test (JVM coverage only).
 
 ## Package 31.3 — Cash in/out
 
+A CASH mode inside AccountsScreen (no new registry module — the
+accounts feature owns posting, so no shell handler is needed):
+cash-account picker + counterpart picker over active accounts
+(AccountType has no CASH value, so no type filter — the user
+picks which account is cash), IN/OUT toggle, amount, description,
+and a Record button posting straight through
+`AccountsViewModel.postDocument`. `CashPosting` builds the
+journal (IN = Dr cash / Cr counterpart, OUT mirrored,
+documentType "CASH", one synthetic line, no party effect — the
+general book, not a second receipt path; customer/supplier cash
+already flows through 31.2). `CashBook` reads the selected
+account's entries (date-ordered) and balance (debit minus credit
+on that account's lines) from the observed journal entries, so a
+just-recorded entry appears through the same Flow. Currency
+stays the shell "XXX" default. First head `43de9cb` went all red
+on a staging miss (DocumentPostResult is nested inside
+AccountsViewModel, so the screen must qualify it — the build
+failed at :feature:accounts:compileDebugKotlin before any test
+ran); fix `74d533c` is one line. Tests: 5 new — CashPosting IN/OUT,
+CashBook filter/order + balance, cash-book emulator flow.
+
 ## Package 31.4 — Pending orders view
 
 ## Package 31.5 — Overdue alerts
@@ -50,3 +71,5 @@ receive emulator. Gap: no purchases compose test (JVM coverage only).
 Device fix ACCEPTED at `ef32f19`: Native 40567265119 / Compose 40567265106 / Segmented 40567265098, all success. The workflow now preserves the plain full-modules APK as acceptance-evidence/app-debug-full-modules.apk (and the ABC Pharmacy demo build separately), so a delivered APK is never the inventory-only demo again. DAO row-touch (touchRole/touchMembership inside the edit/assign transactions) makes role-permission edits and member role assignments re-emit, so the Access screen refreshes on save instead of after restart. Umar confirmed on device that permissions appear after restart, proving the save worked all along and only the list was stale.
 
 31.2 ACCEPTED at `7a8a18f`: Native 40574224417 / Compose 40574224443 / Segmented 40574224430, all success. First head `acee5fc` went all red on the wrong import package (no test ran); the fix is import moves only.
+
+31.3 ACCEPTED at `74d533c`: Native 40581568347 / Compose 40581568321 / Segmented 40581568362, all success. First head `43de9cb` went all red on the unqualified nested result type (no test ran); the fix is one line.
