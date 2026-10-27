@@ -26,8 +26,7 @@ object NotificationsMapper {
         documents.filter { document ->
             document.type == SalesDocumentType.INVOICE &&
                 document.status != "DRAFT" &&
-                document.dueDate != null &&
-                document.dueDate < today
+                (document.dueDate?.let { it < today } == true)
         }.map { document ->
             val number = document.number.ifBlank { document.id }
             Notification(
