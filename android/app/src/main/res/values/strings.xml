@@ -87,6 +87,7 @@
     <string name="feature_pos">POS</string>
     <string name="feature_fieldsales">Field Sales</string>
     <string name="feature_data">Data Tools</string>
+    <string name="feature_notifications">Notifications</string>
     <string name="data_back">Back</string>
     <string name="data_section_search">Search</string>
     <string name="data_section_export">Export</string>

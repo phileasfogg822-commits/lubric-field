@@ -101,6 +101,7 @@ object AppModuleRegistry {
     const val POS_ID = "pos"
     const val FIELD_SALES_ID = "fieldsales"
     const val DATA_ID = "data"
+    const val NOTIFICATIONS_ID = "notifications"
 
     val modules: List<AppModule> = listOf(
         AppModule(
@@ -260,6 +261,19 @@ object AppModuleRegistry {
             viewCapability = Capabilities.DATA_VIEW,
             selectable = true,
             content = { scope, back -> DataToolsContent(scope, back) },
+        ),
+        AppModule(
+            id = NOTIFICATIONS_ID,
+            titleRes = R.string.feature_notifications,
+            // Notifications ride the notifications config
+            // key that already exists in the flag set, so
+            // no flag roster changes; the capability is
+            // new (see NOTIFICATIONS_VIEW) because no
+            // existing view capability covers the center.
+            configKey = FeatureFlagKeys.MODULE_NOTIFICATIONS,
+            viewCapability = Capabilities.NOTIFICATIONS_VIEW,
+            selectable = true,
+            content = { scope, back -> NotificationsContent(scope, back) },
         ),
     )
 

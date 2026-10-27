@@ -125,6 +125,7 @@ class ResolvedShellVisibilityTest {
                 gatedKeys + setOf(
                     FeatureFlagKeys.MODULE_REPORTS,
                     FeatureFlagKeys.MODULE_BACKUP,
+                    FeatureFlagKeys.MODULE_NOTIFICATIONS,
                     "future_module",
                 ),
                 mapOf("another_unknown" to false),

@@ -47,6 +47,7 @@ class CapabilityGatedVisibilityTest {
                 AppModuleRegistry.CLOUD_SYNC_ID,
                 AppModuleRegistry.PRINTING_ID,
                 AppModuleRegistry.DATA_ID,
+                AppModuleRegistry.NOTIFICATIONS_ID,
             ),
             visibleIds(allConfig, allGrants - Capabilities.SALES_VIEW),
         )
