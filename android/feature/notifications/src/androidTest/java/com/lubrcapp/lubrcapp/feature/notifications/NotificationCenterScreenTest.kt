@@ -1,7 +1,9 @@
 package com.lubrcapp.lubrcapp.feature.notifications
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,7 +36,7 @@ class NotificationCenterScreenTest {
         }
         compose.onNodeWithText("Title a").assertIsDisplayed()
         compose.onNodeWithText("Detail b").assertIsDisplayed()
-        compose.onNodeWithText("2026-10-27").assertIsDisplayed()
+        compose.onAllNodesWithText("2026-10-27").assertCountEquals(2)
     }
 
     @Test
