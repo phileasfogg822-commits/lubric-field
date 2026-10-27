@@ -26,3 +26,5 @@ an emulator test driving the new controls. Head `5b1454d`.
 ## Package 31.6 — Gate
 
 31.1 ACCEPTED at `5b1454d`: Native 40563706397 / Compose 40563706406 / Segmented 40563706375, all success.
+
+Device fix ACCEPTED at `ef32f19`: Native 40567265119 / Compose 40567265106 / Segmented 40567265098, all success. The workflow now preserves the plain full-modules APK as acceptance-evidence/app-debug-full-modules.apk (and the ABC Pharmacy demo build separately), so a delivered APK is never the inventory-only demo again. DAO row-touch (touchRole/touchMembership inside the edit/assign transactions) makes role-permission edits and member role assignments re-emit, so the Access screen refreshes on save instead of after restart. Umar confirmed on device that permissions appear after restart, proving the save worked all along and only the list was stale.
