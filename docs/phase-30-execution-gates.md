@@ -14,7 +14,20 @@ not server coordination.
 
 ## Package 30.1 — Multi-tenancy guards
 
-Status: NOT STARTED.
+Multi-tenancy guards (§186) in domain/business:
+`TenantScope` (blank tenant or business id
+rejected at construction), `TenantScopedRecord`,
+and `TenantScopeOps` with `isVisible` (exact
+pair match), `requireVisible` (throws outside
+scope), and `visible` (filters a list, order
+preserved). Pure functions over plain data:
+the app-side contract for §186. The spec
+requires the BACKEND to enforce tenant
+isolation, so this guard is the contract the
+backend implements — not the enforcement
+itself. 8 JVM tests.
+
+Status: ACCEPTED on `d7e05c8`.
 
 ## Package 30.2 — API surface contracts
 
@@ -43,3 +56,5 @@ Status: NOT STARTED.
 ## Package 30.8 — Gate
 
 Status: NOT STARTED.
+
+30.1 ACCEPTED 2026-10-27 on `d7e05c8` (trio Native 40479707310 / Compose 40479707312 / Segmented 40479707346, all green, first head): multi-tenancy guards in domain/business, 8 JVM tests.
