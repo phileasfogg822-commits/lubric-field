@@ -31,7 +31,20 @@ Status: ACCEPTED on `d7e05c8`.
 
 ## Package 30.2 — API surface contracts
 
-Status: NOT STARTED.
+API surface contracts (§228 + §229) in
+domain/business: seven resources in spec
+order (/items, /parties, /orders, /invoices,
+/payments, /stock, /reports), a 12-route
+method table (GET everywhere, POST only for
+the five writable resources — stock and
+reports are derived views, so read-only),
+requests that always carry a 30.1 TenantScope,
+and the four webhook event names verbatim
+from §229. Pure types, not a server: no
+transport, no endpoint, no credentials. 8 JVM
+tests.
+
+Status: ACCEPTED on `0965ab2`.
 
 ## Package 30.3 — Customer portal models
 
@@ -58,3 +71,5 @@ Status: NOT STARTED.
 Status: NOT STARTED.
 
 30.1 ACCEPTED 2026-10-27 on `d7e05c8` (trio Native 40479707310 / Compose 40479707312 / Segmented 40479707346, all green, first head): multi-tenancy guards in domain/business, 8 JVM tests.
+
+30.2 ACCEPTED 2026-10-27 on `0965ab2` (trio Native 40484121488 / Compose 40484121644 / Segmented 40484121438, all green, after fix head 0965ab2): API surface contracts in domain/business, 8 JVM tests.
