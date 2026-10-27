@@ -111,3 +111,5 @@ Device fix ACCEPTED at `ef32f19`: Native 40567265119 / Compose 40567265106 / Seg
 31.4 ACCEPTED at `4a46310`: Native 40587885090 / Compose 40587885227 / Segmented 40587884993, all success. First-try green, no fix needed.
 
 31.5 ACCEPTED at `f23f3ad`: Native 40593675387 / Compose 40593675358 / Segmented 40593675340, all success. First-try green, no fix needed.
+
+Phase 31 GATE: every segment accepted with green-CI proof on its exact head (31.1 `5b1454d`, device fix `ef32f19`, 31.2 `7a8a18f`, 31.3 `74d533c`, 31.4 `4a46310`, 31.5 `f23f3ad`). Recount on the phase diff (scaffold parent..`f23f3ad`): 20 new @Test — 31.1: 2, device fix: 2, 31.2: 4, 31.3: 5, 31.4: 5, 31.5: 2 (plus 2 existing detail tests updated to the 31.5 format). PR #40 stays draft; no merge without Umar. Fresh debug APK for Umar follows from this gate head's Native run — the preserved full-modules file only, SHA-verified against the run's apk-sha256.txt, never the bare app-debug.apk.
