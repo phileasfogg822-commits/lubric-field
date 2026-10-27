@@ -78,6 +78,26 @@ tapping Pending then Fulfilled over seeded orders.
 
 ## Package 31.5 — Overdue alerts
 
+Overdue invoice rows in the Notification Center now
+carry days overdue plus a band: "Invoice INV-1
+overdue by 12 days — overdue" (1–7 days "recently
+overdue", 8–30 days "overdue", 31+ days "long
+overdue"). Mapper-only change, in-app only — no
+scheduler, no push, per the Phase 29 pin. When a
+stored date fails to parse, the row keeps the old
+29.5 detail instead of disappearing, so 31.5 never
+shows fewer alerts than 29.5 did. Id, type, title
+and date untouched; the center renders the detail
+unchanged. Accepted first try on `f23f3ad`, no fix
+needed. Tests: 2 new — band boundaries (1 / 7 /
+8 / 30 / 31 days) and unparseable-date fallback
+(plus two existing detail-pinning tests updated
+to the new format). NOT in this package: a
+configurable "alert only after N days" threshold
+setting (Umar's walkthrough ask) — that is later
+work; 31.5 shows days-since-due on every overdue
+row.
+
 ## Package 31.6 — Gate
 
 31.1 ACCEPTED at `5b1454d`: Native 40563706397 / Compose 40563706406 / Segmented 40563706375, all success.
@@ -89,3 +109,5 @@ Device fix ACCEPTED at `ef32f19`: Native 40567265119 / Compose 40567265106 / Seg
 31.3 ACCEPTED at `74d533c`: Native 40581568347 / Compose 40581568321 / Segmented 40581568362, all success. First head `43de9cb` went all red on the unqualified nested result type (no test ran); the fix is one line.
 
 31.4 ACCEPTED at `4a46310`: Native 40587885090 / Compose 40587885227 / Segmented 40587884993, all success. First-try green, no fix needed.
+
+31.5 ACCEPTED at `f23f3ad`: Native 40593675387 / Compose 40593675358 / Segmented 40593675340, all success. First-try green, no fix needed.
