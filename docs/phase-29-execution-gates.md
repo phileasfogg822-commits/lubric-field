@@ -44,7 +44,19 @@ Status: ACCEPTED on `0a893a7`.
 
 ## Package 29.4 — Automation evaluators
 
-Status: NOT STARTED.
+Automation evaluators (§104) in domain/business:
+pure functions over injected snapshots —
+low stock (strictly below threshold), payment
+overdue (reusing the §103 strict-past-due
+rule), stock expiry (today or past, no warning
+window invented), purchase due (expected date
+reached, unreceived), credit limit warning
+(strictly above limit, same currency required
+or it throws) — plus an `evaluateAll`
+combiner. No repository reads, no posting, no
+money or stock movement. 8 JVM tests.
+
+Status: ACCEPTED on `06553fd`.
 
 ## Package 29.5 — Notification center screens + shell wiring
 
@@ -61,3 +73,5 @@ Status: NOT STARTED.
 29.2 ACCEPTED 2026-10-27 on `5055ed4` (trio Native 40448372443 / Compose 40448372510 / Segmented 40448372507, all green, first head): reminder schedule rules in domain/business, 8 JVM tests.
 
 29.3 ACCEPTED 2026-10-27 on `0a893a7` (trio Native 40452584648 / Compose 40452584722 / Segmented 40452584646, all green, first head): reminder templates in domain/business, 8 JVM tests.
+
+29.4 ACCEPTED 2026-10-27 on `06553fd` (trio Native 40456825255 / Compose 40456825285 / Segmented 40456825279, all green, first head): automation evaluators in domain/business, 8 JVM tests.
