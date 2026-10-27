@@ -10,8 +10,9 @@ class NotificationTest {
         id: String,
         type: NotificationType = NotificationType.LOW_STOCK,
         date: String = "2026-10-27",
+        detail: String = "",
         isRead: Boolean = false,
-    ) = Notification(id = id, type = type, title = "t-$id", date = date, isRead = isRead)
+    ) = Notification(id = id, type = type, title = "t-$id", detail = detail, date = date, isRead = isRead)
 
     @Test
     fun typesAreExactlyTheSpecListInOrder() {
