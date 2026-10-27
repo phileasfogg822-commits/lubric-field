@@ -64,7 +64,17 @@ Status: ACCEPTED on `3c4bf46`.
 
 ## Package 30.4 — Online store models
 
-Status: NOT STARTED.
+Online store models (spec Phase 10 "Online
+Store") in domain/business: published
+storefront catalog, store order intake
+validation collecting every problem (unknown
+item, unpublished item, non-positive
+quantity, rate mismatch), and totals that
+throw on mixed currencies rather than
+summing them. Intake only — no checkout,
+no payment, no fulfillment. 8 JVM tests.
+
+Status: ACCEPTED on `c81cca9`.
 
 ## Package 30.5 — Web admin + SaaS models
 
@@ -87,3 +97,5 @@ Status: NOT STARTED.
 30.2 ACCEPTED 2026-10-27 on `0965ab2` (trio Native 40484121488 / Compose 40484121644 / Segmented 40484121438, all green, after fix head 0965ab2): API surface contracts in domain/business, 8 JVM tests.
 
 30.3 ACCEPTED 2026-10-27 on `3c4bf46` (trio Native 40486002318 / Compose 40486002301 / Segmented 40486002283, all green, first head): customer portal models in domain/business, 8 JVM tests.
+
+30.4 ACCEPTED 2026-10-27 on `c81cca9` (trio Native 40488480350 / Compose 40488480331 / Segmented 40488480324, all green, first head): online store models in domain/business, 8 JVM tests.
