@@ -78,7 +78,22 @@ Status: ACCEPTED on `c81cca9`.
 
 ## Package 30.5 — Web admin + SaaS models
 
-Status: NOT STARTED.
+Web admin + SaaS models (§185) in
+domain/business: eight admin areas in
+spec order (company, reports, users,
+inventory, white-label, subscription,
+support, settings), a subscription plan
+declaring which areas it includes, and
+gating as data + rules only (active
+subscription plus an allowed area). Plus
+WhiteLabelConfig for brand name and
+primary color. No billing, no payment
+processing, no paywall enforcement, and
+no web app — the React/Next.js admin is
+a separate codebase consuming these
+models. 8 JVM tests.
+
+Status: ACCEPTED on `408bfd0`.
 
 ## Package 30.6 — Cross-device numbering
 
@@ -99,3 +114,5 @@ Status: NOT STARTED.
 30.3 ACCEPTED 2026-10-27 on `3c4bf46` (trio Native 40486002318 / Compose 40486002301 / Segmented 40486002283, all green, first head): customer portal models in domain/business, 8 JVM tests.
 
 30.4 ACCEPTED 2026-10-27 on `c81cca9` (trio Native 40488480350 / Compose 40488480331 / Segmented 40488480324, all green, first head): online store models in domain/business, 8 JVM tests.
+
+30.5 ACCEPTED 2026-10-27 on `408bfd0` (trio Native 40491303632 / Compose 40491303590 / Segmented 40491303634, all green, first head): web admin + SaaS models in domain/business, 8 JVM tests.
