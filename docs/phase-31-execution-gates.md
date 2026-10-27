@@ -7,6 +7,14 @@ PR stays draft; no merge without the owner's approval.
 
 ## Package 31.1 — Delivery on orders
 
+Sales-order editor gains a Delivery section for CONFIRMED and beyond:
+per-line delivered/ordered counts, a quantity field and a Deliver button
+wired to `SalesViewModel.recordDelivery` (21.2), so the order status
+re-derives to PARTIALLY_FULFILLED / FULFILLED. Recording a delivery
+posts no stock movement — movements post at invoice time, never twice.
+Tests: JVM orchestration (partial then full delivery moves status) and
+an emulator test driving the new controls. Head `5b1454d`.
+
 ## Package 31.2 — Receive/pay money
 
 ## Package 31.3 — Cash in/out
@@ -16,3 +24,5 @@ PR stays draft; no merge without the owner's approval.
 ## Package 31.5 — Overdue alerts
 
 ## Package 31.6 — Gate
+
+31.1 ACCEPTED at `5b1454d`: Native 40563706397 / Compose 40563706406 / Segmented 40563706375, all success.
