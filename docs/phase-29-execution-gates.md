@@ -87,9 +87,30 @@ Status: ACCEPTED on `449480c`.
 
 ## Package 29.6 — Gate
 
-Sweep, recount, carryovers.
+Sweep `e67bd56..73483c5`: 26 files, +1222/−1.
+Recount 43 tests (29.1: 8, 29.2: 8, 29.3: 8,
+29.4: 8, 29.5: 11), 0 removed. All accepted
+heads verified ancestors in order: f82914d,
+5055ed4, 0a893a7, 06553fd, 449480c (29.5's
+first fix head 346fa1c is also an ancestor;
+449480c is itself the test-fix head).
 
-Status: NOT STARTED.
+Carryovers: background scheduling execution
+(WorkManager/alarms) for §103/§125; system
+notification posting via NotificationManager
+(permission already declared); reminder
+persistence as typed records (the `reminders`
+table is already whitelisted); WhatsApp/SMS
+reminder delivery (§101 sharing is
+documents-only today); low-stock, expiry,
+purchase-due and credit center rows (need
+their record surfaces — the center shows
+overdue invoices only today); in-memory
+mark-read (derived notifications are not
+stored); stock-quantity surface for low-stock
+evaluation at the shell.
+
+Status: GATE PASSED.
 
 29.1 ACCEPTED 2026-10-27 on `f82914d` (trio Native 40443611765 / Compose 40443611613 / Segmented 40443611671, all green, after fix head f82914d): notification model in domain/business, 8 JVM tests.
 
@@ -100,3 +121,5 @@ Status: NOT STARTED.
 29.4 ACCEPTED 2026-10-27 on `06553fd` (trio Native 40456825255 / Compose 40456825285 / Segmented 40456825279, all green, first head): automation evaluators in domain/business, 8 JVM tests.
 
 29.5 ACCEPTED 2026-10-27 on `449480c` (trio Native 40463981958 / Compose 40463981888 / Segmented 40463981874, all green, after fix heads 346fa1c and 449480c): notification center screens + shell wiring, 11 tests.
+
+29.6 GATE PASSED 2026-10-27: sweep e67bd56..73483c5 (26 files, +1222/-1), recount 43 tests, all accepted heads ancestors in order. Phase 29 CLOSED pending confirmatory trio on this gate head.
