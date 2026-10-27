@@ -41,8 +41,8 @@ import com.lubrcapp.lubrcapp.domain.common.PartyId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.domain.payment.Payment
 import com.lubrcapp.lubrcapp.domain.payment.PaymentDirection
-import com.lubrcapp.lubrcapp.domain.payment.PaymentId
-import com.lubrcapp.lubrcapp.domain.payment.PaymentMethodId
+import com.lubrcapp.lubrcapp.domain.common.PaymentId
+import com.lubrcapp.lubrcapp.domain.common.PaymentMethodId
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
