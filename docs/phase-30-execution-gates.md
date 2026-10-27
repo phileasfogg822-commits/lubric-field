@@ -140,7 +140,22 @@ Status: ACCEPTED on `c6e35d1`.
 
 ## Package 30.8 — Gate
 
-Status: NOT STARTED.
+Sweep `a029d86..a241660`: 15 files,
++1137/−0, all pure domain/business
+models plus this gates doc. Recount 56
+tests (8 per package × 7), 0 removed.
+All accepted heads verified ancestors in
+order: d7e05c8, 0965ab2, 3c4bf46,
+c81cca9, 408bfd0, 6e616a9, c6e35d1.
+Carryovers (named, not gate blockers):
+live backend + §186 server-side tenant
+enforcement, reachable API server for the
+30.2 contracts, React/Next.js web admin
+app, SaaS billing/payment processing,
+server-side numbering coordination,
+portal/store/admin live surfaces.
+
+Status: GATE PASSED.
 
 30.1 ACCEPTED 2026-10-27 on `d7e05c8` (trio Native 40479707310 / Compose 40479707312 / Segmented 40479707346, all green, first head): multi-tenancy guards in domain/business, 8 JVM tests.
 
