@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,16 +22,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.accounting.AccountType
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.Money
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 /** Phase 20.4 — typed accounts screen: chart of accounts + journal with trial-balance preview. */
-private enum class AccountsMode { CHART, JOURNAL }
+private enum class AccountsMode { CHART, JOURNAL, CASH }
 
 @Composable
 fun AccountsScreen(
@@ -57,6 +68,9 @@ fun AccountsScreen(
             Button(onClick = { mode = AccountsMode.JOURNAL; selectedEntry = null }) {
                 Text(stringResource(R.string.accounts_mode_journal))
             }
+            Button(onClick = { mode = AccountsMode.CASH; selectedEntry = null }) {
+                Text(stringResource(R.string.accounts_mode_cash))
+            }
         }
         // weight(1f), NOT fillMaxSize, for the scrolling content: a
         // fillMaxSize child inside a Column takes the whole Column height
@@ -74,6 +88,12 @@ fun AccountsScreen(
                     selectedEntry = selectedEntry,
                     onSelectEntry = { selectedEntry = it },
                     onBackToList = { selectedEntry = null },
+                )
+                AccountsMode.CASH -> CashContent(
+                    scope = scope,
+                    accounts = accounts,
+                    entries = entries,
+                    viewModel = viewModel,
                 )
             }
         }
@@ -230,6 +250,180 @@ private fun JournalContent(
                         ),
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Phase 31.3 — the general cash book. The user picks which
+ * account is their cash account (AccountType has no CASH
+ * value, so no type filter — every active account is offered)
+ * and a counterpart, a direction, an amount and a description,
+ * then records the entry straight through
+ * [AccountsViewModel.postDocument]: the accounts feature owns
+ * posting, so no shell handler is needed. The selection is
+ * remembered per scope, not persisted. Below the form, the
+ * selected cash account's entries and its running balance
+ * come from [CashBook] over the observed journal entries, so
+ * a just-recorded entry shows up through the same Flow as
+ * the journal tab. Currency is the shell "XXX" default —
+ * app-wide currency wiring is still deferred.
+ */
+@Composable
+private fun CashContent(
+    scope: OperationalScope,
+    accounts: List<AccountRecord>,
+    entries: List<JournalEntryRecord>,
+    viewModel: AccountsViewModel,
+) {
+    val activeAccounts = accounts.filter { it.isActive }
+    var cashId by remember(scope) { mutableStateOf<String?>(null) }
+    var counterpartId by remember(scope) { mutableStateOf<String?>(null) }
+    var direction by remember(scope) { mutableStateOf(CashDirection.IN) }
+    var amount by remember(scope) { mutableStateOf("") }
+    var description by remember(scope) { mutableStateOf("") }
+    var recording by remember(scope) { mutableStateOf(false) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val cashInText = stringResource(R.string.accounts_cash_in)
+    val cashOutText = stringResource(R.string.accounts_cash_out)
+    val recordedText = stringResource(R.string.accounts_cash_recorded)
+    val rejectedText = stringResource(R.string.accounts_cash_rejected)
+    val recordErrorText = stringResource(R.string.accounts_cash_error)
+    val amountValue = amount.toBigDecimalOrNull()
+
+    // One scrolling Column: every node stays composed, so
+    // tests can type into the form and tap rows without the
+    // LazyColumn below-fold / zero-height traps (19.4, 19.6).
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(stringResource(R.string.accounts_cash_title), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.accounts_cash_account_label), style = MaterialTheme.typography.titleMedium)
+        activeAccounts.forEach { account ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.selectable(
+                    selected = cashId == account.id,
+                    onClick = { cashId = account.id },
+                    role = Role.RadioButton,
+                ),
+            ) {
+                RadioButton(
+                    selected = cashId == account.id,
+                    onClick = null,
+                )
+                Text(account.name)
+            }
+        }
+        Text(stringResource(R.string.accounts_cash_counterpart_label), style = MaterialTheme.typography.titleMedium)
+        activeAccounts.forEach { account ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.selectable(
+                    selected = counterpartId == account.id,
+                    onClick = { counterpartId = account.id },
+                    role = Role.RadioButton,
+                ),
+            ) {
+                RadioButton(
+                    selected = counterpartId == account.id,
+                    onClick = null,
+                )
+                Text(account.name)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { direction = CashDirection.IN }) { Text(cashInText) }
+            Button(onClick = { direction = CashDirection.OUT }) { Text(cashOutText) }
+        }
+        OutlinedTextField(
+            value = amount,
+            onValueChange = { amount = it },
+            label = { Text(stringResource(R.string.accounts_cash_amount_label)) },
+            modifier = Modifier.fillMaxWidth().testTag("cashAmount"),
+        )
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text(stringResource(R.string.accounts_cash_description_label)) },
+            modifier = Modifier.fillMaxWidth().testTag("cashDescription"),
+        )
+        Button(
+            enabled = amountValue != null && amountValue > BigDecimal.ZERO &&
+                cashId != null && counterpartId != null && !recording,
+            onClick = {
+                recording = true
+                coroutineScope.launch {
+                    try {
+                        val parsed = amountValue ?: return@launch
+                        val cash = cashId ?: return@launch
+                        val counterpart = counterpartId ?: return@launch
+                        val posting = CashPosting.cashToPosting(
+                            Money.of(parsed, CurrencyCode.of("XXX")),
+                            direction,
+                            CashPostingAccounts(cash, counterpart),
+                            "",
+                        )
+                        val result = viewModel.postDocument(
+                            scope = scope,
+                            posting = posting,
+                            date = LocalDate.now(),
+                            description = description.ifBlank {
+                                if (direction == CashDirection.IN) cashInText else cashOutText
+                            },
+                            now = Instant.now(),
+                            deviceId = DeviceId(scope.deviceId),
+                        )
+                        if (result is AccountsViewModel.DocumentPostResult.Posted) {
+                            notice = recordedText
+                            error = null
+                            amount = ""
+                            description = ""
+                        } else {
+                            error = rejectedText
+                        }
+                    } catch (_: Exception) {
+                        error = recordErrorText
+                    } finally {
+                        recording = false
+                    }
+                }
+            },
+            modifier = Modifier.testTag("cashRecordButton"),
+        ) { Text(stringResource(R.string.accounts_cash_record)) }
+        notice?.let { Text(it) }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        val selectedCash = activeAccounts.firstOrNull { it.id == cashId }
+        if (selectedCash != null) {
+            Text(
+                stringResource(
+                    R.string.accounts_cash_balance_row,
+                    selectedCash.name,
+                    CashBook.balance(entries, selectedCash.id).toPlainString(),
+                ),
+            )
+            val cashEntries = CashBook.entriesForAccount(entries, selectedCash.id)
+            if (cashEntries.isEmpty()) {
+                Text(stringResource(R.string.accounts_cash_entry_empty))
+            }
+            cashEntries.forEach { entry ->
+                val debit = entry.lines.filter { it.accountId == selectedCash.id }
+                    .fold(BigDecimal.ZERO) { acc, line -> acc + line.debit }
+                val credit = entry.lines.filter { it.accountId == selectedCash.id }
+                    .fold(BigDecimal.ZERO) { acc, line -> acc + line.credit }
+                Text(
+                    stringResource(
+                        R.string.accounts_cash_entry_row,
+                        entry.date,
+                        entry.description,
+                        debit.toPlainString(),
+                        credit.toPlainString(),
+                    ),
+                )
             }
         }
     }

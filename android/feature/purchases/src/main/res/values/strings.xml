@@ -9,4 +9,14 @@
     <string name="purchases_edit">Edit %1$s</string>
     <string name="purchases_cancel_edit">Cancel edit</string>
     <string name="purchases_empty">No purchases yet</string>
+    <string name="purchases_payables_title">Vendor payables</string>
+    <string name="purchases_payables_empty">No vendor payables yet</string>
+    <string name="purchases_payable_row">%1$s · %2$s · Due %3$s %4$s</string>
+    <string name="purchases_pay_amount">Payment amount</string>
+    <string name="purchases_pay_cash">Cash account</string>
+    <string name="purchases_pay_payable">Payable account</string>
+    <string name="purchases_pay_button">Pay</string>
+    <string name="purchases_pay_received">Payment recorded</string>
+    <string name="purchases_pay_rejected">Payment rejected: %1$s</string>
+    <string name="purchases_no_accounts">No accounts configured — create accounts first</string>
 </resources>

@@ -190,6 +190,53 @@ class OperationalCrudGuardRoomTest {
         }
     }
 
+    // 2026-10-27 device-crash regression: typed codecs (ItemJson,
+    // PartyJson, …) never write a uuid key, so saveOffline rejected
+    // every typed save; and the Phase 12 table list never grew with
+    // the record types Phases 15–20 added, so Items/Inventory/
+    // Accounts crashed on open (validate throws during composition).
+    @Test fun saveWithoutUuidInjectsRecordIdInsteadOfRejecting() = runBlocking {
+        val db = inMemoryDb()
+        try {
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repo.save(scope, "categories", "c-1", """{"name":"Oil"}""")
+            val stored = repo.list(scope, "categories")
+            assertEquals(1, stored.size)
+            assertEquals("c-1", JSONObject(stored.single().json).getString("uuid"))
+            assertEquals("Oil", JSONObject(stored.single().json).getString("name"))
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test fun laterPhaseTablesAreObservable() = runBlocking {
+        val db = inMemoryDb()
+        try {
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            listOf(
+                "categories", "brands", "branches", "batches",
+                "stock_levels", "stock_transfers", "serial_numbers",
+                "journal_entries", "timeline_entries", "numbering_sequences",
+            ).forEach { table ->
+                assertTrue(repo.observe(scope, table).first().isEmpty())
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test fun masterDataTablesDeleteByTombstone() = runBlocking {
+        val db = inMemoryDb()
+        try {
+            val repo = RoomVpsBusinessRepository(db.vpsBusinessRecordDao(), db)
+            repo.save(scope, "categories", "c-1", """{"name":"Oil"}""")
+            repo.delete(scope, "categories", "c-1")
+            assertTrue(repo.observe(scope, "categories").first().isEmpty())
+        } finally {
+            db.close()
+        }
+    }
+
     private suspend fun assertSaveRejected(
         repo: RoomVpsBusinessRepository,
         scope: OperationalScope,

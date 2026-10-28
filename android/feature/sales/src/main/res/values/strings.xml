@@ -39,6 +39,11 @@
     <string name="sales_type_credit_note">Credit note</string>
     <string name="sales_convert_to_invoice">Convert to invoice</string>
     <string name="sales_convert_to_return">Convert to return</string>
+    <string name="sales_delivery_title">Delivery</string>
+    <string name="sales_delivered_line">Delivered: %1$s of %2$s</string>
+    <string name="sales_deliver_quantity">Deliver quantity</string>
+    <string name="sales_deliver_button">Deliver</string>
+    <string name="sales_delivered_notice">Delivery recorded</string>
     <string name="sales_post_invoice">Post invoice</string>
     <string name="sales_post_return">Post return</string>
     <string name="sales_post_credit_note">Post credit note</string>
@@ -52,6 +57,13 @@
     <string name="sales_posting_rejected">Posting rejected: %1$s</string>
     <string name="sales_posting_no_accounts">No accounts configured — create accounts first</string>
     <string name="sales_posting_no_tax">No tax account</string>
+    <string name="sales_payment_title">Receive payment</string>
+    <string name="sales_payment_amount">Payment amount</string>
+    <string name="sales_payment_cash">Cash account</string>
+    <string name="sales_payment_receivable">Receivable account</string>
+    <string name="sales_payment_button">Receive</string>
+    <string name="sales_payment_received">Payment received</string>
+    <string name="sales_payment_unallocated">Payment received; unallocated: %1$s</string>
     <string name="sales_timeline">Timeline</string>
     <string name="sales_timeline_entry">%1$s · %2$s · %3$s</string>
     <string name="pos_title">POS Counter</string>
@@ -83,4 +95,8 @@
     <string name="fs_action_collections">Collections</string>
     <string name="fs_my_sales">My Sales</string>
     <string name="fs_targets">Targets</string>
+    <string name="sales_filter_all">All</string>
+    <string name="sales_filter_pending">Pending</string>
+    <string name="sales_filter_fulfilled">Fulfilled</string>
+    <string name="sales_filter_cancelled">Cancelled</string>
 </resources>

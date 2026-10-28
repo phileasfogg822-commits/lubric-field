@@ -15,7 +15,9 @@ import com.lubrcapp.lubrcapp.feature.inventory.InventoryScreen
 import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
 import com.lubrcapp.lubrcapp.feature.items.ItemsScreen
 import com.lubrcapp.lubrcapp.feature.parties.PartiesScreen
+import com.lubrcapp.lubrcapp.feature.purchases.PurchaseAccountOption
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasesScreen
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasesViewModel
 import com.lubrcapp.lubrcapp.feature.sales.PostingAccountOption
 import com.lubrcapp.lubrcapp.feature.sales.SalesScreen
 import com.lubrcapp.lubrcapp.feature.sales.SalesViewModel
@@ -190,6 +192,15 @@ object AppModuleRegistry {
                             inventoryViewModel = inventoryViewModel,
                         )
                     },
+                    onPostPayment = { payment, documentNumber, paymentAccounts ->
+                        SalesPaymentHandler.postPayment(
+                            scope = scope,
+                            payment = payment,
+                            documentNumber = documentNumber,
+                            accounts = paymentAccounts,
+                            accountsViewModel = accountsViewModel,
+                        )
+                    },
                 )
             },
         ),
@@ -199,7 +210,29 @@ object AppModuleRegistry {
             configKey = FeatureFlagKeys.MODULE_PURCHASES,
             viewCapability = Capabilities.PURCHASES_VIEW,
             selectable = true,
-            content = { scope, back -> PurchasesScreen(scope, back) },
+            content = { scope, back ->
+                val purchasesViewModel: PurchasesViewModel = hiltViewModel()
+                val accountsViewModel: AccountsViewModel = hiltViewModel()
+                val accounts by accountsViewModel.observeAccounts(scope)
+                    .collectAsState(initial = emptyList())
+                PurchasesScreen(
+                    scope = scope,
+                    onBack = back,
+                    viewModel = purchasesViewModel,
+                    accountOptions = accounts
+                        .filter { it.isActive }
+                        .map { PurchaseAccountOption(it.id, it.name) },
+                    onPostPayment = { payment, documentNumber, paymentAccounts ->
+                        PurchasePostingHandler.postPayment(
+                            scope = scope,
+                            payment = payment,
+                            documentNumber = documentNumber,
+                            accounts = paymentAccounts,
+                            accountsViewModel = accountsViewModel,
+                        )
+                    },
+                )
+            },
         ),
         AppModule(
             id = ACCOUNTS_ID,
