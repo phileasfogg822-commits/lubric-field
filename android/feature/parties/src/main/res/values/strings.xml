@@ -98,4 +98,10 @@
     <string name="parties_ledger_row_statement">%1$s %2$s %3$s %4$s</string>
     <string name="parties_ledger_order_row">%1$s %2$s %3$s %4$s</string>
     <string name="parties_ledger_item_row">%1$s %2$s %3$s</string>
+    <string name="parties_search">Search parties</string>
+    <string name="parties_summary_receivable">Total receivable: %1$s</string>
+    <string name="parties_summary_payable">Total payable: %1$s</string>
+    <string name="parties_photo">Photo link</string>
+    <string name="parties_current_receivable">Current balance — receivable: %1$s</string>
+    <string name="parties_current_payable">Current balance — payable: %1$s</string>
 </resources>

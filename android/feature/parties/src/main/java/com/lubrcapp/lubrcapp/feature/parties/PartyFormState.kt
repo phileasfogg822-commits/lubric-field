@@ -40,6 +40,7 @@ class PartyFormState {
     var salesperson by mutableStateOf("")
     var isBlocked by mutableStateOf(false)
     var notes by mutableStateOf("")
+    var photoUri by mutableStateOf("")
 
     /** Starts a blank form (new party). */
     fun reset() {
@@ -69,6 +70,7 @@ class PartyFormState {
         salesperson = party.salesperson.orEmpty()
         isBlocked = party.isBlocked
         notes = party.notes.orEmpty()
+        photoUri = party.photoUri.orEmpty()
     }
 
     /**
@@ -102,6 +104,7 @@ class PartyFormState {
             salesperson = salesperson.trimmedOrNull(),
             isBlocked = isBlocked,
             notes = notes.trimmedOrNull(),
+            photoUri = photoUri.trimmedOrNull(),
         )
     }
 

@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.party.PartyType
+import java.math.BigDecimal
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -52,11 +55,26 @@ fun PartiesScreen(
     onBack: () -> Unit,
     viewModel: PartiesViewModel = hiltViewModel(),
     ledgerTabsProvider: (suspend (String) -> PartyLedgerTabsData?)? = null,
+    /** Live per-party balances from the ledger; null keeps the list on opening balances. */
+    balanceProvider: (suspend (String) -> PartyLiveBalance)? = null,
 ) {
     val parties by remember(viewModel, scope) { viewModel.observeParties(scope) }
         .collectAsState(initial = emptyList())
     val groups by remember(viewModel, scope) { viewModel.observeGroups(scope) }
         .collectAsState(initial = emptyList())
+    var search by remember(scope) { mutableStateOf("") }
+    var liveBalances by remember { mutableStateOf<Map<String, PartyLiveBalance>?>(null) }
+    LaunchedEffect(parties, balanceProvider) {
+        liveBalances = if (balanceProvider == null) {
+            null
+        } else {
+            try {
+                parties.associate { it.id to balanceProvider(it.id) }
+            } catch (_: Exception) {
+                liveBalances
+            }
+        }
+    }
     val form = remember(scope) { PartyFormState() }
     var formOpen by remember(scope) { mutableStateOf(false) }
     var groupsOpen by remember(scope) { mutableStateOf(false) }
@@ -147,39 +165,79 @@ fun PartiesScreen(
                 ) { Text(stringResource(R.string.parties_groups)) }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            if (parties.isEmpty()) {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                label = { Text(stringResource(R.string.parties_search)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Phase 32.2 — the khata summary card: live totals across the
+            // whole book, shown only once balances have loaded. Colours
+            // never carry the meaning alone; the labels say it too.
+            liveBalances?.let { balances ->
+                val totalReceivable = balances.values.fold(BigDecimal.ZERO) { acc, b -> acc.add(b.receivable) }
+                val totalPayable = balances.values.fold(BigDecimal.ZERO) { acc, b -> acc.add(b.payable) }
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        Column {
+                            Text(
+                                stringResource(R.string.parties_summary_receivable, totalReceivable.toPlainString()),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Column {
+                            Text(
+                                stringResource(R.string.parties_summary_payable, totalPayable.toPlainString()),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+            }
+            val visibleParties = if (search.isBlank()) {
+                parties
+            } else {
+                parties.filter { party ->
+                    party.name.contains(search, ignoreCase = true) ||
+                        party.businessName?.contains(search, ignoreCase = true) == true ||
+                        party.contactPerson?.contains(search, ignoreCase = true) == true
+                }
+            }
+            if (visibleParties.isEmpty()) {
                 Text(stringResource(R.string.parties_empty))
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(parties, key = { it.id }) { party ->
+                items(visibleParties, key = { it.id }) { party ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(party.name, style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(party.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
-                        party.groupId?.let { groupId ->
-                            Text(
-                                stringResource(
-                                    R.string.parties_group_line,
-                                    groups.firstOrNull { it.id == groupId }?.name ?: "—",
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        party.openingBalanceDirection()?.let { direction ->
-                            val amount = party.openingBalance!!.toPlainString()
-                            Text(
-                                stringResource(
-                                    when (direction) {
-                                        OpeningBalanceDirection.RECEIVABLE -> R.string.parties_receivable
-                                        OpeningBalanceDirection.PAYABLE -> R.string.parties_payable
-                                        OpeningBalanceDirection.NEUTRAL -> R.string.parties_opening
-                                    },
-                                    amount,
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        if (party.isBlocked) {
-                            Text(stringResource(R.string.parties_blocked), color = MaterialTheme.colorScheme.error)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { profileId = party.id },
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PartyAvatar(photoUri = party.photoUri, name = party.name)
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(party.name, style = MaterialTheme.typography.titleMedium)
+                                Text(stringResource(party.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
+                                party.groupId?.let { groupId ->
+                                    Text(
+                                        stringResource(
+                                            R.string.parties_group_line,
+                                            groups.firstOrNull { it.id == groupId }?.name ?: "—",
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                                PartyBalanceLines(party, liveBalances?.get(party.id))
+                                if (party.isBlocked) {
+                                    Text(stringResource(R.string.parties_blocked), color = MaterialTheme.colorScheme.error)
+                                }
+                            }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -314,6 +372,7 @@ private fun PartyForm(
             Text(stringResource(R.string.parties_blocked))
         }
         PartyTextField(form.notes, { form.notes = it }, R.string.parties_notes)
+        PartyTextField(form.photoUri, { form.photoUri = it }, R.string.parties_photo)
         if (formError) {
             Text(stringResource(R.string.parties_form_error), color = MaterialTheme.colorScheme.error)
         }
@@ -363,6 +422,49 @@ private fun PartyTextField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * Phase 32.2 — the khata row balance line. A loaded live balance wins
+ * when it is non-zero; otherwise the row falls back to the opening
+ * balance line, so a party with no ledger activity reads exactly as
+ * before and a zero balance never renders a misleading "0" line.
+ */
+@Composable
+private fun PartyBalanceLines(party: Party, live: PartyLiveBalance?) {
+    val liveShown = live != null &&
+        (live.receivable.signum() != 0 || live.payable.signum() != 0)
+    if (liveShown) {
+        if (live!!.receivable.signum() != 0) {
+            Text(
+                stringResource(R.string.parties_receivable, live.receivable.toPlainString()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (live.payable.signum() != 0) {
+            Text(
+                stringResource(R.string.parties_payable, live.payable.toPlainString()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    } else {
+        party.openingBalanceDirection()?.let { direction ->
+            val amount = party.openingBalance!!.toPlainString()
+            Text(
+                stringResource(
+                    when (direction) {
+                        OpeningBalanceDirection.RECEIVABLE -> R.string.parties_receivable
+                        OpeningBalanceDirection.PAYABLE -> R.string.parties_payable
+                        OpeningBalanceDirection.NEUTRAL -> R.string.parties_opening
+                    },
+                    amount,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
 }
 
 fun PartyType.labelRes(): Int = when (this) {

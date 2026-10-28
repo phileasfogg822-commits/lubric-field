@@ -48,6 +48,7 @@ class PartyJsonTest {
         salesperson = "Ahmed",
         isBlocked = true,
         notes = "Prefers morning deliveries",
+        photoUri = "content://media/party-1",
     )
 
     @Test fun fullPartyRoundTrips() {

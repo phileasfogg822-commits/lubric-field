@@ -42,6 +42,8 @@ data class Party(
     val salesperson: String? = null,
     val isBlocked: Boolean = false,
     val notes: String? = null,
+    /** Photo reference (content or web URI) — display only, never rendered from storage. */
+    val photoUri: String? = null,
 )
 
 /** One party address (§16: multiple addresses, each billing or shipping). */

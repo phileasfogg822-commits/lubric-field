@@ -50,8 +50,13 @@ fun PartyProfileMode(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Button(onClick = onBack) { Text(stringResource(R.string.parties_back)) }
-        Text(party.name, style = MaterialTheme.typography.headlineMedium)
-        Text(stringResource(party.type.labelRes()), style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PartyAvatar(photoUri = party.photoUri, name = party.name, size = 64.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(party.name, style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(party.type.labelRes()), style = MaterialTheme.typography.titleMedium)
+            }
+        }
         party.groupId?.let {
             Text(stringResource(R.string.parties_group_line, groupName ?: "—"))
         }
@@ -67,6 +72,22 @@ fun PartyProfileMode(
                 ),
                 style = MaterialTheme.typography.titleMedium,
             )
+        }
+        // Phase 32.2 — the live balance header: the statement's last
+        // running balance, in the same direction language as the list.
+        // The opening line above stays; this is the current position.
+        ledgerTabs?.statement?.lastOrNull()?.let { last ->
+            val current = last.runningBalanceText.toBigDecimalOrNull()
+            if (current != null && current.signum() != 0) {
+                Text(
+                    stringResource(
+                        if (current.signum() > 0) R.string.parties_current_receivable
+                        else R.string.parties_current_payable,
+                        current.abs().toPlainString(),
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
         Text(stringResource(R.string.parties_credit), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.parties_outstanding, assessment.outstanding.toPlainString()))

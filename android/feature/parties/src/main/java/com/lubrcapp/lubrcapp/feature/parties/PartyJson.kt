@@ -79,6 +79,7 @@ object PartyJson {
             party.salesperson?.let { put("salesperson", it) }
             if (party.isBlocked) put("isBlocked", true)
             party.notes?.let { put("notes", it) }
+            party.photoUri?.let { put("photoUri", it) }
         }
         return json.encodeToString(JsonObject.serializer(), obj)
     }
@@ -109,6 +110,7 @@ object PartyJson {
             salesperson = root.string("salesperson"),
             isBlocked = root.boolean("isBlocked") ?: false,
             notes = root.string("notes") ?: root.string("description"),
+            photoUri = root.string("photoUri"),
         )
     }
 
