@@ -36,7 +36,7 @@ class NotificationsMapperTest {
         assertEquals("overdue-d1", notes.single().id)
         assertEquals(NotificationType.PAYMENT_OVERDUE, notes.single().type)
         assertEquals("Ali Autos", notes.single().title)
-        assertEquals("Invoice INV-1 overdue", notes.single().detail)
+        assertEquals("Invoice INV-1 overdue by 17 days — overdue", notes.single().detail)
     }
 
     @Test
@@ -82,6 +82,45 @@ class NotificationsMapperTest {
             "2026-10-27",
         )
         assertEquals("d1", notes.single().title)
-        assertEquals("Invoice d1 overdue", notes.single().detail)
+        assertEquals("Invoice d1 overdue by 17 days — overdue", notes.single().detail)
+    }
+
+    @Test
+    fun daysOverdueAndBandBoundaries() {
+        val cases = listOf(
+            "2026-10-26" to "Invoice INV-1 overdue by 1 days — recently overdue",
+            "2026-10-20" to "Invoice INV-1 overdue by 7 days — recently overdue",
+            "2026-10-19" to "Invoice INV-1 overdue by 8 days — overdue",
+            "2026-09-27" to "Invoice INV-1 overdue by 30 days — overdue",
+            "2026-09-26" to "Invoice INV-1 overdue by 31 days — long overdue",
+        )
+        cases.forEach { (dueDate, expected) ->
+            val notes = NotificationsMapper.overdueInvoices(
+                listOf(document("d1", dueDate = dueDate)),
+                emptyMap(),
+                "2026-10-27",
+            )
+            assertEquals(expected, notes.single().detail)
+        }
+    }
+
+    @Test
+    fun unparseableDatesKeepTheOldDetailInsteadOfDroppingTheRow() {
+        // "2026-02-30" passes the string filter (before today)
+        // but is not a real calendar date, so parsing fails.
+        val badDue = NotificationsMapper.overdueInvoices(
+            listOf(document("d1", dueDate = "2026-02-30")),
+            emptyMap(),
+            "2026-10-27",
+        )
+        assertEquals(1, badDue.size)
+        assertEquals("Invoice INV-1 overdue", badDue.single().detail)
+        val badToday = NotificationsMapper.overdueInvoices(
+            listOf(document("d1")),
+            emptyMap(),
+            "not-a-date",
+        )
+        assertEquals(1, badToday.size)
+        assertEquals("Invoice INV-1 overdue", badToday.single().detail)
     }
 }

@@ -3,7 +3,20 @@ package com.lubrcapp.lubrcapp.feature.sales
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.domain.common.BusinessId
+import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
+import com.lubrcapp.lubrcapp.domain.common.DeviceId
+import com.lubrcapp.lubrcapp.domain.common.EntityMetadata
+import com.lubrcapp.lubrcapp.domain.common.Money
+import com.lubrcapp.lubrcapp.domain.common.PartyId
+import com.lubrcapp.lubrcapp.domain.common.TenantId
+import com.lubrcapp.lubrcapp.domain.payment.Payment
+import com.lubrcapp.lubrcapp.domain.payment.PaymentDirection
+import com.lubrcapp.lubrcapp.domain.common.PaymentId
+import com.lubrcapp.lubrcapp.domain.common.PaymentMethodId
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -46,6 +59,102 @@ class SalesViewModelOrchestrationTest {
         quantity = BigDecimal("1"),
         rate = BigDecimal("100"),
     )
+
+    @Test
+    fun recordDeliveryPartialThenFullMovesOrderStatus() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val document = SalesDocument(id = "doc-1", type = SalesDocumentType.SALES_ORDER, status = "CONFIRMED")
+        val line = SalesDocumentLine(
+            id = "l-1",
+            orderId = "doc-1",
+            position = 0,
+            quantity = BigDecimal("10"),
+            rate = BigDecimal("100"),
+        )
+        vm.saveDocumentWithLines(scope, document, listOf(line))
+        val partial = vm.recordDelivery(scope, "doc-1", "l-1", BigDecimal("4"))
+        assertEquals("PARTIALLY_FULFILLED", partial.status)
+        assertEquals(BigDecimal("4"), vm.loadLines(scope, "doc-1").single().fulfilledQuantity)
+        val full = vm.recordDelivery(scope, "doc-1", "l-1", BigDecimal("6"))
+        assertEquals("FULFILLED", full.status)
+        assertEquals(BigDecimal("10"), vm.loadLines(scope, "doc-1").single().fulfilledQuantity)
+    }
+
+    @Test
+    fun receiptAllocatesOldestFirstAndAccumulatesAcrossReceipts() = runBlocking {
+        val fake = FakeRepository()
+        val vm = SalesViewModel(fake)
+        val currency = CurrencyCode("PKR")
+        val inv1 = SalesDocument(
+            id = "inv-1", type = SalesDocumentType.INVOICE, number = "INV-1",
+            partyId = "party-1", date = "2026-10-01", dueDate = "2026-10-20", status = "SENT",
+        )
+        val inv2 = SalesDocument(
+            id = "inv-2", type = SalesDocumentType.INVOICE, number = "INV-2",
+            partyId = "party-1", date = "2026-10-05", dueDate = "2026-10-25", status = "SENT",
+        )
+        vm.saveDocumentWithLines(scope, inv1, listOf(
+            SalesDocumentLine(id = "l-1", orderId = "inv-1", position = 0,
+                quantity = BigDecimal("10"), rate = BigDecimal("100")),
+        ))
+        vm.saveDocumentWithLines(scope, inv2, listOf(
+            SalesDocumentLine(id = "l-2", orderId = "inv-2", position = 0,
+                quantity = BigDecimal("5"), rate = BigDecimal("100")),
+        ))
+        // Decoy: a DRAFT invoice for the same party and a SENT invoice
+        // for another party must both be ignored by the receipt.
+        vm.saveDocumentWithLines(scope, SalesDocument(
+            id = "inv-draft", type = SalesDocumentType.INVOICE, number = "INV-3",
+            partyId = "party-1", date = "2026-10-01", status = "DRAFT",
+        ), emptyList())
+        vm.saveDocumentWithLines(scope, SalesDocument(
+            id = "inv-other", type = SalesDocumentType.INVOICE, number = "INV-4",
+            partyId = "party-2", date = "2026-10-01", dueDate = "2026-10-15", status = "SENT",
+        ), listOf(
+            SalesDocumentLine(id = "l-4", orderId = "inv-other", position = 0,
+                quantity = BigDecimal("1"), rate = BigDecimal("100")),
+        ))
+        // Prior partial payment on inv-1: outstanding is 800, not 1000.
+        vm.saveTimelineEntry(scope, TimelineEntry(
+            id = "tl-prior", documentId = "inv-1",
+            documentType = SalesDocumentType.INVOICE.name, documentNumber = "INV-1",
+            partyId = "party-1", action = "PAYMENT_RECEIVED",
+            grandTotal = "200", timestamp = Instant.now().toString(),
+        ))
+        fun receipt(amount: String) = Payment(
+            id = PaymentId("pay-$amount"), tenantId = TenantId("tenant-a"),
+            businessId = BusinessId("business-a"), partyId = PartyId("party-1"),
+            direction = PaymentDirection.RECEIVED, methodId = PaymentMethodId("CASH"),
+            amount = Money.of(BigDecimal(amount), currency),
+            date = LocalDate.parse("2026-10-28"),
+            metadata = EntityMetadata.newLocal(Instant.now(), DeviceId("device-a")),
+        )
+        val first = vm.applyReceipt(scope, receipt("1000"), currency)
+        assertEquals(2, first.applications.size)
+        assertEquals("inv-1", first.applications[0].invoiceId.value)
+        assertEquals(0, first.applications[0].applied.amount.compareTo(BigDecimal("800")))
+        assertEquals(0, first.applications[0].remaining.amount.compareTo(BigDecimal.ZERO))
+        assertEquals("inv-2", first.applications[1].invoiceId.value)
+        assertEquals(0, first.applications[1].applied.amount.compareTo(BigDecimal("200")))
+        assertEquals(0, first.applications[1].remaining.amount.compareTo(BigDecimal("300")))
+        assertEquals(0, first.unallocated.amount.compareTo(BigDecimal.ZERO))
+        val afterFirst = vm.loadInvoices(scope).associateBy { it.id }
+        assertEquals("PAID", afterFirst.getValue("inv-1").status)
+        assertEquals("PARTIALLY_PAID", afterFirst.getValue("inv-2").status)
+        assertEquals("SENT", afterFirst.getValue("inv-other").status)
+        // Second receipt: inv-1 is fully paid (excluded), inv-2 clears.
+        val second = vm.applyReceipt(scope, receipt("300"), currency)
+        assertEquals(1, second.applications.size)
+        assertEquals("inv-2", second.applications[0].invoiceId.value)
+        assertEquals(0, second.applications[0].applied.amount.compareTo(BigDecimal("300")))
+        val afterSecond = vm.loadInvoices(scope).associateBy { it.id }
+        assertEquals("PAID", afterSecond.getValue("inv-2").status)
+        val inv2Paid = vm.loadTimeline(scope, "inv-2")
+            .filter { it.action == "PAYMENT_RECEIVED" }
+            .fold(BigDecimal.ZERO) { acc, entry -> acc + (entry.grandTotal.toBigDecimalOrNull() ?: BigDecimal.ZERO) }
+        assertEquals(0, inv2Paid.compareTo(BigDecimal("500")))
+    }
 
     @Test
     fun savingADocumentDeletesLinesThatWereRemovedInTheEditor() = runBlocking {

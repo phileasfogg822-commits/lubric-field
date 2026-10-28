@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.shell
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.DeviceId
 import com.lubrcapp.lubrcapp.domain.common.PartyId
+import com.lubrcapp.lubrcapp.domain.payment.Payment
 import com.lubrcapp.lubrcapp.domain.purchase.PurchaseInvoice
 import com.lubrcapp.lubrcapp.domain.purchase.PurchaseInvoiceLine
 import com.lubrcapp.lubrcapp.feature.accounts.AccountsViewModel
@@ -13,6 +14,8 @@ import com.lubrcapp.lubrcapp.feature.purchases.DebitNoteLine
 import com.lubrcapp.lubrcapp.feature.purchases.DebitNotePostingAccounts
 import com.lubrcapp.lubrcapp.feature.purchases.PurchaseDebitNotePosting
 import com.lubrcapp.lubrcapp.feature.purchases.PurchaseInvoicePosting
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasePaymentPosting
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasePaymentPostingAccounts
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasePostResult
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasePostingAccounts
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasesViewModel
@@ -171,6 +174,32 @@ object PurchasePostingHandler {
                     ),
                 )
             }
+        }
+        return PurchasePostResult.Posted(documentNumber)
+    }
+
+    // Phase 31.2 — the supplier-payment join, mirroring the
+    // sales payment handler: build-then-post only, no stock
+    // movement, no serials. A rejected posting changes nothing
+    // — the screen calls PurchasesViewModel.applyPayment only
+    // on PurchasePostResult.Posted.
+    suspend fun postPayment(
+        scope: OperationalScope,
+        payment: Payment,
+        documentNumber: String,
+        accounts: PurchasePaymentPostingAccounts,
+        accountsViewModel: AccountsViewModel,
+    ): PurchasePostResult {
+        val posting = PurchasePaymentPosting.paymentToPosting(payment, documentNumber, accounts)
+        val result = accountsViewModel.postDocument(
+            scope = scope,
+            posting = posting,
+            date = payment.date,
+            now = Instant.now(),
+            deviceId = DeviceId(scope.deviceId),
+        )
+        if (result is AccountsViewModel.DocumentPostResult.Rejected) {
+            return PurchasePostResult.Rejected(result.violations.map { it.name })
         }
         return PurchasePostResult.Posted(documentNumber)
     }

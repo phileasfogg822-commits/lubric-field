@@ -29,8 +29,13 @@ import com.lubrcapp.lubrcapp.domain.common.RoleId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.domain.common.UserId
 import com.lubrcapp.lubrcapp.domain.user.Capabilities
+import com.lubrcapp.lubrcapp.core.repository.BusinessMember
+import com.lubrcapp.lubrcapp.core.repository.BusinessRole
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -727,4 +732,96 @@ class RoomAccessControlRepositoryTest {
         override fun generate(): String =
             values.removeFirstOrNull() ?: "generated-" + System.nanoTime()
     }
+
+    @Test
+    fun roleCapabilityEditReemitsUpdatedCapabilities() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(name = "Sales", capabilities = emptySet()),
+        )
+        // A fresh read after the edit would pass even with the stale-Flow
+        // bug, so this test collects BEFORE the edit and awaits a second
+        // emission carrying the new capabilities.
+        val emissions = mutableListOf<List<BusinessRole>>()
+        val job = launch {
+            repository.observeRoles(
+                TenantId("tenant-a"),
+                BusinessId("business-a"),
+            ).collect { emissions.add(it) }
+        }
+        try {
+            withTimeout(10_000) {
+                while (emissions.none { roles -> roles.any { it.roleId == role.roleId } }) {
+                    delay(50)
+                }
+            }
+            repository.setRoleCapabilities(
+                ownerContext,
+                role.roleId,
+                setOf(Capabilities.SALES_VIEW, Capabilities.SALES_CREATE),
+            )
+            withTimeout(10_000) {
+                while (
+                    emissions.none { roles ->
+                        roles.singleOrNull { it.roleId == role.roleId }?.capabilities ==
+                            setOf(Capabilities.SALES_VIEW, Capabilities.SALES_CREATE)
+                    }
+                ) {
+                    delay(50)
+                }
+            }
+        } finally {
+            job.cancel()
+        }
+    }
+
+    @Test
+    fun memberRoleAssignmentReemitsUpdatedRoleIds() = runBlocking {
+        repository.ensureOwnerAccess(TenantId("tenant-a"), BusinessId("business-a"))
+        val member = repository.createBusinessUser(
+            ownerContext,
+            CreateBusinessUserRequest(name = "Sales Person"),
+        )
+        val role = repository.createRole(
+            ownerContext,
+            CreateBusinessRoleRequest(name = "Sales", capabilities = emptySet()),
+        )
+        val emissions = mutableListOf<List<BusinessMember>>()
+        val job = launch {
+            repository.observeMembers(
+                TenantId("tenant-a"),
+                BusinessId("business-a"),
+            ).collect { emissions.add(it) }
+        }
+        try {
+            withTimeout(10_000) {
+                while (
+                    emissions.none { members ->
+                        members.any { it.membershipId == member.membershipId }
+                    }
+                ) {
+                    delay(50)
+                }
+            }
+            repository.assignRoles(
+                actor = ownerContext,
+                membershipId = member.membershipId,
+                roleIds = setOf(role.roleId),
+            )
+            withTimeout(10_000) {
+                while (
+                    emissions.none { members ->
+                        members.singleOrNull { it.membershipId == member.membershipId }
+                            ?.roleIds?.contains(role.roleId) == true
+                    }
+                ) {
+                    delay(50)
+                }
+            }
+        } finally {
+            job.cancel()
+        }
+    }
+
 }

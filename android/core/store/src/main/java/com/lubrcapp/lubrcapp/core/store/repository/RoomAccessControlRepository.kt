@@ -466,6 +466,13 @@ class RoomAccessControlRepository @Inject constructor(
         transactionRunner.run {
             seedCapabilityCatalog()
             replaceRoleCapabilities(actor, roleId, capabilities)
+            accessDao.touchRole(
+                actor.tenantId.value,
+                actor.businessId.value,
+                roleId.value,
+                Instant.now().toEpochMilli(),
+                actor.userId.value,
+            )
             recordAudit(
                 actor = actor,
                 entityType = "ROLE",
@@ -525,6 +532,13 @@ class RoomAccessControlRepository @Inject constructor(
                     )
                 )
             }
+            accessDao.touchMembership(
+                actor.tenantId.value,
+                actor.businessId.value,
+                membershipId.value,
+                Instant.now().toEpochMilli(),
+                actor.userId.value,
+            )
             recordAudit(
                 actor = actor,
                 entityType = "USER_MEMBERSHIP",

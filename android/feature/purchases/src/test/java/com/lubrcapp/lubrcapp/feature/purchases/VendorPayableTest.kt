@@ -103,4 +103,25 @@ class VendorPayableTest {
         assertEquals("PAID", all[0].status)
         assertEquals(0, BigDecimal.ZERO.compareTo(all[0].balanceDue))
     }
+
+    @Test fun applyPaymentPartialThenFullThenClampsOverpayment() = runBlocking {
+        val vm = PurchasesViewModel(FakeRepository())
+        vm.savePayable(scope, payable())
+
+        val partial = vm.applyPayment(scope, payable(), BigDecimal("10000"))
+        assertEquals(0, BigDecimal("30000").compareTo(partial.paidAmount))
+        assertEquals("PARTIALLY_PAID", partial.status)
+
+        val full = vm.applyPayment(scope, partial, BigDecimal("20000"))
+        assertEquals(0, BigDecimal("50000").compareTo(full.paidAmount))
+        assertEquals("PAID", full.status)
+
+        val clamped = vm.applyPayment(scope, payable(), BigDecimal("99999"))
+        assertEquals(0, BigDecimal("50000").compareTo(clamped.paidAmount))
+        assertEquals("PAID", clamped.status)
+
+        val untouched = vm.applyPayment(scope, full, BigDecimal("1000"))
+        assertEquals(0, BigDecimal("50000").compareTo(untouched.paidAmount))
+        assertEquals("PAID", untouched.status)
+    }
 }
