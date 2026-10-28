@@ -12,7 +12,21 @@ plus the existing photo-reference field.
 
 ## Package 32.1 — Persistent shell
 
+ACCEPTED at `8f6dffe`: Native 40749227409 success, Compose 40749227666
+success, Segmented 40749227350 success (verified via watch + runs API).
+6 new JVM tests (BottomBarSelectionTest); existing dashboard/More
+suite green. Scaffold hoisted so the bar wraps dashboard, More list,
+feature screens and access control; open-module highlight via a pure
+helper; FAB dashboard-only.
+
 ## Package 32.2 — Khata-style parties
+
+Code at `0af5167` (14 files, +435/−29): photoUri field + codec + form,
+initials/photo avatar, live ledger balances via shell balanceFor,
+summary card, search, clickable rows, profile current-balance line.
+Tests: 11 new JVM (live-balance combine + initials), photoUri codec
+round-trip, 2 new compose tests (search filter, initials avatar).
+Verdict pending on the 32.2 head's trio.
 
 ## Package 32.3 — Demo companies
 
