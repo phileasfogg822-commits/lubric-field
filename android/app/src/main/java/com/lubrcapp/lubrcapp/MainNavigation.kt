@@ -223,149 +223,158 @@ fun MainNavigation(
                     enabledModuleKeys,
                     grantedCapabilities,
                 ).any { it.id == DashboardCardsRegistry.CURRENT_BUSINESS_ID }
-            if (showAccessControl && currentContext != null) {
-                AccessControlScreen(
-                    context = currentContext,
-                    onBack = { showAccessControl = false },
+            // Phase 32.1: the Scaffold — and its bottom bar — wraps every
+            // ready surface (dashboard, More list, feature screens, access
+            // control), so the bar stays visible on all pages. Bar taps set
+            // the same selectedFeature the list sets, so the dispatch below
+            // guards them with the same composed visibility.
+            val bottomNavModules =
+                AppModuleRegistry.bottomNavModules(
+                    enabledModuleKeys,
+                    grantedCapabilities,
                 )
-            } else if (selectedFeature != null && currentContext != null) {
-                val scope = operationalScope
-                if (scope == null) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+            Scaffold(
+                bottomBar = {
+                    ShellBottomBar(
+                        bottomNavModules = bottomNavModules,
+                        selected =
+                            if (showMore) BottomNavSelection.MORE
+                            else BottomNavSelection.HOME,
+                        selectedModuleId = selectedFeature,
+                        onSelectHome = {
+                            showMore = false
+                            selectedFeature = null
+                        },
+                        onSelectModule = { module ->
+                            showMore = false
+                            selectedFeature = module.id
+                        },
+                        onSelectMore = {
+                            showMore = true
+                            selectedFeature = null
+                        },
+                    )
+                },
+                floatingActionButton = {
+                    // Spec section 13's "+" (Phase 13.5): rendered only on
+                    // the dashboard while at least one quick action is
+                    // visible — no dead buttons, and feature screens keep
+                    // their own actions unobstructed.
+                    if (selectedFeature == null && !showMore &&
+                        currentContext != null && visibleQuickActions.isNotEmpty()
+                    ) {
+                        FloatingActionButton(onClick = { showQuickActions = true }) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription =
+                                    stringResource(R.string.quick_actions_title),
+                            )
+                        }
+                    }
+                },
+            ) { padding ->
+                if (showAccessControl && currentContext != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                    ) {
+                        AccessControlScreen(
+                            context = currentContext,
+                            onBack = { showAccessControl = false },
+                        )
+                    }
+                } else if (selectedFeature != null && currentContext != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(padding),
+                    ) {
+                        val scope = operationalScope
+                        if (scope == null) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        } else {
+                            val back = { selectedFeature = null }
+                            // Dispatch honors the same composed visibility as the
+                            // module list: a selection whose module is hidden by
+                            // configuration or by capability — including one left
+                            // open while its grant was revoked — renders no
+                            // surface, exactly like an unknown id below.
+                            val selectedModule = AppModuleRegistry.module(selectedFeature)
+                            val content = selectedModule
+                                ?.takeIf {
+                                    AppModuleRegistry.isVisible(
+                                        it,
+                                        enabledModuleKeys,
+                                        grantedCapabilities,
+                                    )
+                                }
+                                ?.content
+                            if (content != null) {
+                                content(scope, back)
+                            } else {
+                                // Defensive: selections are only produced by the
+                                // registry-driven module list below, so an unknown
+                                // id cannot occur; render an empty surface and let
+                                // Back return to the dashboard.
+                                Box(Modifier.fillMaxSize())
+                            }
+                        }
+                    }
+                } else if (showMore) {
+                    Column(
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .padding(padding)
+                                .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        visibleModules.forEach { module ->
+                            Button(
+                                onClick = { selectedFeature = module.id },
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            ) { Text(stringResource(module.titleRes)) }
+                        }
                     }
                 } else {
-                    val back = { selectedFeature = null }
-                    // Dispatch honors the same composed visibility as the
-                    // module list: a selection whose module is hidden by
-                    // configuration or by capability — including one left
-                    // open while its grant was revoked — renders no
-                    // surface, exactly like an unknown id below.
-                    val selectedModule = AppModuleRegistry.module(selectedFeature)
-                    val content = selectedModule
-                        ?.takeIf {
-                            AppModuleRegistry.isVisible(
-                                it,
-                                enabledModuleKeys,
-                                grantedCapabilities,
-                            )
-                        }
-                        ?.content
-                    if (content != null) {
-                        content(scope, back)
-                    } else {
-                        // Defensive: selections are only produced by the
-                        // registry-driven module list below, so an unknown
-                        // id cannot occur; render an empty surface and let
-                        // Back return to the dashboard.
-                        Box(Modifier.fillMaxSize())
-                    }
-                }
-            } else {
-                // Phase 13.4: the ready surface is a Scaffold whose bottom
-                // bar is the registry-driven NavigationBar (Home / Items /
-                // Parties / More); "More" swaps the dashboard for the full
-                // module list. Bar taps set the same selectedFeature the
-                // list sets, so the dispatch branch above guards them with
-                // the same composed visibility.
-                val bottomNavModules =
-                    AppModuleRegistry.bottomNavModules(
-                        enabledModuleKeys,
-                        grantedCapabilities,
-                    )
-                Scaffold(
-                    bottomBar = {
-                        ShellBottomBar(
-                            bottomNavModules = bottomNavModules,
-                            selected =
-                                if (showMore) BottomNavSelection.MORE
-                                else BottomNavSelection.HOME,
-                            onSelectHome = {
-                                showMore = false
+                    Column(
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .padding(padding)
+                                .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DashboardScreen(
+                            state = dashboardState,
+                            onSwitchBusiness = { tenant, business ->
                                 selectedFeature = null
-                            },
-                            onSelectModule = { module ->
                                 showMore = false
-                                selectedFeature = module.id
+                                showQuickActions = false
+                                dashboardViewModel.switchTo(tenant, business)
                             },
-                            onSelectMore = {
-                                showMore = true
-                                selectedFeature = null
-                            },
+                            onOpenAccessControl = { showAccessControl = true },
+                            modifier = Modifier.weight(1f, fill = false),
+                            showCurrentBusinessCard = showCurrentBusinessCard,
                         )
-                    },
-                    floatingActionButton = {
-                        // Spec section 13's "+" (Phase 13.5): rendered only
-                        // when at least one quick action is visible — no
-                        // dead buttons, the rule 13.4 set for deferring it.
                         if (currentContext != null && visibleQuickActions.isNotEmpty()) {
-                            FloatingActionButton(onClick = { showQuickActions = true }) {
-                                Icon(
-                                    Icons.Filled.Add,
-                                    contentDescription =
-                                        stringResource(R.string.quick_actions_title),
-                                )
-                            }
-                        }
-                    },
-                ) { padding ->
-                    if (showMore) {
-                        Column(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .padding(padding)
-                                    .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            visibleModules.forEach { module ->
-                                Button(
-                                    onClick = { selectedFeature = module.id },
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                ) { Text(stringResource(module.titleRes)) }
-                            }
-                        }
-                    } else {
-                        Column(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .padding(padding)
-                                    .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            DashboardScreen(
-                                state = dashboardState,
-                                onSwitchBusiness = { tenant, business ->
-                                    selectedFeature = null
-                                    showMore = false
-                                    showQuickActions = false
-                                    dashboardViewModel.switchTo(tenant, business)
+                            QuickActionsSection(
+                                actions = visibleQuickActions,
+                                onSelect = { action ->
+                                    selectedFeature = action.targetModuleId
                                 },
-                                onOpenAccessControl = { showAccessControl = true },
-                                modifier = Modifier.weight(1f, fill = false),
-                                showCurrentBusinessCard = showCurrentBusinessCard,
                             )
-                            if (currentContext != null && visibleQuickActions.isNotEmpty()) {
-                                QuickActionsSection(
-                                    actions = visibleQuickActions,
-                                    onSelect = { action ->
-                                        selectedFeature = action.targetModuleId
-                                    },
-                                )
-                            }
                         }
                     }
                 }
-                if (showQuickActions) {
-                    QuickActionsSheet(
-                        actions = visibleQuickActions,
-                        onSelect = { action ->
-                            showQuickActions = false
-                            showMore = false
-                            selectedFeature = action.targetModuleId
-                        },
-                        onDismiss = { showQuickActions = false },
-                    )
-                }
+            }
+            if (showQuickActions) {
+                QuickActionsSheet(
+                    actions = visibleQuickActions,
+                    onSelect = { action ->
+                        showQuickActions = false
+                        showMore = false
+                        selectedFeature = action.targetModuleId
+                    },
+                    onDismiss = { showQuickActions = false },
+                )
             }
         }
 
