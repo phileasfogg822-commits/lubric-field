@@ -17,6 +17,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -50,7 +51,7 @@ fun PartyAvatar(
     size: Dp = 48.dp,
 ) {
     val context = LocalContext.current
-    val bitmap by produceState(initialValue = null, photoUri) {
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, photoUri) {
         value = if (photoUri.isNullOrBlank()) null else loadPhotoBitmap(context, photoUri)
     }
     Box(
