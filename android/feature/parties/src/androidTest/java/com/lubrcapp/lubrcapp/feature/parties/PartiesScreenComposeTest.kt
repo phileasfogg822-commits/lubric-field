@@ -1,9 +1,9 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -180,7 +180,7 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Other").assertIsDisplayed()
         compose.onNodeWithText("Search parties").performTextInput("sam")
         compose.onNodeWithText("Sample").assertIsDisplayed()
-        compose.onNodeWithText("Other").assertDoesNotExist()
+        compose.onAllNodesWithText("Other").assertCountEquals(0)
     }
 
     @Test fun rowShowsNameInitialsAvatar() {
