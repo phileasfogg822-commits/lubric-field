@@ -50,9 +50,10 @@ import com.lubrcapp.lubrcapp.feature.items.ItemsViewModel
 import com.lubrcapp.lubrcapp.feature.parties.PartiesViewModel
 import com.lubrcapp.lubrcapp.feature.parties.Party
 import com.lubrcapp.lubrcapp.feature.parties.PartyGroup
-import com.lubrcapp.lubrcapp.feature.parties.PartyType
+import com.lubrcapp.lubrcapp.domain.party.PartyType
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasePaymentPostingAccounts
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasePostResult
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasePostingAccounts
 import com.lubrcapp.lubrcapp.feature.purchases.PurchasesViewModel
 import com.lubrcapp.lubrcapp.feature.sales.InvoicePostingAccounts
 import com.lubrcapp.lubrcapp.feature.sales.PaymentPostingAccounts
@@ -502,7 +503,7 @@ object DemoSeeder {
         )
         require(posted is PurchasePostResult.Posted) { "Demo purchase did not post" }
 
-        val payable = viewModels.purchases.loadPayableForPurchase(purchaseId)
+        val payable = viewModels.purchases.loadPayableForPurchase(scope, purchaseId)
         if (payable != null && payable.paidAmount < dec("10000")) {
             viewModels.purchases.applyPayment(scope, payable, dec("10000"))
             val payment = Payment(

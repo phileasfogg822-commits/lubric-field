@@ -12,7 +12,6 @@ import com.lubrcapp.lubrcapp.core.repository.datasource.SettingsLocalDataSource
 import com.lubrcapp.lubrcapp.core.repository.TenantContext
 import com.lubrcapp.lubrcapp.core.repository.datasource.UserLocalDataSource
 import com.lubrcapp.lubrcapp.core.store.repository.RoomVpsBusinessRepository
-import com.lubrcapp.lubrcapp.domain.common.DeviceId
 import com.lubrcapp.lubrcapp.domain.common.UserId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -54,7 +53,7 @@ class DemoCompaniesViewModel @Inject constructor(
     suspend fun seedIfNeeded(userId: UserId, viewModels: DemoViewModels): Boolean {
         if (isSeeded()) return true
         return try {
-            val deviceId = DeviceId(deviceIdentity.getOrCreate())
+            val deviceId = deviceIdentity.getOrCreate()
             DEMO_COMPANIES.forEach { def ->
                 DemoSeeder.seedCompany(
                     def = def,
