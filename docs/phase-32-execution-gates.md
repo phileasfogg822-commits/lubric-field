@@ -145,3 +145,15 @@ PrintingPreviewContent (dashboard + parties + accounts VMs) is
 not covered by an emulator harness.
 
 ## Package 32.6 — Gate
+
+Phase 32 recount on the branch diff (`9016280..ee5283d`):
+32.1: 6 JVM, 32.2: 11 JVM + 2 compose, 32.3: 5 JVM, 32.4:
+4 JVM + 3 compose, 32.5: 5 JVM + 2 compose — 38 new @Test
+in total, matching the per-segment counts. All five segments
+accepted on their exact heads (32.1 `8f6dffe`, 32.2 `bf5e78d`,
+32.3 `b7ee326`, 32.4 `3034ffb`, 32.5 `ee5283d`); this gate
+commit adds no code. Device checks owed on the gate APK:
+DEMO badge/delete flow, live-balance summary card on demo
+data, full pick-a-different-day flow, themed print preview +
+statement photo, theme persistence across restarts.
+Gate verdict: pending.
