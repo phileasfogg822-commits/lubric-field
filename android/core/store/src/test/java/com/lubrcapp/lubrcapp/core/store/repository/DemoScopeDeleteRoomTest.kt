@@ -10,6 +10,7 @@ import com.lubrcapp.lubrcapp.core.store.db.entity.SettingEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.SyncQueueEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.TenantEntity
 import com.lubrcapp.lubrcapp.core.store.db.entity.UserBusinessEntity
+import com.lubrcapp.lubrcapp.core.store.db.entity.UserEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -49,6 +50,14 @@ class DemoScopeDeleteRoomTest {
             BusinessEntity(
                 id = businessId, tenantId = tenantId, name = "Business $businessId",
                 businessType = "General Store", currencyCode = "PKR", timezoneId = "Asia/Karachi",
+                createdAt = 1L, updatedAt = 1L, deviceId = "device-a", syncStatus = "LOCAL_ONLY",
+            ),
+        )
+        // Memberships reference the users table, so the user row must
+        // exist first or Room's foreign key rejects the membership.
+        db.userDao().upsert(
+            UserEntity(
+                id = "user-1", name = "Test User",
                 createdAt = 1L, updatedAt = 1L, deviceId = "device-a", syncStatus = "LOCAL_ONLY",
             ),
         )

@@ -92,15 +92,20 @@ fun MainNavigation(
     scopeViewModel: OperationalScopeViewModel = hiltViewModel(),
     shellConfigViewModel: ShellConfigViewModel = hiltViewModel(),
     shellAccessViewModel: ShellAccessViewModel = hiltViewModel(),
-    // Phase 32.3: demo companies. Defaults keep every existing caller
-    // (including the MainNavigation tests) compiling unchanged.
-    demoCompaniesViewModel: DemoCompaniesViewModel = hiltViewModel(),
-    partiesViewModel: PartiesViewModel = hiltViewModel(),
-    itemsViewModel: ItemsViewModel = hiltViewModel(),
-    inventoryViewModel: InventoryViewModel = hiltViewModel(),
-    salesViewModel: SalesViewModel = hiltViewModel(),
-    purchasesViewModel: PurchasesViewModel = hiltViewModel(),
-    accountsViewModel: AccountsViewModel = hiltViewModel(),
+    // Phase 32.3: demo companies. These default to null (not
+    // hiltViewModel()) on purpose: MainNavigationComposeTest composes
+    // MainNavigation without a Hilt entry point, and a hiltViewModel()
+    // default evaluated there would crash every navigation test.
+    // MainActivity, which IS a Hilt entry point, passes real ones;
+    // with nulls the dashboard simply skips seeding and the delete
+    // action, exactly like a build without demos.
+    demoCompaniesViewModel: DemoCompaniesViewModel? = null,
+    partiesViewModel: PartiesViewModel? = null,
+    itemsViewModel: ItemsViewModel? = null,
+    inventoryViewModel: InventoryViewModel? = null,
+    salesViewModel: SalesViewModel? = null,
+    purchasesViewModel: PurchasesViewModel? = null,
+    accountsViewModel: AccountsViewModel? = null,
 ) {
     val setupState by businessSetupViewModel.state.collectAsState()
     val dashboardState by dashboardViewModel.state.collectAsState()
@@ -365,21 +370,35 @@ fun MainNavigation(
                         // Phase 32.3: seed the demo companies once, when
                         // the dashboard already has a business to take
                         // the user id from. The flag inside the ViewModel
-                        // makes later visits a no-op.
+                        // makes later visits a no-op. Null ViewModels
+                        // (the navigation tests) skip seeding entirely.
                         val demoScope = rememberCoroutineScope()
                         val currentBusiness = dashboardState.currentBusiness
+                        val demoViewModels = if (
+                            demoCompaniesViewModel != null &&
+                            partiesViewModel != null &&
+                            itemsViewModel != null &&
+                            inventoryViewModel != null &&
+                            salesViewModel != null &&
+                            purchasesViewModel != null &&
+                            accountsViewModel != null
+                        ) {
+                            DemoViewModels(
+                                partiesViewModel,
+                                itemsViewModel,
+                                inventoryViewModel,
+                                salesViewModel,
+                                purchasesViewModel,
+                                accountsViewModel,
+                            )
+                        } else {
+                            null
+                        }
                         LaunchedEffect(currentBusiness) {
-                            if (currentBusiness != null) {
-                                demoCompaniesViewModel.seedIfNeeded(
+                            if (currentBusiness != null && demoViewModels != null) {
+                                demoCompaniesViewModel?.seedIfNeeded(
                                     currentBusiness.context.userId,
-                                    DemoViewModels(
-                                        partiesViewModel,
-                                        itemsViewModel,
-                                        inventoryViewModel,
-                                        salesViewModel,
-                                        purchasesViewModel,
-                                        accountsViewModel,
-                                    ),
+                                    demoViewModels,
                                 )
                             }
                         }
@@ -397,28 +416,32 @@ fun MainNavigation(
                             hasDemoCompanies = dashboardState.availableBusinesses.any {
                                 isDemoScopeId(it.context.businessId.value)
                             },
-                            onDeleteDemoCompanies = {
-                                demoScope.launch {
-                                    val demos = dashboardState.availableBusinesses.filter {
-                                        isDemoScopeId(it.context.businessId.value)
-                                    }
-                                    val current = dashboardState.currentBusiness
-                                    if (current != null && isDemoScopeId(current.context.businessId.value)) {
-                                        val fallback = dashboardState.availableBusinesses.firstOrNull {
-                                            !isDemoScopeId(it.context.businessId.value)
+                            onDeleteDemoCompanies = if (demoCompaniesViewModel != null) {
+                                {
+                                    demoScope.launch {
+                                        val demos = dashboardState.availableBusinesses.filter {
+                                            isDemoScopeId(it.context.businessId.value)
                                         }
-                                        if (fallback != null) {
-                                            selectedFeature = null
-                                            showMore = false
-                                            showQuickActions = false
-                                            dashboardViewModel.switchTo(
-                                                fallback.context.tenantId,
-                                                fallback.context.businessId,
-                                            )
+                                        val current = dashboardState.currentBusiness
+                                        if (current != null && isDemoScopeId(current.context.businessId.value)) {
+                                            val fallback = dashboardState.availableBusinesses.firstOrNull {
+                                                !isDemoScopeId(it.context.businessId.value)
+                                            }
+                                            if (fallback != null) {
+                                                selectedFeature = null
+                                                showMore = false
+                                                showQuickActions = false
+                                                dashboardViewModel.switchTo(
+                                                    fallback.context.tenantId,
+                                                    fallback.context.businessId,
+                                                )
+                                            }
                                         }
+                                        demoCompaniesViewModel.deleteDemoCompanies(demos.map { it.context })
                                     }
-                                    demoCompaniesViewModel.deleteDemoCompanies(demos.map { it.context })
                                 }
+                            } else {
+                                null
                             },
                         )
                         if (currentContext != null && visibleQuickActions.isNotEmpty()) {
