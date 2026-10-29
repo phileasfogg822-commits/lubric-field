@@ -74,15 +74,15 @@ private fun lightScheme(palette: BrandPalette) = lightColorScheme(
     onTertiaryContainer = Color(
         contrastColor(blendArgb(palette.accent, ARGB_WHITE, 0.86f))
     ),
-    background = Color(0xFFFFFBFE),
+    background = Color(0xFFF3F5F4),
     onBackground = Color(0xFF1C1B1F),
-    surface = Color(0xFFFFFBFE),
+    surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFE7E0EC),
-    onSurfaceVariant = Color(0xFF49454F),
+    surfaceVariant = Color(0xFFE7ECEA),
+    onSurfaceVariant = Color(0xFF414947),
     error = Color(palette.error),
     onError = Color(contrastColor(palette.error)),
-    outline = Color(0xFF79747E),
+    outline = Color(0xFFD3DBD8),
     scrim = Color(0x99000000),
 )
 
@@ -111,15 +111,15 @@ private fun darkScheme(palette: BrandPalette): androidx.compose.material3.ColorS
         onTertiaryContainer = Color(
             contrastColor(blendArgb(palette.accent, ARGB_BLACK, 0.38f))
         ),
-        background = Color(0xFF121212),
+        background = Color(0xFF101413),
         onBackground = Color(0xFFE6E1E5),
-        surface = Color(0xFF121212),
+        surface = Color(0xFF1B211F),
         onSurface = Color(0xFFE6E1E5),
-        surfaceVariant = Color(0xFF49454F),
-        onSurfaceVariant = Color(0xFFCAC4D0),
+        surfaceVariant = Color(0xFF2B3532),
+        onSurfaceVariant = Color(0xFFC3CCC9),
         error = Color(error),
         onError = Color(contrastColor(error)),
-        outline = Color(0xFF938F99),
+        outline = Color(0xFF3D4A47),
         scrim = Color(0x99000000),
     )
 }
