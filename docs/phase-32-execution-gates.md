@@ -84,6 +84,26 @@ the shell provider or the Hilt MainNavigation path).
 
 ## Package 32.4 — Calendar date pickers
 
+Code at `3034ffb` (7 files, +207/−10): shared `DateField` in
+core/designsystem — an editable OutlinedTextField plus a calendar
+button opening a Material3 DatePickerDialog; confirm writes the
+picked day as an ISO date. Conversions use UTC both ways so the
+picked day cannot shift in zones ahead of UTC; unparseable values
+open the picker unselected instead of crashing. Migrated all six
+editable date fields in the app (found by grep): sales date + due
+date, stock adjustment date, stock transfer date, batch
+manufacturing + expiry dates. Accounts, purchases, parties and the
+rest have no date inputs; report ranges are engine-only.
+Tests: 4 JVM (date conversions incl. leap day and bad input) + 3
+compose (dialog opens, confirm writes the preselected date,
+dismiss closes it) in :feature:sales androidTest.
+ACCEPTED at `3034ffb`: Native 40944577242 success, Compose
+40944577239 success, Segmented 40944577266 success — first-try
+green, including the 3 new picker compose tests on attempt 1.
+Residual: the full pick-a-different-day flow is a device check at
+the gate APK (the compose test proves dialog + confirm wiring with
+a preseeded value, not day-grid tapping).
+
 ## Package 32.5 — Print templates
 
 ## Package 32.6 — Gate
