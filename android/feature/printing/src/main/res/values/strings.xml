@@ -5,4 +5,10 @@
     <string name="print_preview_share">Share</string>
     <string name="print_preview_download">Download PDF</string>
     <string name="print_preview_print">Print</string>
+    <string name="print_preview_theme">Theme</string>
+    <string name="print_theme_blue">Blue</string>
+    <string name="print_theme_orange">Orange</string>
+    <string name="print_theme_red">Red</string>
+    <string name="print_theme_green">Green</string>
+    <string name="print_theme_purple">Purple</string>
 </resources>
