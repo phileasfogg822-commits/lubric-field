@@ -1,11 +1,11 @@
 package com.lubrcapp.lubrcapp.shell
 
-import com.lubrcapp.lubrcapp.core.repository.BusinessLocalDataSource
+import com.lubrcapp.lubrcapp.core.repository.datasource.BusinessLocalDataSource
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetting
 import com.lubrcapp.lubrcapp.core.repository.BusinessSetupSettingKeys
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
-import com.lubrcapp.lubrcapp.core.repository.SettingsLocalDataSource
-import com.lubrcapp.lubrcapp.core.repository.UserLocalDataSource
+import com.lubrcapp.lubrcapp.core.repository.datasource.SettingsLocalDataSource
+import com.lubrcapp.lubrcapp.core.repository.datasource.UserLocalDataSource
 import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.domain.accounting.AccountType
 import com.lubrcapp.lubrcapp.domain.business.Business
