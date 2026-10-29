@@ -156,4 +156,10 @@ commit adds no code. Device checks owed on the gate APK:
 DEMO badge/delete flow, live-balance summary card on demo
 data, full pick-a-different-day flow, themed print preview +
 statement photo, theme persistence across restarts.
-Gate verdict: pending.
+Gate verdict: GREEN. Segmented 40955450649 success, Native
+40955450356 success, Compose 40955450475 success on attempt 2
+— attempt 1 failed on the single known flake
+`adjustFlowPostsAMovement` ("Adjustment posted" not displayed)
+on a docs-only diff, proven from the raw log, then green on a
+failed-jobs-only re-run. Phase 32 is complete: all five
+segments accepted, 38 new tests, gate trio green.
