@@ -14,27 +14,38 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
+import com.lubrcapp.lubrcapp.feature.accounts.AccountsViewModel
 import com.lubrcapp.lubrcapp.feature.auth.BusinessBootstrapState
 import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
+import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
+import com.lubrcapp.lubrcapp.feature.items.ItemsViewModel
+import com.lubrcapp.lubrcapp.feature.parties.PartiesViewModel
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasesViewModel
+import com.lubrcapp.lubrcapp.feature.sales.SalesViewModel
 import com.lubrcapp.lubrcapp.feature.settings.AccessControlScreen
 import com.lubrcapp.lubrcapp.shell.AppModuleRegistry
 import com.lubrcapp.lubrcapp.shell.BottomNavSelection
 import com.lubrcapp.lubrcapp.shell.DashboardCardsRegistry
+import com.lubrcapp.lubrcapp.shell.DemoCompaniesViewModel
+import com.lubrcapp.lubrcapp.shell.DemoViewModels
 import com.lubrcapp.lubrcapp.shell.QuickActionsRegistry
 import com.lubrcapp.lubrcapp.shell.QuickActionsSection
 import com.lubrcapp.lubrcapp.shell.QuickActionsSheet
 import com.lubrcapp.lubrcapp.shell.ShellBottomBar
+import kotlinx.coroutines.launch
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -81,6 +92,15 @@ fun MainNavigation(
     scopeViewModel: OperationalScopeViewModel = hiltViewModel(),
     shellConfigViewModel: ShellConfigViewModel = hiltViewModel(),
     shellAccessViewModel: ShellAccessViewModel = hiltViewModel(),
+    // Phase 32.3: demo companies. Defaults keep every existing caller
+    // (including the MainNavigation tests) compiling unchanged.
+    demoCompaniesViewModel: DemoCompaniesViewModel = hiltViewModel(),
+    partiesViewModel: PartiesViewModel = hiltViewModel(),
+    itemsViewModel: ItemsViewModel = hiltViewModel(),
+    inventoryViewModel: InventoryViewModel = hiltViewModel(),
+    salesViewModel: SalesViewModel = hiltViewModel(),
+    purchasesViewModel: PurchasesViewModel = hiltViewModel(),
+    accountsViewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val setupState by businessSetupViewModel.state.collectAsState()
     val dashboardState by dashboardViewModel.state.collectAsState()
@@ -342,6 +362,27 @@ fun MainNavigation(
                                 .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        // Phase 32.3: seed the demo companies once, when
+                        // the dashboard already has a business to take
+                        // the user id from. The flag inside the ViewModel
+                        // makes later visits a no-op.
+                        val demoScope = rememberCoroutineScope()
+                        val currentBusiness = dashboardState.currentBusiness
+                        LaunchedEffect(currentBusiness) {
+                            if (currentBusiness != null) {
+                                demoCompaniesViewModel.seedIfNeeded(
+                                    currentBusiness.context.userId,
+                                    DemoViewModels(
+                                        partiesViewModel,
+                                        itemsViewModel,
+                                        inventoryViewModel,
+                                        salesViewModel,
+                                        purchasesViewModel,
+                                        accountsViewModel,
+                                    ),
+                                )
+                            }
+                        }
                         DashboardScreen(
                             state = dashboardState,
                             onSwitchBusiness = { tenant, business ->
@@ -353,6 +394,32 @@ fun MainNavigation(
                             onOpenAccessControl = { showAccessControl = true },
                             modifier = Modifier.weight(1f, fill = false),
                             showCurrentBusinessCard = showCurrentBusinessCard,
+                            hasDemoCompanies = dashboardState.availableBusinesses.any {
+                                isDemoScopeId(it.context.businessId.value)
+                            },
+                            onDeleteDemoCompanies = {
+                                demoScope.launch {
+                                    val demos = dashboardState.availableBusinesses.filter {
+                                        isDemoScopeId(it.context.businessId.value)
+                                    }
+                                    val current = dashboardState.currentBusiness
+                                    if (current != null && isDemoScopeId(current.context.businessId.value)) {
+                                        val fallback = dashboardState.availableBusinesses.firstOrNull {
+                                            !isDemoScopeId(it.context.businessId.value)
+                                        }
+                                        if (fallback != null) {
+                                            selectedFeature = null
+                                            showMore = false
+                                            showQuickActions = false
+                                            dashboardViewModel.switchTo(
+                                                fallback.context.tenantId,
+                                                fallback.context.businessId,
+                                            )
+                                        }
+                                    }
+                                    demoCompaniesViewModel.deleteDemoCompanies(demos.map { it.context })
+                                }
+                            },
                         )
                         if (currentContext != null && visibleQuickActions.isNotEmpty()) {
                             QuickActionsSection(

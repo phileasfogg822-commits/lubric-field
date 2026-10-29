@@ -9,4 +9,10 @@
     <string name="dashboard_error_access_denied">You do not have access to that business.</string>
     <string name="dashboard_error_unavailable">That business is no longer available.</string>
     <string name="dashboard_team_access">Team &amp; access</string>
+    <string name="dashboard_demo_badge">DEMO</string>
+    <string name="dashboard_delete_demo">Delete demo companies</string>
+    <string name="dashboard_delete_demo_title">Delete demo companies?</string>
+    <string name="dashboard_delete_demo_text">This removes the demo companies and all their demo data. Your own businesses are not touched.</string>
+    <string name="dashboard_delete_demo_confirm">Delete</string>
+    <string name="dashboard_delete_demo_cancel">Keep</string>
 </resources>

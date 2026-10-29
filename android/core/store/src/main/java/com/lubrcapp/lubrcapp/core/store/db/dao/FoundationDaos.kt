@@ -25,6 +25,9 @@ interface TenantDao {
     @Upsert
     suspend fun upsert(entity: TenantEntity)
 
+    @Query("DELETE FROM tenants WHERE id = :tenantId")
+    suspend fun deleteById(tenantId: String): Int
+
     @Query("SELECT * FROM tenants WHERE id = :tenantId AND deletedAt IS NULL LIMIT 1")
     suspend fun getById(tenantId: String): TenantEntity?
 
@@ -112,6 +115,9 @@ interface BusinessDao {
         deletedAt: Long,
         deletedBy: String?,
     ): Int
+
+    @Query("DELETE FROM businesses WHERE tenantId = :tenantId AND id = :businessId")
+    suspend fun deleteById(tenantId: String, businessId: String): Int
 }
 
 @Dao
@@ -163,6 +169,18 @@ interface AccessDao {
         businessId: String,
         userId: String,
     ): UserBusinessEntity?
+
+    @Query("DELETE FROM user_businesses WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteMembershipsByBusiness(tenantId: String, businessId: String): Int
+
+    @Query("DELETE FROM user_business_roles WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteUserBusinessRolesByBusiness(tenantId: String, businessId: String): Int
+
+    @Query("DELETE FROM roles WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteRolesByBusiness(tenantId: String, businessId: String): Int
+
+    @Query("DELETE FROM role_permissions WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteRolePermissionsByBusiness(tenantId: String, businessId: String): Int
 
     @Query(
         """
@@ -483,6 +501,8 @@ interface AccessDao {
 
 @Dao
 interface SettingsDao {
+    @Query("DELETE FROM settings WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteByScope(tenantId: String, businessId: String): Int
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(entity: SettingEntity)
 
@@ -699,4 +719,7 @@ interface SyncQueueDao {
         """
     )
     suspend fun deleteSynced(tenantId: String, businessId: String, id: String): Int
+
+    @Query("DELETE FROM sync_queue WHERE tenantId = :tenantId AND businessId = :businessId")
+    suspend fun deleteByScope(tenantId: String, businessId: String): Int
 }
