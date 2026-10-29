@@ -43,6 +43,38 @@ Design direction (decided, not copied from any one app):
 
 ## Package 33.1 — Design system foundation
 
+Code at `cf27f2e` (7 files, +352/−17): the default brand
+palette leaves the stock Material template colors behind —
+deep teal primary, bright teal secondary, warm amber accent,
+green/red money semantics, 20dp radius — in
+white-label/deployment.properties, the single source (no test
+or code hardcoded the old hex values; white-label overrides
+still win). Light surfaces become white cards on a soft
+tinted background; dark surfaces become a deep
+charcoal-green pair instead of flat #121212. New adaptive
+width classes (compact <600dp, medium <840dp, expanded) as a
+pure function for the tablet layouts in 33.5, and shared money
+visuals: direction colors, cash-flow bar fractions (inputs
+clamped at zero, both zero yields empty bars), and CashFlowBars
+(label + amount row, rounded track with a success/error fill;
+labels are caller parameters, so no new strings and no locale
+work). Contrast checked by hand for the new palette against
+the luminance rule (teal-700, amber-600, green-600, red-600
+all take white text; amber-500 stays warning-only because it
+sits just under the threshold).
+Tests: 10 JVM (width boundaries incl. 599/600/839/840, bar
+fractions incl. both-zero and negatives clamped) + 2 compose
+in :feature:sales androidTest (bars and money text render;
+wrapped in LubrcappTheme with a test palette because
+LubrcTheme.tokens crashes outside the theme host).
+ACCEPTED at `cf27f2e`: Native 40972249988 success, Compose
+40972250012 success, Segmented 40972250164 success —
+first-try green, including the 2 new money-visuals compose
+tests on attempt 1.
+Note: this changes colors, surfaces, and cards app-wide, but
+no screen layout changes here — Home's new content and
+structure land in 33.2.
+
 ## Package 33.2 — Home redesign
 
 ## Package 33.3 — Modern lists
