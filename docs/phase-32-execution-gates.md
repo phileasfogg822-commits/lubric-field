@@ -106,4 +106,42 @@ a preseeded value, not day-grid tapping).
 
 ## Package 32.5 — Print templates
 
+Code at `ee5283d` (10 files, +1108/−78): five Vyapar-style
+theme colours (blue, orange, red, green, purple) picked by dots
+above the preview — theme is a render choice, never stored in
+PrintableDocument, and the old plain PrintPreviewScreen stays
+untouched for the POS receipt path. New themed rows
+(Meta/TableHeader/TableRow/Total/Note/Blank) render in BOTH the
+Compose preview and a new themed PDF writer: company header with
+an initials badge (or the party photo, circular-clipped, on
+statements) + big company name in theme colour + a 3pt theme
+rule, table header band in theme colour, numeric columns
+right-aligned, and a page-break rule that re-emits the table
+header when a table breaks across pages. The printing content
+gains an Invoice/Statement selector: the statement path picks a
+customer (avatar rows), builds the ledger profile (receivable
+rows only, signed amounts, running balances from the profile —
+never re-derived), and prints Date/Detail/Debit/Credit/Balance
+with a closing balance; the party photo loads sampled
+(bounds + inSampleSize, mirroring 32.2) and any load failure
+falls back to initials. Statement honesty: ledger rows only —
+the party opening balance is NOT folded in (residual, not
+silently mixed). Share, Download and Print all render the same
+themed PDF bytes the preview shows, keeping the pre-API-29
+storage-permission launcher pattern for downloads.
+Tests: 5 JVM (themes distinct + fallback, initials, invoice
+layout with tax, zero-tax/discount rows omitted, statement
+debit/credit split with running balances) + 2 compose
+(header + table, theme-dot tap reports the theme) in
+:feature:printing androidTest.
+ACCEPTED at `ee5283d`: Native 40951568010 success, Compose
+40951568018 success, Segmented 40951568012 success — first-try
+green, including the 2 new themed-preview compose tests on
+attempt 1.
+Residuals: themed print preview + statement photo on device,
+and theme persistence across restarts (not in this pack), are
+device checks at the gate APK; the Hilt wiring of
+PrintingPreviewContent (dashboard + parties + accounts VMs) is
+not covered by an emulator harness.
+
 ## Package 32.6 — Gate
