@@ -30,6 +30,7 @@ import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
+import com.lubrcapp.lubrcapp.feature.dashboard.HomeSummary
 import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
 import com.lubrcapp.lubrcapp.feature.items.ItemsViewModel
 import com.lubrcapp.lubrcapp.feature.parties.PartiesViewModel
@@ -42,6 +43,7 @@ import com.lubrcapp.lubrcapp.shell.DashboardCardsRegistry
 import com.lubrcapp.lubrcapp.shell.DemoCompaniesViewModel
 import com.lubrcapp.lubrcapp.shell.DemoViewModels
 import com.lubrcapp.lubrcapp.shell.QuickActionsRegistry
+import com.lubrcapp.lubrcapp.shell.loadHomeSummary
 import com.lubrcapp.lubrcapp.shell.QuickActionsSection
 import com.lubrcapp.lubrcapp.shell.QuickActionsSheet
 import com.lubrcapp.lubrcapp.shell.ShellBottomBar
@@ -402,6 +404,23 @@ fun MainNavigation(
                                 )
                             }
                         }
+                        // Phase 33.2: Home money overview, loaded once
+                        // the scope resolves and the shell ViewModels are
+                        // available. Null ViewModels (the navigation
+                        // tests) skip loading and hide the money card.
+                        var homeSummary by remember { mutableStateOf<HomeSummary?>(null) }
+                        LaunchedEffect(operationalScope) {
+                            if (operationalScope != null &&
+                                partiesViewModel != null &&
+                                accountsViewModel != null
+                            ) {
+                                homeSummary = loadHomeSummary(
+                                    operationalScope,
+                                    partiesViewModel,
+                                    accountsViewModel,
+                                )
+                            }
+                        }
                         DashboardScreen(
                             state = dashboardState,
                             onSwitchBusiness = { tenant, business ->
@@ -416,6 +435,7 @@ fun MainNavigation(
                             hasDemoCompanies = dashboardState.availableBusinesses.any {
                                 isDemoScopeId(it.context.businessId.value)
                             },
+                            homeSummary = homeSummary,
                             onDeleteDemoCompanies = if (demoCompaniesViewModel != null) {
                                 {
                                     demoScope.launch {

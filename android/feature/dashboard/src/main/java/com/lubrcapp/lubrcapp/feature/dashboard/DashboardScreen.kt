@@ -1,12 +1,20 @@
 package com.lubrcapp.lubrcapp.feature.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -19,11 +27,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.CashFlowBars
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
+import com.lubrcapp.lubrcapp.core.designsystem.cashFlowFractions
 import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
@@ -45,6 +58,10 @@ fun DashboardScreen(
     // "no demos", so existing callers render exactly as before.
     hasDemoCompanies: Boolean = false,
     onDeleteDemoCompanies: (() -> Unit)? = null,
+    // Phase 33.2: Home money overview. The shell loads it when its
+    // ViewModels are available; null hides the money card, so
+    // existing callers render exactly as before.
+    homeSummary: HomeSummary? = null,
 ) {
     val spacing = LubrcTheme.tokens.contentPadding
 
@@ -65,10 +82,94 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         state.currentBusiness?.let { current ->
-            Text(
-                text = current.name,
-                style = MaterialTheme.typography.headlineMedium,
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
+            ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier.size(120.dp)
+                            .offset(x = 32.dp, y = (-48).dp)
+                            .align(Alignment.TopEnd)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.10f)),
+                    )
+                    Box(
+                        modifier = Modifier.size(72.dp)
+                            .offset(x = (-8).dp, y = 40.dp)
+                            .align(Alignment.TopEnd)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.08f)),
+                    )
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = current.name,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = current.businessType,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Text(
+                                text = current.currency.value,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            if (isDemoScopeId(current.context.businessId.value)) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.White.copy(alpha = 0.20f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.dashboard_demo_badge),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            homeSummary?.let { summary ->
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(spacing),
+                        verticalArrangement = Arrangement.spacedBy(spacing),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.dashboard_home_money_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        val (inFraction, outFraction) = remember(summary) {
+                            cashFlowFractions(summary.receivable, summary.payable)
+                        }
+                        CashFlowBars(
+                            inLabel = stringResource(R.string.dashboard_home_receivable),
+                            inAmountText = homeMoneyText(summary.receivable, summary.currency),
+                            inFraction = inFraction,
+                            outLabel = stringResource(R.string.dashboard_home_payable),
+                            outAmountText = homeMoneyText(summary.payable, summary.currency),
+                            outFraction = outFraction,
+                        )
+                    }
+                }
+            }
 
             OutlinedButton(
                 onClick = onOpenAccessControl,

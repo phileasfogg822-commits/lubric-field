@@ -1,8 +1,22 @@
-<resources><string name="dashboard_current_business">वर्तमान व्यवसाय</string><string name="dashboard_tenant_short">टेनेंट %1$s…</string><string name="dashboard_no_business">इस उपयोगकर्ता के लिए कोई सुलभ व्यवसाय उपलब्ध नहीं है।</string><string name="dashboard_switching">बदला जा रहा है…</string><string name="dashboard_switch_business">व्यवसाय बदलें</string><string name="dashboard_error_restore">वर्तमान व्यवसाय बहाल नहीं किया जा सका।</string><string name="dashboard_error_no_current">कोई वैध वर्तमान व्यवसाय चयनित नहीं है।</string><string name="dashboard_error_access_denied">आपको उस व्यवसाय तक पहुँच नहीं है।</string><string name="dashboard_error_unavailable">वह व्यवसाय अब उपलब्ध नहीं है।</string>    <string name="dashboard_team_access">टीम और एक्सेस</string>
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="dashboard_current_business">वर्तमान व्यवसाय</string>
+    <string name="dashboard_tenant_short">टेनेंट %1$s…</string>
+    <string name="dashboard_no_business">इस उपयोगकर्ता के लिए कोई सुलभ व्यवसाय उपलब्ध नहीं है।</string>
+    <string name="dashboard_switching">बदला जा रहा है…</string>
+    <string name="dashboard_switch_business">व्यवसाय बदलें</string>
+    <string name="dashboard_error_restore">वर्तमान व्यवसाय बहाल नहीं किया जा सका।</string>
+    <string name="dashboard_error_no_current">कोई वैध वर्तमान व्यवसाय चयनित नहीं है।</string>
+    <string name="dashboard_error_access_denied">आपको उस व्यवसाय तक पहुँच नहीं है।</string>
+    <string name="dashboard_error_unavailable">वह व्यवसाय अब उपलब्ध नहीं है।</string>
+    <string name="dashboard_team_access">टीम और एक्सेस</string>
     <string name="dashboard_demo_badge">DEMO</string>
     <string name="dashboard_delete_demo">डेमो कंपनियाँ हटाएँ</string>
     <string name="dashboard_delete_demo_title">डेमो कंपनियाँ हटाएँ?</string>
     <string name="dashboard_delete_demo_text">इससे डेमो कंपनियाँ और उनका सारा डेमो डेटा हट जाएगा। आपके अपने व्यवसाय प्रभावित नहीं होंगे।</string>
     <string name="dashboard_delete_demo_confirm">हटाएँ</string>
     <string name="dashboard_delete_demo_cancel">रखें</string>
+    <string name="dashboard_home_money_title">धन अवलोकन</string>
+    <string name="dashboard_home_receivable">प्राप्य</string>
+    <string name="dashboard_home_payable">देय</string>
 </resources>
