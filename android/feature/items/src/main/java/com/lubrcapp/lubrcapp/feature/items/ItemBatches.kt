@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.lubrcapp.lubrcapp.core.designsystem.DateField
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -84,8 +85,8 @@ fun ItemBatchesMode(
                 }
             }
             BatchTextField(form.batchNumber, { form.batchNumber = it }, R.string.items_batch_number)
-            BatchTextField(form.manufacturingDate, { form.manufacturingDate = it }, R.string.items_batch_mfg_date)
-            BatchTextField(form.expiryDate, { form.expiryDate = it }, R.string.items_batch_expiry_date)
+            DateField(form.manufacturingDate, { form.manufacturingDate = it }, stringResource(R.string.items_batch_mfg_date), Modifier.fillMaxWidth())
+            DateField(form.expiryDate, { form.expiryDate = it }, stringResource(R.string.items_batch_expiry_date), Modifier.fillMaxWidth())
             BatchTextField(form.purchaseRate, { form.purchaseRate = it }, R.string.items_purchase_rate, KeyboardType.Decimal)
             BatchTextField(form.saleRate, { form.saleRate = it }, R.string.items_sale_rate, KeyboardType.Decimal)
             BatchTextField(form.mrp, { form.mrp = it }, R.string.items_mrp, KeyboardType.Decimal)

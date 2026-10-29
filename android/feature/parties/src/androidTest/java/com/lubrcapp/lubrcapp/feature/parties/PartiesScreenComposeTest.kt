@@ -1,5 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.parties
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -166,6 +167,29 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Near credit limit").assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
         compose.onNodeWithText("Add party").assertIsDisplayed()
+    }
+
+    @Test fun searchFiltersListByName() {
+        val fake = FakeRepository()
+        fake.records.value = listOf(
+            OperationalRecord("1", PartyJson.encode(Party(id = "1", name = "Sample"))),
+            OperationalRecord("2", PartyJson.encode(Party(id = "2", name = "Other"))),
+        )
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        compose.onNodeWithText("Sample").assertIsDisplayed()
+        compose.onNodeWithText("Other").assertIsDisplayed()
+        compose.onNodeWithText("Search parties").performTextInput("sam")
+        compose.onNodeWithText("Sample").assertIsDisplayed()
+        compose.onAllNodesWithText("Other").assertCountEquals(0)
+    }
+
+    @Test fun rowShowsNameInitialsAvatar() {
+        val fake = FakeRepository()
+        fake.records.value = listOf(
+            OperationalRecord("1", PartyJson.encode(Party(id = "1", name = "Sample"))),
+        )
+        compose.setContent { PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake)) }
+        compose.onNodeWithText("S").assertIsDisplayed()
     }
 
     @Test fun emptyStateIsShownWhenNoRecords() {

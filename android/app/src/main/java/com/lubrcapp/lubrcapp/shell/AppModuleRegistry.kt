@@ -150,6 +150,9 @@ object AppModuleRegistry {
                     ledgerTabsProvider = { partyId ->
                         PartyLedgerTabsMapping.tabsFor(scope, partyId, salesViewModel, accountsViewModel)
                     },
+                    balanceProvider = { partyId ->
+                        PartyLedgerTabsMapping.balanceFor(scope, partyId, accountsViewModel)
+                    },
                 )
             },
             bottomNavSlot = BottomNavSlot.PARTIES,

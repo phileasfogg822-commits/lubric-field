@@ -1,0 +1,5 @@
+<resources>
+    <string name="date_field_pick">Pick a date</string>
+    <string name="date_field_confirm">OK</string>
+    <string name="date_field_dismiss">Cancel</string>
+</resources>

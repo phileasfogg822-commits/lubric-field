@@ -20,7 +20,14 @@ import com.lubrcapp.lubrcapp.core.designsystem.AppSurface
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.designsystem.ThemePreferenceStore
 import com.lubrcapp.lubrcapp.core.designsystem.ThemePreferences
+import com.lubrcapp.lubrcapp.feature.accounts.AccountsViewModel
 import com.lubrcapp.lubrcapp.feature.auth.AuthViewModel
+import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
+import com.lubrcapp.lubrcapp.feature.items.ItemsViewModel
+import com.lubrcapp.lubrcapp.feature.parties.PartiesViewModel
+import com.lubrcapp.lubrcapp.feature.purchases.PurchasesViewModel
+import com.lubrcapp.lubrcapp.feature.sales.SalesViewModel
+import com.lubrcapp.lubrcapp.shell.DemoCompaniesViewModel
 import com.lubrcapp.lubrcapp.whitelist.config.DeploymentConfigSource
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -78,7 +85,16 @@ class MainActivity : AppCompatActivity() {
                 preferences = preferences,
             ) {
                 AppSurface(modifier = Modifier.fillMaxSize()) {
-                    MainNavigation(appName = deployment.appName)
+                    MainNavigation(
+                        appName = deployment.appName,
+                        demoCompaniesViewModel = hiltViewModel<DemoCompaniesViewModel>(),
+                        partiesViewModel = hiltViewModel<PartiesViewModel>(),
+                        itemsViewModel = hiltViewModel<ItemsViewModel>(),
+                        inventoryViewModel = hiltViewModel<InventoryViewModel>(),
+                        salesViewModel = hiltViewModel<SalesViewModel>(),
+                        purchasesViewModel = hiltViewModel<PurchasesViewModel>(),
+                        accountsViewModel = hiltViewModel<AccountsViewModel>(),
+                    )
                 }
             }
         }

@@ -3,12 +3,15 @@ package com.lubrcapp.lubrcapp.shell
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.feature.accounts.AccountsViewModel
+import com.lubrcapp.lubrcapp.feature.accounts.PartyLedgerBalance
 import com.lubrcapp.lubrcapp.feature.accounts.PartyLedgerProfile
 import com.lubrcapp.lubrcapp.feature.parties.PartyItemRow
 import com.lubrcapp.lubrcapp.feature.parties.PartyLedgerRow
 import com.lubrcapp.lubrcapp.feature.parties.PartyLedgerTabsData
+import com.lubrcapp.lubrcapp.feature.parties.PartyLiveBalance
 import com.lubrcapp.lubrcapp.feature.parties.PartyOrderRow
 import com.lubrcapp.lubrcapp.feature.parties.PartyStatementRow
+import com.lubrcapp.lubrcapp.feature.parties.combineLiveBalance
 import com.lubrcapp.lubrcapp.feature.sales.SalesDocumentEngine
 import com.lubrcapp.lubrcapp.feature.sales.SalesViewModel
 
@@ -82,5 +85,25 @@ object PartyLedgerTabsMapping {
             }
         }
         return PartyLedgerTabsData(transactions, statement, payments, orders, items)
+    }
+
+    /**
+     * Phase 32.2 — the same ledger balance the profile's statement ends
+     * on, without the document/item lists: the khata list needs one
+     * number per party, not the full tab bundle. Currency follows the
+     * 22.5 rule (the party's earliest ledger row); a party with no rows
+     * is zero on both sides.
+     */
+    suspend fun balanceFor(
+        scope: OperationalScope,
+        partyId: String,
+        accountsViewModel: AccountsViewModel,
+    ): PartyLiveBalance {
+        val rows = accountsViewModel.loadLedgerRowsForParty(scope, partyId)
+        val currency = rows.firstOrNull()?.currency?.let { CurrencyCode.of(it) }
+            ?: CurrencyCode.of("XXX")
+        val receivableNet = PartyLedgerBalance.receivableBalance(rows, partyId, currency).amount
+        val payableNet = PartyLedgerBalance.payableBalance(rows, partyId, currency).amount
+        return combineLiveBalance(receivableNet, payableNet)
     }
 }

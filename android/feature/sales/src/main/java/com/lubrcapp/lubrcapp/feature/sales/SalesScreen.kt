@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.DateField
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -483,16 +484,16 @@ private fun DocumentEditor(
             Text(stringResource(R.string.sales_status, form.status))
         }
         run {
-            OutlinedTextField(
+            DateField(
                 value = form.date,
                 onValueChange = { onFormChange(form.copy(date = it)) },
-                label = { Text(stringResource(R.string.sales_date)) },
+                label = stringResource(R.string.sales_date),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
+            DateField(
                 value = form.dueDate,
                 onValueChange = { onFormChange(form.copy(dueDate = it)) },
-                label = { Text(stringResource(R.string.sales_due_date)) },
+                label = stringResource(R.string.sales_due_date),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(

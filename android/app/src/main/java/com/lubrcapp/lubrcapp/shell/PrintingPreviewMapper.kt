@@ -4,8 +4,10 @@ import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
 import com.lubrcapp.lubrcapp.domain.sales.PosCart
 import com.lubrcapp.lubrcapp.domain.sales.PosCartOps
 import com.lubrcapp.lubrcapp.domain.sales.PosParty
+import com.lubrcapp.lubrcapp.feature.accounts.PartyLedgerProfile
 import com.lubrcapp.lubrcapp.feature.printing.PrintableDocument
 import com.lubrcapp.lubrcapp.feature.printing.PrintableLine
+import com.lubrcapp.lubrcapp.feature.printing.StatementEntryInput
 import com.lubrcapp.lubrcapp.feature.printing.printableDocument
 import com.lubrcapp.lubrcapp.feature.sales.SalesDocument
 import com.lubrcapp.lubrcapp.feature.sales.SalesDocumentEngine
@@ -84,6 +86,27 @@ fun cartToPrintable(
         currency = currency.value,
     )
 
+/**
+ * Phase 32.5 — the shell-side map from a built ledger profile to
+ * themed statement rows. Amounts are signed (positive is a charge,
+ * negative a payment), so the debit/credit split comes from the
+ * sign; a zero amount shows neither. The detail prefers the
+ * document number, then the row description, then the type.
+ */
+fun profileToStatementInputs(
+    profile: PartyLedgerProfile.Profile,
+): List<StatementEntryInput> =
+    profile.statement.map { entry ->
+        val row = entry.row
+        val detail = row.documentNumber.ifBlank { row.description }.ifBlank { row.documentType }
+        StatementEntryInput(
+            date = row.date,
+            detail = detail,
+            debit = row.amount.takeIf { it.signum() > 0 },
+            credit = row.amount.negate().takeIf { row.amount.signum() < 0 },
+            balance = entry.runningBalance.amount,
+        )
+    }
 /** The party display for a cart: null for a walk-in, the named party's id otherwise. */
 fun cartPartyName(cart: PosCart): String? =
     when (val party = cart.party) {

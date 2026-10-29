@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.DateField
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.inventory.StockStatus
 import java.math.BigDecimal
@@ -597,10 +598,10 @@ private fun ColumnScope.StockAdjustmentMode(
             label = { Text(stringResource(R.string.inventory_field_quantity)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        DateField(
             value = form.date,
             onValueChange = { form = form.copy(date = it) },
-            label = { Text(stringResource(R.string.inventory_field_date)) },
+            label = stringResource(R.string.inventory_field_date),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -848,10 +849,10 @@ private fun ColumnScope.TransferEditor(
                 Text(warehouse.name)
             }
         }
-        OutlinedTextField(
+        DateField(
             value = form.date,
             onValueChange = { form = form.copy(date = it) },
-            label = { Text(stringResource(R.string.inventory_field_date)) },
+            label = stringResource(R.string.inventory_field_date),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(

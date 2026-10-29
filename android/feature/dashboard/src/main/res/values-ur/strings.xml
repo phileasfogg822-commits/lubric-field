@@ -1,2 +1,8 @@
 <resources><string name="dashboard_current_business">موجودہ کاروبار</string><string name="dashboard_tenant_short">ٹیننٹ %1$s…</string><string name="dashboard_no_business">اس صارف کے لیے کوئی قابل رسائی کاروبار دستیاب نہیں۔</string><string name="dashboard_switching">تبدیل کیا جا رہا ہے…</string><string name="dashboard_switch_business">کاروبار تبدیل کریں</string><string name="dashboard_error_restore">موجودہ کاروبار بحال نہیں کیا جا سکا۔</string><string name="dashboard_error_no_current">کوئی درست موجودہ کاروبار منتخب نہیں ہے۔</string><string name="dashboard_error_access_denied">آپ کو اس کاروبار تک رسائی حاصل نہیں۔</string><string name="dashboard_error_unavailable">یہ کاروبار اب دستیاب نہیں ہے۔</string>    <string name="dashboard_team_access">ٹیم اور رسائی</string>
+    <string name="dashboard_demo_badge">DEMO</string>
+    <string name="dashboard_delete_demo">ڈیمو کمپنیاں حذف کریں</string>
+    <string name="dashboard_delete_demo_title">ڈیمو کمپنیاں حذف کریں؟</string>
+    <string name="dashboard_delete_demo_text">اس سے ڈیمو کمپنیاں اور ان کا تمام ڈیمو ڈیٹا ختم ہو جائے گا۔ آپ کے اپنے کاروبار متاثر نہیں ہوں گے۔</string>
+    <string name="dashboard_delete_demo_confirm">حذف کریں</string>
+    <string name="dashboard_delete_demo_cancel">رکھیں</string>
 </resources>

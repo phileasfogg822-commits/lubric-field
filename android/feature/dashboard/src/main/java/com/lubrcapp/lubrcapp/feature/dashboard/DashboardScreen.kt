@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
+import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
 import com.lubrcapp.lubrcapp.feature.dashboard.R
@@ -37,6 +40,11 @@ fun DashboardScreen(
     // and passes the result in; the default keeps every existing caller
     // and test rendering the card exactly as before.
     showCurrentBusinessCard: Boolean = true,
+    // Phase 32.3: demo companies. The shell passes whether any listed
+    // business is a demo and a delete callback; both default to
+    // "no demos", so existing callers render exactly as before.
+    hasDemoCompanies: Boolean = false,
+    onDeleteDemoCompanies: (() -> Unit)? = null,
 ) {
     val spacing = LubrcTheme.tokens.contentPadding
 
@@ -74,6 +82,38 @@ fun DashboardScreen(
                     state = state,
                     onSwitchBusiness = onSwitchBusiness,
                 )
+            }
+
+            if (hasDemoCompanies && onDeleteDemoCompanies != null) {
+                var showDeleteDemoDialog by remember { mutableStateOf(false) }
+                OutlinedButton(
+                    onClick = { showDeleteDemoDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.dashboard_delete_demo))
+                }
+                if (showDeleteDemoDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteDemoDialog = false },
+                        title = { Text(stringResource(R.string.dashboard_delete_demo_title)) },
+                        text = { Text(stringResource(R.string.dashboard_delete_demo_text)) },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showDeleteDemoDialog = false
+                                    onDeleteDemoCompanies()
+                                },
+                            ) {
+                                Text(stringResource(R.string.dashboard_delete_demo_confirm))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDeleteDemoDialog = false }) {
+                                Text(stringResource(R.string.dashboard_delete_demo_cancel))
+                            }
+                        },
+                    )
+                }
             }
 
             if (showCurrentBusinessCard) {
@@ -158,14 +198,19 @@ private fun BusinessSwitcherMenu(
         ) {
             state.availableBusinesses.forEach { business ->
                 val selected = business.context == current.context
+                val isDemo = isDemoScopeId(business.context.businessId.value)
                 DropdownMenuItem(
                     text = {
                         Text(
-                            if (selected) {
+                            (if (selected) {
                                 "✓ " + business.name
                             } else {
                                 business.name
-                            }
+                            }) + if (isDemo) {
+                                " · " + stringResource(R.string.dashboard_demo_badge)
+                            } else {
+                                ""
+                            },
                         )
                     },
                     enabled = !selected && !state.isSwitching,

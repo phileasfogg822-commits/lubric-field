@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
+import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.filter
 import com.lubrcapp.lubrcapp.core.store.db.AppDatabase
@@ -146,5 +147,31 @@ class RoomVpsBusinessRepository @Inject constructor(
         validate(tenantId, businessId, entityType)
         require(entityId.isNotBlank())
         return records.get(tenantId, businessId, entityType, entityId)
+    }
+
+    /**
+     * Phase 32.3 — hard-wipes one business scope: every operational
+     * record, the business row, its memberships and role links, its
+     * roles and permissions, its settings, and its sync queue rows,
+     * in one transaction. DEMO ONLY: both ids must start with
+     * "demo-", otherwise this refuses. Real businesses are never
+     * wiped this way — their financial history requires reversals,
+     * not deletion (see [delete]).
+     */
+    suspend fun deleteBusinessScope(tenantId: String, businessId: String) {
+        require(isDemoScopeId(tenantId) && isDemoScopeId(businessId)) {
+            "deleteBusinessScope is demo-only"
+        }
+        database.withTransaction {
+            records.deleteByScope(tenantId, businessId)
+            database.accessDao().deleteUserBusinessRolesByBusiness(tenantId, businessId)
+            database.accessDao().deleteRolePermissionsByBusiness(tenantId, businessId)
+            database.accessDao().deleteRolesByBusiness(tenantId, businessId)
+            database.accessDao().deleteMembershipsByBusiness(tenantId, businessId)
+            database.settingsDao().deleteByScope(tenantId, businessId)
+            database.syncQueueDao().deleteByScope(tenantId, businessId)
+            database.businessDao().deleteById(tenantId, businessId)
+            database.tenantDao().deleteById(tenantId)
+        }
     }
 }

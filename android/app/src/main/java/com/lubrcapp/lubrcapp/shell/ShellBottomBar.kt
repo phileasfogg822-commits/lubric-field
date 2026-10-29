@@ -37,10 +37,31 @@ enum class BottomNavSelection {
     MORE,
 }
 
+/**
+ * Phase 32.1 — which bar item renders selected. The selection is derived
+ * from the shell's navigation state, not stored: the Home item is selected
+ * on the dashboard, a slotted module's item is selected while that module
+ * is open, and nothing is selected on the overflow list (the More item
+ * covers that state). Pure so the app JVM tests can pin it without a
+ * Compose harness.
+ */
+fun isBottomBarItemSelected(
+    isHome: Boolean,
+    moduleId: String,
+    selection: BottomNavSelection,
+    selectedModuleId: String?,
+): Boolean =
+    if (isHome) {
+        selection == BottomNavSelection.HOME && selectedModuleId == null
+    } else {
+        selection == BottomNavSelection.HOME && moduleId == selectedModuleId
+    }
+
 @Composable
 fun ShellBottomBar(
     bottomNavModules: List<AppModule>,
     selected: BottomNavSelection,
+    selectedModuleId: String? = null,
     onSelectHome: () -> Unit,
     onSelectModule: (AppModule) -> Unit,
     onSelectMore: () -> Unit,
@@ -56,7 +77,7 @@ fun ShellBottomBar(
             }
             val isHome = module.bottomNavSlot == BottomNavSlot.HOME
             NavigationBarItem(
-                selected = isHome && selected == BottomNavSelection.HOME,
+                selected = isBottomBarItemSelected(isHome, module.id, selected, selectedModuleId),
                 onClick = {
                     if (isHome) {
                         onSelectHome()
