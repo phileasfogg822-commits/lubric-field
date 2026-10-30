@@ -136,6 +136,77 @@ success.
 
 ## Package 33.4 — Modern forms
 
+New shared FormSection in core/designsystem: an AppCard
+with an optional title and padded, spaced content; titles
+reuse existing string resources, so no new strings were
+added. ItemForm and PartyForm group their fields into
+titled and untitled sections, and move Save/Cancel out
+of the scroll into a sticky bottom action area (primary
+AppButton plus outlined Cancel), the pattern the sales
+DocumentEditor already used. The DocumentEditor groups
+its header/dates, party, lines, actions, delivery,
+posting, receive, and timeline blocks into sections, and
+its party picker rows change from bare RadioButtons to
+full selectable rows with a display-only dot (the known
+tap trap: tapping a name previously selected nothing).
+Purchases wraps its inline form and payables in sections
+and its list rows in AppCards; accounts wraps the chart
+form, the cash pickers, and the cash record form in
+sections and its chart and journal rows in AppCards;
+inventory wraps its list and transfer rows in AppCards,
+sections the adjust and transfer forms, and converts
+their clickable and bare picker rows (including the
+warehouse "none" row) to selectable rows with
+display-only dots. Buttons kept inside cards wherever a
+test clicks the row. No label, testTag, callback, or
+ordering changed. StockCountMode rows and ItemDetail are
+left unsectioned. Inventory, accounts, and purchases
+compose tests are wrapped in LubrcappTheme with their
+view models hoisted out of setContent in the same commit
+(the 33.3 lesson, applied before pushing).
+First head `1ae2dcd` failed all three workflows on one
+compile error: the actions FormSection wrapped the
+status buttons, but `val document` was declared inside
+that card's content lambda while the posting block below
+(still inside the existingId if, outside the card) also
+reads it, so :feature:sales:compileDebugKotlin failed
+with "Unresolved reference 'document'" and no test ran.
+Fix `d2eb9f8` declares document in the if-block itself,
+before the card. That head then failed Native lint with
+a single SuspiciousIndentation error (the card line kept
+its old deep indent after the hoist) and Compose with
+13 items failures, all performScrollTo() on "Save item":
+the button had moved out of the scroll column into the
+sticky row, so it has no scroll ancestor. The in-scroll
+field scrolls all passed; the cards are innocent. Fix
+`5c5a212` re-indents the card line and changes the
+tests to click the always-visible Save directly (15
+items sites, plus the same change preemptively at 8
+"Save party" sites, whose suite had never run because
+the build stopped at items). That head then failed
+Compose with 2 items failures, both the same root
+cause: validation and save-failure texts lived at the
+very bottom of the scroll column, so after tapping the
+sticky Save the user saw nothing — the old
+scroll-to-Save used to bring them into view. Fix
+`ea3a1a2` moves those texts into the sticky action area
+above the buttons in ItemForm and PartyForm (removed
+from the scroll bottom, so each text still has exactly
+one node); this is a product fix, not a test change.
+That head then failed Compose with 1 accounts failure:
+the cash-book counterpart picker tap handler read
+`counterpartId == account.id` (a comparison) where the
+base had the assignment, a slip introduced by the 33.4
+selectable conversion — tapping a counterpart never
+selected it, so the record button's counterpart
+condition never held and recording silently did
+nothing. Fix `4dac65a` restores the assignment; an
+audit of every other converted row found no other
+instance of the slip.
+ACCEPTED at `4dac65a`: Native 41032446930 success,
+Compose 41032446838 success, Segmented 41032446859
+success.
+
 ## Package 33.5 — Tablet responsive layouts
 
 ## Package 33.6 — Gate
