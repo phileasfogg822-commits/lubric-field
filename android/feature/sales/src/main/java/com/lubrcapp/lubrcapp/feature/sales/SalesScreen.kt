@@ -573,11 +573,11 @@ private fun DocumentEditor(
         }
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
+            val document = form.toDocument(form.existingId)
                         FormSection(title = stringResource(R.string.sales_actions)) {
             run {
                 Text(stringResource(R.string.sales_actions), style = MaterialTheme.typography.titleMedium)
             }
-            val document = form.toDocument(form.existingId)
             if (form.type == SalesDocumentType.QUOTATION) {
                 val from = SalesDocumentStatus.quotationStatus(document)
                 QuotationStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }.forEach { target ->
