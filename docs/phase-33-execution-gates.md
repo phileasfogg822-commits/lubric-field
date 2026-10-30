@@ -101,6 +101,39 @@ ACCEPTED at `a45d4e2`: Native 40978302750 success, Compose
 
 ## Package 33.3 — Modern lists
 
+Parties, items, and sales list rows are now modern cards:
+each row is wrapped in AppCard (the designsystem card that
+reads the white-label card style from the theme tokens),
+with inner padding and spacing; parties and items row
+actions change from full Buttons to TextButtons with
+identical texts and callbacks. Sales rows keep their
+existing Button inside the card, because the sales compose
+tests click the row text itself. No text, callback,
+testTag, or row ordering changed. Purchases, accounts,
+and inventory rows are left for 33.4.
+First head `cd9994f` failed Compose: AppCard reads
+LubrcTheme.tokens, which throws outside LubrcappTheme,
+and the feature compose tests render the screens directly
+with no theme wrapper, so 11 of 18 items tests crashed
+with "DesignTokens are only available inside
+LubrcappTheme" and the run stopped at the items module.
+Fix `5a805c7` wrapped all 38 setContent sites in the
+items, parties, and sales compose tests in LubrcappTheme
+with the 33.1 test palette config — test-only, no
+production change — and turned Compose green, but Native
+then failed lint at :feature:items:lintDebug with 18
+ViewModelConstructorInComposable errors, one per wrapped
+items site: constructing the view model inside the theme
+lambda. Fix `5482d4c` hoists each view model out of the
+composable lambda (built in the test body, instance
+passed in; same object the screen receives), applied to
+the 18 items sites, 11 parties sites, and the 2 remaining
+inline sales sites (the other sales tests already
+hoisted via val vm). No test behaviour changes.
+ACCEPTED at `5482d4c`: Native 40988239745 success,
+Compose 40988239844 success, Segmented 40988239809
+success.
+
 ## Package 33.4 — Modern forms
 
 ## Package 33.5 — Tablet responsive layouts
