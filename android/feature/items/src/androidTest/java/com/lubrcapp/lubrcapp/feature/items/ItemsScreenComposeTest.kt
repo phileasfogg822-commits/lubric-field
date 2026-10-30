@@ -81,7 +81,7 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
         compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("1100")
         compose.onNodeWithText("Opening stock").performScrollTo().performTextInput("24")
-        compose.onNodeWithText("Save item").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithText("Save item").assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         // Back in list mode: name, sale rate and opening stock all show.
         compose.onNodeWithText("Engine Oil").assertIsDisplayed()
@@ -89,7 +89,7 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Opening stock: 24").assertIsDisplayed()
         compose.onNodeWithText("Edit Engine Oil").performClick()
         compose.onNodeWithText("Item name").performTextReplacement("Engine Oil v2")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.saves == 2 }
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
         compose.onNodeWithText("Edit Engine Oil v2").assertIsDisplayed()
@@ -106,7 +106,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Oil Change")
         compose.onNodeWithText("Service").performClick()
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Service").assertIsDisplayed()
         compose.runOnIdle {
@@ -129,7 +129,7 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Barcode").performScrollTo().performTextInput("123456")
         compose.onNodeWithText("Purchase rate").performScrollTo().performTextInput("850.50")
         compose.onNodeWithText("Tax %").performScrollTo().performTextInput("18")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.runOnIdle {
             val saved = ItemJson.decode(fake.records.value.single().id, fake.records.value.single().json)
@@ -151,7 +151,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Bad Numbers")
         compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("soon")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.onNodeWithText("Rates, tax and opening stock must be numbers — check those fields.").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, fake.saves) }
     }
@@ -166,7 +166,7 @@ class ItemsScreenComposeTest {
         }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Sample")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Delete Sample").performClick()
         compose.runOnIdle { assertEquals(0, fake.deleted.size) }
@@ -197,7 +197,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Castrol Edge")
         compose.onNodeWithText("Oils").performScrollTo().performClick()
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Category: Oils").assertIsDisplayed()
         // The category now counts one item.
@@ -255,7 +255,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Helix Ultra")
         compose.onNodeWithText("Shell").performScrollTo().performClick()
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Brand: Shell").assertIsDisplayed()
         // The brand now counts one item.
@@ -284,7 +284,7 @@ class ItemsScreenComposeTest {
         compose.onNodeWithText("Main image URI").performScrollTo().performTextInput("content://media/main.png")
         compose.onNodeWithText("Additional image URIs (one per line)").performScrollTo()
             .performTextInput("content://media/side.png")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Image attached").assertIsDisplayed()
         compose.runOnIdle {
@@ -316,7 +316,7 @@ class ItemsScreenComposeTest {
         }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Sample")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) {
             try { compose.onNodeWithText("Unable to save item locally").assertIsDisplayed(); true }
             catch (_: AssertionError) { false }
@@ -343,7 +343,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Oil Carton")
         compose.onNodeWithText("Carton").performScrollTo().performClick()
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Unit: Carton").assertIsDisplayed()
         // The unit counts the item; deleting it leaves the link unresolved.
@@ -434,7 +434,7 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
         compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("1100")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         // A price list.
         compose.onNodeWithText("Price lists").performClick()
@@ -477,7 +477,7 @@ class ItemsScreenComposeTest {
         // An item to batch.
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         // A batch for it.
         compose.onNodeWithText("Batches").performClick()
@@ -513,11 +513,11 @@ class ItemsScreenComposeTest {
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
         compose.onNodeWithText("Barcode").performScrollTo().performTextInput("8901234567890")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Oil Filter")
-        compose.onNodeWithText("Save item").performScrollTo().performClick()
+        compose.onNodeWithText("Save item").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 2 }
         // Exact barcode: only the barcoded item remains.
         compose.onNodeWithText("Search name or barcode").performTextInput("8901234567890")

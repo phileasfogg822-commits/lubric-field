@@ -79,13 +79,13 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Name").performTextInput("Sample")
         compose.onNodeWithText("Supplier").performClick()
         compose.onNodeWithText("Opening balance").performScrollTo().performTextInput("250")
-        compose.onNodeWithText("Save party").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithText("Save party").assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         // Back in list mode: name, type and the payable direction all show.
         compose.onNodeWithText("Sample").assertIsDisplayed()
         compose.onNodeWithText("Payable: 250").assertIsDisplayed()
         compose.onNodeWithText("Edit Sample").performClick()
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) { fake.saves == 2 }
         compose.runOnIdle { assertEquals(1, fake.records.value.size) }
     }
@@ -102,7 +102,7 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Name").performTextInput("Addr Party")
         compose.onNodeWithText("Add address").performScrollTo().performClick()
         compose.onNodeWithText("City").performScrollTo().performTextInput("Lahore")
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.runOnIdle {
             val saved = PartyJson.decode(fake.records.value.single().id, fake.records.value.single().json)
@@ -123,7 +123,7 @@ class PartiesScreenComposeTest {
         openForm()
         compose.onNodeWithText("Name").performTextInput("Bad Numbers")
         compose.onNodeWithText("Credit days").performScrollTo().performTextInput("soon")
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.onNodeWithText("Amounts and credit days must be numbers — check those fields.").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, fake.saves) }
     }
@@ -138,7 +138,7 @@ class PartiesScreenComposeTest {
         }
         openForm()
         compose.onNodeWithText("Name").performTextInput("Sample")
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Delete Sample").performClick()
         compose.runOnIdle { assertEquals(0, fake.deleted.size) }
@@ -169,7 +169,7 @@ class PartiesScreenComposeTest {
         openForm()
         compose.onNodeWithText("Name").performTextInput("Grouped Party")
         compose.onNodeWithText("Retail").performScrollTo().performClick()
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("Group: Retail").assertIsDisplayed()
         // The group now counts one member.
@@ -197,7 +197,7 @@ class PartiesScreenComposeTest {
         compose.onNodeWithText("Name").performTextInput("Credit Party")
         compose.onNodeWithText("Opening balance").performScrollTo().performTextInput("96")
         compose.onNodeWithText("Credit limit").performScrollTo().performTextInput("100")
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
         compose.onNodeWithText("View Credit Party").performClick()
         compose.onNodeWithText("Outstanding: 96").assertIsDisplayed()
@@ -262,7 +262,7 @@ class PartiesScreenComposeTest {
         }
         openForm()
         compose.onNodeWithText("Name").performTextInput("Sample")
-        compose.onNodeWithText("Save party").performScrollTo().performClick()
+        compose.onNodeWithText("Save party").performClick()
         compose.waitUntil(5000) {
             try { compose.onNodeWithText("Unable to save party locally").assertIsDisplayed(); true }
             catch (_: AssertionError) { false }

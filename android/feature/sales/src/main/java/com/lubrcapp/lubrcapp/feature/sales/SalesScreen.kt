@@ -574,7 +574,7 @@ private fun DocumentEditor(
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
             val document = form.toDocument(form.existingId)
-                        FormSection(title = stringResource(R.string.sales_actions)) {
+            FormSection(title = stringResource(R.string.sales_actions)) {
             run {
                 Text(stringResource(R.string.sales_actions), style = MaterialTheme.typography.titleMedium)
             }
