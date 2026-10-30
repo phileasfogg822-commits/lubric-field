@@ -1,12 +1,16 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +38,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -192,8 +198,8 @@ fun SalesScreen(
             if (visibleDocuments.isEmpty()) {
                 Text(stringResource(R.string.sales_empty))
             }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(visibleDocuments, key = { it.id }) { document ->
+            // Phase 33.5: tablet grid, phone list — same rows, same order.
+            val rowContent: @Composable (SalesDocument) -> Unit = { document ->
                     AppCard(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(8.dp)) {
                     Button(
@@ -220,6 +226,22 @@ fun SalesScreen(
                     }
                         }
                     }
+            }
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (windowWidthClass(maxWidth).isTablet) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 320.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleDocuments, key = { it.id }) { document -> rowContent(document) }
+                    }
+                } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(visibleDocuments, key = { it.id }) { document -> rowContent(document) }
+                }
                 }
             }
         } else {

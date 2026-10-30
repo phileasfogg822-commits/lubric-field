@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp.feature.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,11 +33,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.CashFlowBars
 import com.lubrcapp.lubrcapp.core.designsystem.LubrcTheme
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.designsystem.cashFlowFractions
+import com.lubrcapp.lubrcapp.core.repository.BusinessChoice
 import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.TenantId
@@ -75,12 +80,16 @@ fun DashboardScreen(
         return
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(spacing),
-        verticalArrangement = Arrangement.spacedBy(spacing),
-    ) {
+    // Phase 33.5: tablet reads the width and pairs the money and business
+    // cards side by side; the phone tree below is unchanged.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val tablet = windowWidthClass(maxWidth).isTablet
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+        ) {
         state.currentBusiness?.let { current ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,28 +155,27 @@ fun DashboardScreen(
                 }
             }
 
-            homeSummary?.let { summary ->
-                AppCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(spacing),
-                        verticalArrangement = Arrangement.spacedBy(spacing),
+            if (tablet) {
+                if (homeSummary != null || showCurrentBusinessCard) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(spacing),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(
-                            text = stringResource(R.string.dashboard_home_money_title),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        val (inFraction, outFraction) = remember(summary) {
-                            cashFlowFractions(summary.receivable, summary.payable)
+                        homeSummary?.let { summary ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                HomeMoneyCard(summary, spacing)
+                            }
                         }
-                        CashFlowBars(
-                            inLabel = stringResource(R.string.dashboard_home_receivable),
-                            inAmountText = homeMoneyText(summary.receivable, summary.currency),
-                            inFraction = inFraction,
-                            outLabel = stringResource(R.string.dashboard_home_payable),
-                            outAmountText = homeMoneyText(summary.payable, summary.currency),
-                            outFraction = outFraction,
-                        )
+                        if (showCurrentBusinessCard) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                CurrentBusinessCard(current, spacing)
+                            }
+                        }
                     }
+                }
+            } else {
+                homeSummary?.let { summary ->
+                    HomeMoneyCard(summary, spacing)
                 }
             }
 
@@ -217,32 +225,8 @@ fun DashboardScreen(
                 }
             }
 
-            if (showCurrentBusinessCard) {
-                AppCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(spacing),
-                    verticalArrangement = Arrangement.spacedBy(spacing),
-                ) {
-                    Text(
-                        text = stringResource(R.string.dashboard_current_business),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = current.businessType,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = current.currency.value,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = stringResource(R.string.dashboard_tenant_short, current.context.tenantId.value.take(8)),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                }
+            if (!tablet && showCurrentBusinessCard) {
+                CurrentBusinessCard(current, spacing)
             }
         } ?: Text(
             text = stringResource(R.string.dashboard_no_business),
@@ -254,6 +238,62 @@ fun DashboardScreen(
                 text = dashboardErrorMessage(error),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        }
+    }
+}
+
+@Composable
+private fun HomeMoneyCard(summary: HomeSummary, spacing: Dp) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            Text(
+                text = stringResource(R.string.dashboard_home_money_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            val (inFraction, outFraction) = remember(summary) {
+                cashFlowFractions(summary.receivable, summary.payable)
+            }
+            CashFlowBars(
+                inLabel = stringResource(R.string.dashboard_home_receivable),
+                inAmountText = homeMoneyText(summary.receivable, summary.currency),
+                inFraction = inFraction,
+                outLabel = stringResource(R.string.dashboard_home_payable),
+                outAmountText = homeMoneyText(summary.payable, summary.currency),
+                outFraction = outFraction,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CurrentBusinessCard(current: BusinessChoice, spacing: Dp) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            Text(
+                text = stringResource(R.string.dashboard_current_business),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = current.businessType,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = current.currency.value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.dashboard_tenant_short, current.context.tenantId.value.take(8)),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

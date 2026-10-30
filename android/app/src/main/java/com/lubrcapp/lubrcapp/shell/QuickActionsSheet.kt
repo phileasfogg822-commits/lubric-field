@@ -41,6 +41,9 @@ fun QuickActionsSection(
     actions: List<QuickAction>,
     onSelect: (QuickAction) -> Unit,
     modifier: Modifier = Modifier,
+    // Phase 33.5: tablet grid width. Default 2 keeps every existing caller
+    // (and the phone layout) exactly as before.
+    columns: Int = 2,
 ) {
     Column(
         modifier = modifier,
@@ -51,7 +54,7 @@ fun QuickActionsSection(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
-        actions.chunked(2).forEach { row ->
+        actions.chunked(columns.coerceAtLeast(1)).forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -74,7 +77,7 @@ fun QuickActionsSection(
                         }
                     }
                 }
-                if (row.size == 1) {
+                repeat(columns.coerceAtLeast(1) - row.size) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }

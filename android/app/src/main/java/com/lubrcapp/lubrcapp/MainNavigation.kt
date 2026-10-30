@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.WindowWidthClass
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
@@ -466,12 +469,17 @@ fun MainNavigation(
                             },
                         )
                         if (currentContext != null && visibleQuickActions.isNotEmpty()) {
-                            QuickActionsSection(
-                                actions = visibleQuickActions,
-                                onSelect = { action ->
-                                    selectedFeature = action.targetModuleId
-                                },
-                            )
+                            // Phase 33.5: four across on a full tablet, two
+                            // otherwise — the phone layout is unchanged.
+                            BoxWithConstraints {
+                                QuickActionsSection(
+                                    actions = visibleQuickActions,
+                                    onSelect = { action ->
+                                        selectedFeature = action.targetModuleId
+                                    },
+                                    columns = if (windowWidthClass(maxWidth) == WindowWidthClass.EXPANDED) 4 else 2,
+                                )
+                            }
                         }
                     }
                 }

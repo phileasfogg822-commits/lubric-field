@@ -1,12 +1,18 @@
 package com.lubrcapp.lubrcapp.feature.items
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -33,6 +39,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.designsystem.AppButton
 import com.lubrcapp.lubrcapp.core.designsystem.AppButtonStyle
 import com.lubrcapp.lubrcapp.core.designsystem.FormSection
@@ -230,8 +238,8 @@ fun ItemsScreen(
             } else if (visibleItems.isEmpty()) {
                 Text(stringResource(R.string.items_search_empty))
             }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(visibleItems, key = { it.id }) { item ->
+            // Phase 33.5: tablet grid, phone list — same rows, same order.
+            val rowContent: @Composable (Item) -> Unit = { item ->
                     AppCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(12.dp),
@@ -301,6 +309,22 @@ fun ItemsScreen(
                         }
                         }
                     }
+            }
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (windowWidthClass(maxWidth).isTablet) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 320.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleItems, key = { it.id }) { item -> rowContent(item) }
+                    }
+                } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(visibleItems, key = { it.id }) { item -> rowContent(item) }
+                }
                 }
             }
         }
@@ -348,122 +372,146 @@ private fun ItemForm(
     onCancel: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-    Column(
-        modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    // Phase 33.5: two-column sections on tablet; phone stack unchanged.
+    BoxWithConstraints(
+        modifier = Modifier.weight(1f).fillMaxWidth(),
     ) {
-        Text(
-            stringResource(if (isEditing) R.string.items_edit_title else R.string.items_new_title),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        FormSection(title = null) {
-        ItemTextField(form.name, { form.name = it }, R.string.items_name)
-        }
-        FormSection(title = stringResource(R.string.items_type)) {
-        ItemType.entries.forEach { type ->
-            Row(
-                modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.type == type,
-                    onClick = { form.type = type },
-                ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(selected = form.type == type, onClick = { form.type = type })
-                Text(stringResource(type.labelRes()))
-            }
-        }
-        }
-        FormSection(title = stringResource(R.string.items_category)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().selectable(
-                selected = form.categoryId == null,
-                onClick = { form.categoryId = null },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
+        val tablet = windowWidthClass(maxWidth).isTablet
+        FlowRow(
+            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RadioButton(selected = form.categoryId == null, onClick = { form.categoryId = null })
-            Text(stringResource(R.string.items_category_none))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                stringResource(if (isEditing) R.string.items_edit_title else R.string.items_new_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
         }
-        categories.forEach { category ->
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            ItemTextField(form.name, { form.name = it }, R.string.items_name)
+            }
+        }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.items_type)) {
+            ItemType.entries.forEach { type ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.type == type,
+                        onClick = { form.type = type },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.type == type, onClick = { form.type = type })
+                    Text(stringResource(type.labelRes()))
+                }
+            }
+            }
+        }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.items_category)) {
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.categoryId == category.id,
-                    onClick = { form.categoryId = category.id },
+                    selected = form.categoryId == null,
+                    onClick = { form.categoryId = null },
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = form.categoryId == category.id, onClick = { form.categoryId = category.id })
-                Text(category.name)
+                RadioButton(selected = form.categoryId == null, onClick = { form.categoryId = null })
+                Text(stringResource(R.string.items_category_none))
+            }
+            categories.forEach { category ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.categoryId == category.id,
+                        onClick = { form.categoryId = category.id },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.categoryId == category.id, onClick = { form.categoryId = category.id })
+                    Text(category.name)
+                }
+            }
             }
         }
-        }
-        FormSection(title = stringResource(R.string.items_brand)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().selectable(
-                selected = form.brandId == null,
-                onClick = { form.brandId = null },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(selected = form.brandId == null, onClick = { form.brandId = null })
-            Text(stringResource(R.string.items_brand_none))
-        }
-        brands.forEach { brand ->
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.items_brand)) {
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.brandId == brand.id,
-                    onClick = { form.brandId = brand.id },
+                    selected = form.brandId == null,
+                    onClick = { form.brandId = null },
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = form.brandId == brand.id, onClick = { form.brandId = brand.id })
-                Text(brand.name)
+                RadioButton(selected = form.brandId == null, onClick = { form.brandId = null })
+                Text(stringResource(R.string.items_brand_none))
+            }
+            brands.forEach { brand ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.brandId == brand.id,
+                        onClick = { form.brandId = brand.id },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.brandId == brand.id, onClick = { form.brandId = brand.id })
+                    Text(brand.name)
+                }
+            }
             }
         }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            ItemTextField(form.sku, { form.sku = it }, R.string.items_sku)
+            ItemTextField(form.barcode, { form.barcode = it }, R.string.items_barcode)
+            }
         }
-        FormSection(title = null) {
-        ItemTextField(form.sku, { form.sku = it }, R.string.items_sku)
-        ItemTextField(form.barcode, { form.barcode = it }, R.string.items_barcode)
-        }
-        FormSection(title = stringResource(R.string.items_unit)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().selectable(
-                selected = form.unitId == null,
-                onClick = { form.unitId = null },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(selected = form.unitId == null, onClick = { form.unitId = null })
-            Text(stringResource(R.string.items_unit_none))
-        }
-        units.forEach { unit ->
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.items_unit)) {
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.unitId == unit.id,
-                    onClick = { form.unitId = unit.id },
+                    selected = form.unitId == null,
+                    onClick = { form.unitId = null },
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = form.unitId == unit.id, onClick = { form.unitId = unit.id })
-                Text(unit.name)
+                RadioButton(selected = form.unitId == null, onClick = { form.unitId = null })
+                Text(stringResource(R.string.items_unit_none))
+            }
+            units.forEach { unit ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.unitId == unit.id,
+                        onClick = { form.unitId = unit.id },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.unitId == unit.id, onClick = { form.unitId = unit.id })
+                    Text(unit.name)
+                }
+            }
+            ItemTextField(form.unit, { form.unit = it }, R.string.items_unit_free_text)
             }
         }
-        ItemTextField(form.unit, { form.unit = it }, R.string.items_unit_free_text)
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            ItemTextField(form.purchaseRate, { form.purchaseRate = it }, R.string.items_purchase_rate, KeyboardType.Decimal)
+            ItemTextField(form.saleRate, { form.saleRate = it }, R.string.items_sale_rate, KeyboardType.Decimal)
+            ItemTextField(form.wholesaleRate, { form.wholesaleRate = it }, R.string.items_wholesale_rate, KeyboardType.Decimal)
+            ItemTextField(form.dealerRate, { form.dealerRate = it }, R.string.items_dealer_rate, KeyboardType.Decimal)
+            ItemTextField(form.minimumRate, { form.minimumRate = it }, R.string.items_minimum_rate, KeyboardType.Decimal)
+            ItemTextField(form.mrp, { form.mrp = it }, R.string.items_mrp, KeyboardType.Decimal)
+            ItemTextField(form.taxPercent, { form.taxPercent = it }, R.string.items_tax_percent, KeyboardType.Decimal)
+            ItemTextField(form.openingStock, { form.openingStock = it }, R.string.items_opening_stock, KeyboardType.Decimal)
+            }
         }
-        FormSection(title = null) {
-        ItemTextField(form.purchaseRate, { form.purchaseRate = it }, R.string.items_purchase_rate, KeyboardType.Decimal)
-        ItemTextField(form.saleRate, { form.saleRate = it }, R.string.items_sale_rate, KeyboardType.Decimal)
-        ItemTextField(form.wholesaleRate, { form.wholesaleRate = it }, R.string.items_wholesale_rate, KeyboardType.Decimal)
-        ItemTextField(form.dealerRate, { form.dealerRate = it }, R.string.items_dealer_rate, KeyboardType.Decimal)
-        ItemTextField(form.minimumRate, { form.minimumRate = it }, R.string.items_minimum_rate, KeyboardType.Decimal)
-        ItemTextField(form.mrp, { form.mrp = it }, R.string.items_mrp, KeyboardType.Decimal)
-        ItemTextField(form.taxPercent, { form.taxPercent = it }, R.string.items_tax_percent, KeyboardType.Decimal)
-        ItemTextField(form.openingStock, { form.openingStock = it }, R.string.items_opening_stock, KeyboardType.Decimal)
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            ItemTextField(form.description, { form.description = it }, R.string.items_description)
+            ItemTextField(form.mainImageUri, { form.mainImageUri = it }, R.string.items_main_image)
+            ItemTextField(form.additionalImagesText, { form.additionalImagesText = it }, R.string.items_additional_images)
+            }
         }
-        FormSection(title = null) {
-        ItemTextField(form.description, { form.description = it }, R.string.items_description)
-        ItemTextField(form.mainImageUri, { form.mainImageUri = it }, R.string.items_main_image)
-        ItemTextField(form.additionalImagesText, { form.additionalImagesText = it }, R.string.items_additional_images)
         }
     }
     Column(
