@@ -399,7 +399,7 @@ private fun ColumnScope.InventoryList(
             }
         } else {
     LazyColumn(
-        modifier = Modifier.fillMaxWidth().weight(1f),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
             items(visibleRows, key = { it.item.id }) { row -> rowContent(row) }
@@ -877,7 +877,7 @@ private fun ColumnScope.StockTransfersMode(
                     }
                 } else {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                     items(transfers, key = { it.id }) { transfer -> rowContent(transfer) }
