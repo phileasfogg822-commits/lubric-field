@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.party.PartyType
 import java.math.BigDecimal
@@ -214,7 +215,11 @@ fun PartiesScreen(
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visibleParties, key = { it.id }) { party ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable { profileId = party.id },
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -240,18 +245,19 @@ fun PartiesScreen(
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { profileId = party.id },
                             ) { Text(stringResource(R.string.parties_view, party.name)) }
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { form.load(party); editingId = party.id; formError = false; error = null; formOpen = true },
                             ) { Text(stringResource(R.string.parties_edit, party.name)) }
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { deletingId = party.id },
                             ) { Text(stringResource(R.string.parties_delete, party.name)) }
+                        }
                         }
                     }
                 }

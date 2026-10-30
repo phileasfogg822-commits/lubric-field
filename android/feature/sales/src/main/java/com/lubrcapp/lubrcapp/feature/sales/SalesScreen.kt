@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -190,8 +191,10 @@ fun SalesScreen(
             if (visibleDocuments.isEmpty()) {
                 Text(stringResource(R.string.sales_empty))
             }
-            LazyColumn {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visibleDocuments, key = { it.id }) { document ->
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(8.dp)) {
                     Button(
                         onClick = { openDocument(document) },
                         modifier = Modifier.fillMaxWidth(),
@@ -213,6 +216,8 @@ fun SalesScreen(
                                 document.date,
                             )
                         )
+                    }
+                        }
                     }
                 }
             }

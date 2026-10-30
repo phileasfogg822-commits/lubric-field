@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -228,7 +229,11 @@ fun ItemsScreen(
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visibleItems, key = { it.id }) { item ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                         Text(item.name, style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(item.type.labelRes()), style = MaterialTheme.typography.bodyMedium)
                         item.categoryId?.let { categoryId ->
@@ -282,14 +287,15 @@ fun ItemsScreen(
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { form.load(item); editingId = item.id; formError = false; error = null; formOpen = true },
                             ) { Text(stringResource(R.string.items_edit, item.name)) }
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { deletingId = item.id },
                             ) { Text(stringResource(R.string.items_delete, item.name)) }
+                        }
                         }
                     }
                 }
