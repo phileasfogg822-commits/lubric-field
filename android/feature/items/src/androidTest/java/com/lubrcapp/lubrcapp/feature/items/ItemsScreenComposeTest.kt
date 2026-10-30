@@ -12,6 +12,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -55,7 +58,11 @@ class ItemsScreenComposeTest {
     @Test fun listShowsAddItemAndBackNavigation() {
         val fake = FakeRepository()
         var backs = 0
-        compose.setContent { ItemsScreen(scope, onBack = { backs++ }, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = { backs++ }, viewModel = ItemsViewModel(fake))
+            }
+        }
         compose.onNodeWithText("Add item").assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
         compose.runOnIdle { assertEquals(1, backs) }
@@ -63,7 +70,11 @@ class ItemsScreenComposeTest {
 
     @Test fun createProductWithSaleRateAndStockThenEdit() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
         compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("1100")
@@ -84,7 +95,11 @@ class ItemsScreenComposeTest {
 
     @Test fun createServiceItemShowsTypeInList() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Oil Change")
         compose.onNodeWithText("Service").performClick()
@@ -99,7 +114,11 @@ class ItemsScreenComposeTest {
 
     @Test fun fullFieldSetSavesThroughCodec() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Full Item")
         compose.onNodeWithText("SKU").performScrollTo().performTextInput("SKU-1")
@@ -119,7 +138,11 @@ class ItemsScreenComposeTest {
 
     @Test fun invalidRateShowsFormErrorAndDoesNotSave() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Bad Numbers")
         compose.onNodeWithText("Sale rate").performScrollTo().performTextInput("soon")
@@ -130,7 +153,11 @@ class ItemsScreenComposeTest {
 
     @Test fun createAndConfirmDelete() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Sample")
         compose.onNodeWithText("Save item").performScrollTo().performClick()
@@ -145,7 +172,11 @@ class ItemsScreenComposeTest {
 
     @Test fun categoryLifecycleAssignCountAndOrphanAfterDelete() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         // Create the category.
         compose.onNodeWithText("Categories").performClick()
         compose.onNodeWithText("No categories yet").assertIsDisplayed()
@@ -177,7 +208,11 @@ class ItemsScreenComposeTest {
 
     @Test fun subcategoryShowsParentLine() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         compose.onNodeWithText("Categories").performClick()
         compose.onNodeWithText("Add category").performClick()
         compose.onNodeWithText("Category name").performTextInput("Oils")
@@ -193,7 +228,11 @@ class ItemsScreenComposeTest {
 
     @Test fun brandLifecycleAssignCountAndOrphanAfterDelete() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         // Create the brand.
         compose.onNodeWithText("Brands").performClick()
         compose.onNodeWithText("No brands yet").assertIsDisplayed()
@@ -225,7 +264,11 @@ class ItemsScreenComposeTest {
 
     @Test fun imageReferencesSaveThroughCodecAndShowInList() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Imaged Item")
         compose.onNodeWithText("Main image URI").performScrollTo().performTextInput("content://media/main.png")
@@ -243,14 +286,22 @@ class ItemsScreenComposeTest {
 
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         compose.onNodeWithText("No items yet").assertIsDisplayed()
     }
 
     @Test fun saveFailureShowsError() {
         val fake = FakeRepository()
         fake.failSave = true
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Sample")
         compose.onNodeWithText("Save item").performScrollTo().performClick()
@@ -262,7 +313,11 @@ class ItemsScreenComposeTest {
 
     @Test fun unitLifecycleAssignAndOrphanAfterDelete() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         // Create a unit from the suggested §25 names.
         compose.onNodeWithText("Units").performClick()
         compose.onNodeWithText("No units yet").assertIsDisplayed()
@@ -292,7 +347,11 @@ class ItemsScreenComposeTest {
 
     @Test fun conversionLifecycleShowsInUnitsMode() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         compose.onNodeWithText("Units").performClick()
         compose.onNodeWithText("Add unit").performClick()
         compose.onNodeWithText("Carton").performClick()
@@ -319,7 +378,11 @@ class ItemsScreenComposeTest {
 
     @Test fun branchAndWarehouseLifecycleWithOrphanAfterBranchDelete() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         compose.onNodeWithText("Locations").performClick()
         compose.onNodeWithText("No branches yet").assertIsDisplayed()
         compose.onNodeWithText("Add branch").performClick()
@@ -346,7 +409,11 @@ class ItemsScreenComposeTest {
 
     @Test fun priceListEntryLifecycleAndResolutionInputs() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         // An item to price.
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
@@ -385,7 +452,11 @@ class ItemsScreenComposeTest {
 
     @Test fun batchLifecycleStoresQuantityAsData() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         // An item to batch.
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
@@ -416,7 +487,11 @@ class ItemsScreenComposeTest {
 
     @Test fun searchFindsByExactBarcodeThenByName() {
         val fake = FakeRepository()
-        compose.setContent { ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake)) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+            }
+        }
         openForm()
         compose.onNodeWithText("Item name").performTextInput("Engine Oil")
         compose.onNodeWithText("Barcode").performScrollTo().performTextInput("8901234567890")
@@ -437,5 +512,17 @@ class ItemsScreenComposeTest {
         // No match at all: the empty-search line shows.
         compose.onNodeWithText("Search name or barcode").performTextReplacement("brake pads")
         compose.onNodeWithText("No items match").assertIsDisplayed()
+    }
+    private companion object {
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF0F766E.toInt(),
+                secondary = 0xFF14B8A6.toInt(),
+                accent = 0xFFD97706.toInt(),
+                success = 0xFF16A34A.toInt(),
+                warning = 0xFFF59E0B.toInt(),
+                error = 0xFFDC2626.toInt(),
+            ),
+        )
     }
 }
