@@ -393,21 +393,26 @@ private fun PartyForm(
         FormSection(title = null) {
         PartyTextField(form.notes, { form.notes = it }, R.string.parties_notes)
         PartyTextField(form.photoUri, { form.photoUri = it }, R.string.parties_photo)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         if (formError) {
             Text(stringResource(R.string.parties_form_error), color = MaterialTheme.colorScheme.error)
         }
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        }
-    }
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    ) {
-        AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
-            Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save))
-        }
-        AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.parties_cancel))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
+                Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save))
+            }
+            AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.parties_cancel))
+            }
         }
     }
     }

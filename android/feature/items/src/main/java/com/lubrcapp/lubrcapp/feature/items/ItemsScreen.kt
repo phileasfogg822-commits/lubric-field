@@ -464,21 +464,26 @@ private fun ItemForm(
         ItemTextField(form.description, { form.description = it }, R.string.items_description)
         ItemTextField(form.mainImageUri, { form.mainImageUri = it }, R.string.items_main_image)
         ItemTextField(form.additionalImagesText, { form.additionalImagesText = it }, R.string.items_additional_images)
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         if (formError) {
             Text(stringResource(R.string.items_form_error), color = MaterialTheme.colorScheme.error)
         }
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        }
-    }
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    ) {
-        AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
-            Text(if (saving) stringResource(R.string.items_saving) else stringResource(R.string.items_save))
-        }
-        AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.items_cancel))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
+                Text(if (saving) stringResource(R.string.items_saving) else stringResource(R.string.items_save))
+            }
+            AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.items_cancel))
+            }
         }
     }
     }
