@@ -410,15 +410,16 @@ fun MainNavigation(
                         // tests) skip loading and hide the money card.
                         var homeSummary by remember { mutableStateOf<HomeSummary?>(null) }
                         LaunchedEffect(operationalScope) {
-                            if (operationalScope != null &&
-                                partiesViewModel != null &&
-                                accountsViewModel != null
-                            ) {
-                                homeSummary = loadHomeSummary(
-                                    operationalScope,
-                                    partiesViewModel,
-                                    accountsViewModel,
-                                )
+                            operationalScope?.let { scope ->
+                                if (partiesViewModel != null &&
+                                    accountsViewModel != null
+                                ) {
+                                    homeSummary = loadHomeSummary(
+                                        scope,
+                                        partiesViewModel,
+                                        accountsViewModel,
+                                    )
+                                }
                             }
                         }
                         DashboardScreen(
