@@ -209,4 +209,44 @@ success.
 
 ## Package 33.5 — Tablet responsive layouts
 
+Scope: dashboard money + business cards side by side on tablet
+(width class MEDIUM and up); quick actions four across on EXPANDED
+widths via a new defaulted `columns` parameter on
+`QuickActionsSection` (2 otherwise); item, party, sales, purchase,
+inventory-list and transfer-list rows reflow into an adaptive 320dp
+grid on tablet while keeping the phone `LazyColumn` with the same row
+composable, same keys and same order; item, party, inventory-adjust
+and transfer-editor form sections pair up two-column on tablet inside
+a `FlowRow` (fields stay composed — no lazy container in any form).
+Phone (COMPACT) rendering is unchanged by construction. No new
+strings, no new dependencies, no text, callback, testTag or ordering
+changes. No new `@Test`: the width thresholds are already covered by
+the 33.1 `WindowWidthClassTest`, and the tablet branches are
+layout-only.
+
+First head `da71ec9` (8 files, +618/−362) went all-red: Segmented
+41040101121 (job 12.1.5b), Native 41040101303 (step 15.3 unit tests),
+Compose 41040101063 (step 6 emulator step) — all from ONE compile
+error, proven from both raw logs: `InventoryScreen.kt:402` and `:880`,
+`Modifier.weight` called inside a `BoxWithConstraints` content lambda,
+where it has no `ColumnScope` receiver. The list conversion had
+copied the inventory lists' weighted `LazyColumn` headers verbatim
+into the phone branch; the other lists never carried `weight`, which
+is why their 19 Segmented jobs stayed green. No test ran anywhere.
+
+Fix `0e6c923` (1 file, 2 lines): drop `weight` from exactly those two
+inner phone-branch headers. The outer `BoxWithConstraints` boxes
+already carry `weight(1f)` in true `ColumnScope`, and the inner lazy
+containers fill them via max constraints. The two pre-existing
+weighted lists (count mode, transfer detail) were deliberately left
+untouched — a first loose fix pass would have caught them too.
+
+ACCEPTED at `0e6c923`: Native 41041229548 success,
+Compose 41041229452 success, Segmented 41041229485 success.
+
+Residual, carried to the 33.6 gate APK: CI's emulator is phone-width,
+so it exercises only the COMPACT path — every tablet branch above is
+a device check on a real tablet, same standing as 33.2's live-balance
+card was.
+
 ## Package 33.6 — Gate
