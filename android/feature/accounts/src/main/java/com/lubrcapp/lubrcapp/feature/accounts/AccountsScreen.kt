@@ -338,7 +338,7 @@ private fun CashContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.selectable(
                     selected = counterpartId == account.id,
-                    onClick = { counterpartId == account.id },
+                    onClick = { counterpartId = account.id },
                     role = Role.RadioButton,
                 ),
             ) {
