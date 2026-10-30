@@ -250,3 +250,43 @@ a device check on a real tablet, same standing as 33.2's live-balance
 card was.
 
 ## Package 33.6 — Gate
+
+Phase 33 recap — full-app UI/UX redesign, branch
+`phase-33-ui-ux-redesign` from `922890e`, draft PR #42 on base
+`phase-32-ui-demo-print`:
+
+- 33.1 ACCEPTED at `cf27f2e` (docs `c77ce6d`): design-system
+  foundation — deep-teal/amber palette, 20dp radius, light + dark
+  surfaces, adaptive width classes, shared money visuals.
+- 33.2 ACCEPTED at `a45d4e2` (docs `02d580f`): Home redesign —
+  hero card, ledger-driven money overview, quick-action grid.
+- 33.3 ACCEPTED at `5482d4c` (docs `497c9df`): modern lists —
+  parties/items/sales rows as cards.
+- 33.4 ACCEPTED at `4dac65a` (docs `4a65b9e`): modern forms —
+  shared `FormSection`, sectioned forms with sticky actions,
+  selectable picker rows.
+- 33.5 ACCEPTED at `0e6c923` (docs `46cca88`): tablet layouts —
+  paired dashboard cards, 4-across quick actions, list grids,
+  two-column form sections.
+
+Recount of new `@Test` on the phase diff `922890e..0e6c923`
+(pattern `^+[^+]*@Test`): **17** — 12 from 33.1 (10 JVM + 2
+compose), 5 from 33.2 (JVM). 33.3, 33.4 and 33.5 added no new
+tests: 33.3/33.4 only wrapped and moved existing tests, 33.5 added
+layout-only branches whose thresholds were already covered by the
+33.1 `WindowWidthClassTest`.
+
+Gate verdict pending the trio on this head. The gate APK follows a
+green trio: the full-modules build from the Native artifact's
+`acceptance-evidence/app-debug-full-modules.apk`, SHA-verified,
+never the bare demo-overwritten `app-debug.apk`.
+
+Device checks owed at the gate APK — everything carried from Phase
+32 (DEMO badge/delete flow, live-balance card on demo data,
+pick-a-different-day, themed preview + statement photo, sales
+visibility, role saves) plus the Phase 33 surface: the new Home
+(hero, money overview on demo data, quick-actions grid), the 33.3
+card lists, the 33.4 forms (sections, sticky rows, sticky errors,
+cash-book counterpart selection), and all 33.5 tablet branches on a
+real tablet (dashboard pairing, 4-across actions, list grids,
+two-column forms).
