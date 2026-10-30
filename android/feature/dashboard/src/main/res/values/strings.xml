@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="dashboard_current_business">Current business</string>
     <string name="dashboard_tenant_short">Tenant %1$s…</string>
@@ -15,4 +16,7 @@
     <string name="dashboard_delete_demo_text">This removes the demo companies and all their demo data. Your own businesses are not touched.</string>
     <string name="dashboard_delete_demo_confirm">Delete</string>
     <string name="dashboard_delete_demo_cancel">Keep</string>
+    <string name="dashboard_home_money_title">Money overview</string>
+    <string name="dashboard_home_receivable">Receivable</string>
+    <string name="dashboard_home_payable">Payable</string>
 </resources>

@@ -3,6 +3,7 @@ package com.lubrcapp.lubrcapp
 import androidx.activity.compose.BackHandler
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.WindowWidthClass
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.repository.isDemoScopeId
 import com.lubrcapp.lubrcapp.core.ui.R as CoreUiR
 import com.lubrcapp.lubrcapp.domain.user.CapabilityKey
@@ -30,6 +33,7 @@ import com.lubrcapp.lubrcapp.feature.auth.BusinessSetupViewModel
 import com.lubrcapp.lubrcapp.feature.auth.OnboardingScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardScreen
 import com.lubrcapp.lubrcapp.feature.dashboard.DashboardViewModel
+import com.lubrcapp.lubrcapp.feature.dashboard.HomeSummary
 import com.lubrcapp.lubrcapp.feature.inventory.InventoryViewModel
 import com.lubrcapp.lubrcapp.feature.items.ItemsViewModel
 import com.lubrcapp.lubrcapp.feature.parties.PartiesViewModel
@@ -42,6 +46,7 @@ import com.lubrcapp.lubrcapp.shell.DashboardCardsRegistry
 import com.lubrcapp.lubrcapp.shell.DemoCompaniesViewModel
 import com.lubrcapp.lubrcapp.shell.DemoViewModels
 import com.lubrcapp.lubrcapp.shell.QuickActionsRegistry
+import com.lubrcapp.lubrcapp.shell.loadHomeSummary
 import com.lubrcapp.lubrcapp.shell.QuickActionsSection
 import com.lubrcapp.lubrcapp.shell.QuickActionsSheet
 import com.lubrcapp.lubrcapp.shell.ShellBottomBar
@@ -402,6 +407,24 @@ fun MainNavigation(
                                 )
                             }
                         }
+                        // Phase 33.2: Home money overview, loaded once
+                        // the scope resolves and the shell ViewModels are
+                        // available. Null ViewModels (the navigation
+                        // tests) skip loading and hide the money card.
+                        var homeSummary by remember { mutableStateOf<HomeSummary?>(null) }
+                        LaunchedEffect(operationalScope) {
+                            operationalScope?.let { scope ->
+                                if (partiesViewModel != null &&
+                                    accountsViewModel != null
+                                ) {
+                                    homeSummary = loadHomeSummary(
+                                        scope,
+                                        partiesViewModel,
+                                        accountsViewModel,
+                                    )
+                                }
+                            }
+                        }
                         DashboardScreen(
                             state = dashboardState,
                             onSwitchBusiness = { tenant, business ->
@@ -416,6 +439,7 @@ fun MainNavigation(
                             hasDemoCompanies = dashboardState.availableBusinesses.any {
                                 isDemoScopeId(it.context.businessId.value)
                             },
+                            homeSummary = homeSummary,
                             onDeleteDemoCompanies = if (demoCompaniesViewModel != null) {
                                 {
                                     demoScope.launch {
@@ -445,12 +469,17 @@ fun MainNavigation(
                             },
                         )
                         if (currentContext != null && visibleQuickActions.isNotEmpty()) {
-                            QuickActionsSection(
-                                actions = visibleQuickActions,
-                                onSelect = { action ->
-                                    selectedFeature = action.targetModuleId
-                                },
-                            )
+                            // Phase 33.5: four across on a full tablet, two
+                            // otherwise — the phone layout is unchanged.
+                            BoxWithConstraints {
+                                QuickActionsSection(
+                                    actions = visibleQuickActions,
+                                    onSelect = { action ->
+                                        selectedFeature = action.targetModuleId
+                                    },
+                                    columns = if (windowWidthClass(maxWidth) == WindowWidthClass.EXPANDED) 4 else 2,
+                                )
+                            }
                         }
                     }
                 }

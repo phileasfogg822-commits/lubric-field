@@ -1,12 +1,16 @@
 package com.lubrcapp.lubrcapp.feature.sales
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +38,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -190,8 +198,10 @@ fun SalesScreen(
             if (visibleDocuments.isEmpty()) {
                 Text(stringResource(R.string.sales_empty))
             }
-            LazyColumn {
-                items(visibleDocuments, key = { it.id }) { document ->
+            // Phase 33.5: tablet grid, phone list — same rows, same order.
+            val rowContent: @Composable (SalesDocument) -> Unit = { document ->
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(8.dp)) {
                     Button(
                         onClick = { openDocument(document) },
                         modifier = Modifier.fillMaxWidth(),
@@ -214,6 +224,24 @@ fun SalesScreen(
                             )
                         )
                     }
+                        }
+                    }
+            }
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (windowWidthClass(maxWidth).isTablet) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 320.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleDocuments, key = { it.id }) { document -> rowContent(document) }
+                    }
+                } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(visibleDocuments, key = { it.id }) { document -> rowContent(document) }
+                }
                 }
             }
         } else {
@@ -465,7 +493,7 @@ private fun DocumentEditor(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        run {
+        FormSection(title = null) {
             Text(
                 stringResource(
                     when (form.type) {
@@ -482,8 +510,6 @@ private fun DocumentEditor(
                 Text(form.number, style = MaterialTheme.typography.titleMedium)
             }
             Text(stringResource(R.string.sales_status, form.status))
-        }
-        run {
             DateField(
                 value = form.date,
                 onValueChange = { onFormChange(form.copy(date = it)) },
@@ -503,28 +529,39 @@ private fun DocumentEditor(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        run {
-            Text(stringResource(R.string.sales_party), style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
+        FormSection(title = stringResource(R.string.sales_party)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().selectable(
                     selected = form.partyId == null,
                     onClick = { onFormChange(form.copy(partyId = null)) },
+                    role = Role.RadioButton,
+                ),
+            ) {
+                RadioButton(
+                    selected = form.partyId == null,
+                    onClick = null,
                 )
                 Text(stringResource(R.string.sales_no_party))
             }
-        }
-        parties.forEach { party ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = form.partyId == party.id,
-                    onClick = { onFormChange(form.copy(partyId = party.id)) },
-                )
-                Text(party.name)
+            parties.forEach { party ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.partyId == party.id,
+                        onClick = { onFormChange(form.copy(partyId = party.id)) },
+                        role = Role.RadioButton,
+                    ),
+                ) {
+                    RadioButton(
+                        selected = form.partyId == party.id,
+                        onClick = null,
+                    )
+                    Text(party.name)
+                }
             }
         }
-        run {
-            Text(stringResource(R.string.sales_lines), style = MaterialTheme.typography.titleMedium)
-        }
+        FormSection(title = stringResource(R.string.sales_lines)) {
         form.lines.forEach { draft ->
             LineEditor(
                 draft = draft,
@@ -555,12 +592,14 @@ private fun DocumentEditor(
                 )
             }
         }
+        }
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
+            val document = form.toDocument(form.existingId)
+            FormSection(title = stringResource(R.string.sales_actions)) {
             run {
                 Text(stringResource(R.string.sales_actions), style = MaterialTheme.typography.titleMedium)
             }
-            val document = form.toDocument(form.existingId)
             if (form.type == SalesDocumentType.QUOTATION) {
                 val from = SalesDocumentStatus.quotationStatus(document)
                 QuotationStatus.entries.filter { DocumentStatusRules.canTransition(from, it) }.forEach { target ->
@@ -624,10 +663,12 @@ private fun DocumentEditor(
             // the engine re-derives the order status from fulfilled
             // quantities. A line added in this editor but never saved
             // fails in the handler with the generic error, not a crash.
+            }
             val deliverHandler = onDeliverLine
             if (form.type == SalesDocumentType.SALES_ORDER &&
                 form.existingId != null && deliverHandler != null
             ) {
+            FormSection(title = stringResource(R.string.sales_delivery_title)) {
                 val orderStatus = SalesDocumentStatus.orderStatus(form.toDocument(form.existingId))
                 if (orderStatus == SalesOrderStatus.CONFIRMED ||
                     orderStatus == SalesOrderStatus.PARTIALLY_FULFILLED ||
@@ -668,12 +709,14 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             val postDocument = onPostDocument
             if (postDocument != null &&
                 (form.type == SalesDocumentType.INVOICE ||
                     form.type == SalesDocumentType.SALES_RETURN ||
                     form.type == SalesDocumentType.CREDIT_NOTE)
             ) {
+            FormSection(title = null) {
                 run {
                     Button(
                         onClick = { showPostingPicker = true },
@@ -804,6 +847,7 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             // Phase 31.2 — receive money on an open invoice. The
             // section shows only for payable invoice statuses; the
             // screen builds the Payment and posts it, then applies
@@ -814,6 +858,7 @@ private fun DocumentEditor(
                 form.existingId != null &&
                 (form.status == "SENT" || form.status == "PARTIALLY_PAID" || form.status == "OVERDUE")
             ) {
+            FormSection(title = null) {
                 run {
                     Text(stringResource(R.string.sales_payment_title), style = MaterialTheme.typography.titleMedium)
                 }
@@ -887,7 +932,9 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             if (timeline.isNotEmpty()) {
+            FormSection(title = stringResource(R.string.sales_timeline)) {
                 run {
                     Text(stringResource(R.string.sales_timeline), style = MaterialTheme.typography.titleMedium)
                 }
@@ -901,6 +948,7 @@ private fun DocumentEditor(
                         )
                     )
                 }
+            }
             }
         }
     }

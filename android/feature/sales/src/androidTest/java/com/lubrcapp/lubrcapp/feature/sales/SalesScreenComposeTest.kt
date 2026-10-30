@@ -14,6 +14,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -52,7 +55,12 @@ class SalesScreenComposeTest {
     @Test fun listShowsCreateActionsAndBackNavigation() {
         val fake = FakeRepository()
         var backs = 0
-        compose.setContent { SalesScreen(scope, onBack = { backs++ }, viewModel = SalesViewModel(fake)) }
+        val viewModel = SalesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = { backs++ }, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("New quotation").assertIsDisplayed()
         compose.onNodeWithText("New sales order").assertIsDisplayed()
         compose.onNodeWithText("Back").performClick()
@@ -61,7 +69,12 @@ class SalesScreenComposeTest {
 
     @Test fun createQuotationShowsLiveTotalsAndSavesNumbered() {
         val fake = FakeRepository()
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = SalesViewModel(fake)) }
+        val viewModel = SalesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("New quotation").performClick()
         compose.onNodeWithText("Date (yyyy-MM-dd)").performTextInput("2026-10-23")
         compose.onNodeWithText("Description").performScrollTo().performTextInput("Engine Oil")
@@ -119,7 +132,11 @@ class SalesScreenComposeTest {
             vm.saveDocument(scope, SalesDocument(id = "ret-1", type = SalesDocumentType.SALES_RETURN, number = "SR-2026-00001", status = "SENT", date = "2026-10-24"))
             vm.saveDocument(scope, SalesDocument(id = "cn-1", type = SalesDocumentType.CREDIT_NOTE, number = "CN-2026-00001", status = "SENT", date = "2026-10-24"))
         }
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = vm)
+            }
+        }
         compose.onAllNodesWithText("INV-2026-00001 · Invoice · SENT · 2026-10-24").assertCountEquals(1)
         compose.onAllNodesWithText("SR-2026-00001 · Sales return · SENT · 2026-10-24").assertCountEquals(1)
         compose.onAllNodesWithText("CN-2026-00001 · Credit note · SENT · 2026-10-24").assertCountEquals(1)
@@ -132,7 +149,11 @@ class SalesScreenComposeTest {
         runBlocking {
             vm.saveDocument(scope, SalesDocument(id = "inv-1", type = SalesDocumentType.INVOICE, number = "INV-2026-00001", status = "SENT", date = "2026-10-24"))
         }
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = vm)
+            }
+        }
         compose.onNodeWithText("INV-2026-00001 · Invoice · SENT · 2026-10-24").performClick()
         compose.waitUntil(10000) {
             try {
@@ -158,7 +179,11 @@ class SalesScreenComposeTest {
                 listOf(SalesDocumentLine(id = "l-1", orderId = "o-1", position = 0, quantity = BigDecimal("1"), rate = BigDecimal("100"))),
             )
         }
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = vm)
+            }
+        }
         compose.onNodeWithText("SO-2026-00003 · Sales order · CONFIRMED · 2026-10-24").performClick()
         // The editor opens asynchronously (openDocument loads
         // lines in a coroutine): wait for it before scrolling.
@@ -194,6 +219,7 @@ class SalesScreenComposeTest {
         }
         val posted = mutableListOf<Triple<String, InvoicePostingAccounts, String>>()
         compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
             SalesScreen(
                 scope,
                 onBack = {},
@@ -208,6 +234,7 @@ class SalesScreenComposeTest {
                     SalesPostResult.Posted(document.number, emptyList())
                 },
             )
+            }
         }
         compose.onNodeWithText("INV-2026-00001 · Invoice · SENT · 2026-10-24").performClick()
         // The editor opens asynchronously: wait for it before
@@ -276,7 +303,11 @@ class SalesScreenComposeTest {
                 ),
             )
         }
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = vm)
+            }
+        }
         compose.onNodeWithText("SO-1 · Sales order · CONFIRMED · 2026-10-27").performClick()
         compose.onAllNodesWithText("Delivered: 0 of 10").assertCountEquals(1)
         compose.onNodeWithTag("deliverQty_l-1").performScrollTo().performTextInput("4")
@@ -318,6 +349,7 @@ class SalesScreenComposeTest {
             )
         }
         compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
             SalesScreen(
                 scope,
                 onBack = {},
@@ -328,6 +360,7 @@ class SalesScreenComposeTest {
                 ),
                 onPostPayment = { _, _, _ -> SalesPostResult.Posted("INV-1", emptyList()) },
             )
+            }
         }
         compose.onNodeWithText("INV-1 · Invoice · SENT · 2026-10-27").performClick()
         compose.onNodeWithTag("receiveAmount").performScrollTo().performTextInput("500")
@@ -378,7 +411,11 @@ class SalesScreenComposeTest {
                 emptyList(),
             )
         }
-        compose.setContent { SalesScreen(scope, onBack = {}, viewModel = vm) }
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                SalesScreen(scope, onBack = {}, viewModel = vm)
+            }
+        }
         compose.onNodeWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertIsDisplayed()
         compose.onNodeWithText("Pending").performClick()
         compose.onNodeWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertIsDisplayed()
@@ -392,5 +429,17 @@ class SalesScreenComposeTest {
         compose.onNodeWithText("Fulfilled").performClick()
         compose.onNodeWithText("SO-3 · Sales order · FULFILLED · 2026-10-27").assertIsDisplayed()
         compose.onAllNodesWithText("SO-1 · Sales order · DRAFT · 2026-10-27").assertCountEquals(0)
+    }
+    private companion object {
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF0F766E.toInt(),
+                secondary = 0xFF14B8A6.toInt(),
+                accent = 0xFFD97706.toInt(),
+                success = 0xFF16A34A.toInt(),
+                warning = 0xFFF59E0B.toInt(),
+                error = 0xFFDC2626.toInt(),
+            ),
+        )
     }
 }

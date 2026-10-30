@@ -8,6 +8,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -38,7 +41,12 @@ class PurchasesScreenComposeTest {
     @Test fun emptyFormAndBackNavigation() {
         val fake = FakeRepository()
         var backCount = 0
-        compose.setContent { PurchasesScreen(scope, onBack = { backCount++ }, viewModel = PurchasesViewModel(fake)) }
+        val viewModel = PurchasesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                PurchasesScreen(scope, onBack = { backCount++ }, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Save purchase").assertIsNotEnabled()
         compose.onNodeWithText("Back").performClick()
         compose.runOnIdle { assertEquals(1, backCount) }
@@ -46,7 +54,12 @@ class PurchasesScreenComposeTest {
 
     @Test fun createAndEditRecordOffline() {
         val fake = FakeRepository()
-        compose.setContent { PurchasesScreen(scope, onBack = {}, viewModel = PurchasesViewModel(fake)) }
+        val viewModel = PurchasesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                PurchasesScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Purchase").performTextInput("Sample")
         compose.onNodeWithText("Save purchase").assertIsEnabled().performClick()
         compose.waitUntil(5000) { fake.records.value.size == 1 }
@@ -61,19 +74,41 @@ class PurchasesScreenComposeTest {
 
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
-        compose.setContent { PurchasesScreen(scope, onBack = {}, viewModel = PurchasesViewModel(fake)) }
+        val viewModel = PurchasesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                PurchasesScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("No purchases yet").assertIsDisplayed()
     }
 
     @Test fun saveFailureShowsError() {
         val fake = FakeRepository()
         fake.failSave = true
-        compose.setContent { PurchasesScreen(scope, onBack = {}, viewModel = PurchasesViewModel(fake)) }
+        val viewModel = PurchasesViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                PurchasesScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Purchase").performTextInput("Sample")
         compose.onNodeWithText("Save purchase").performClick()
         compose.waitUntil(5000) {
             try { compose.onNodeWithText("Unable to save purchase locally").assertIsDisplayed(); true }
             catch (_: AssertionError) { false }
         }
+    }
+    private companion object {
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF0F766E.toInt(),
+                secondary = 0xFF14B8A6.toInt(),
+                accent = 0xFFD97706.toInt(),
+                success = 0xFF16A34A.toInt(),
+                warning = 0xFFF59E0B.toInt(),
+                error = 0xFFDC2626.toInt(),
+            ),
+        )
     }
 }

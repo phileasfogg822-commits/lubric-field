@@ -2,12 +2,18 @@ package com.lubrcapp.lubrcapp.feature.parties
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -36,6 +42,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
+import com.lubrcapp.lubrcapp.core.designsystem.AppButton
+import com.lubrcapp.lubrcapp.core.designsystem.AppButtonStyle
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.party.PartyType
 import java.math.BigDecimal
@@ -212,9 +224,13 @@ fun PartiesScreen(
             if (visibleParties.isEmpty()) {
                 Text(stringResource(R.string.parties_empty))
             }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(visibleParties, key = { it.id }) { party ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Phase 33.5: tablet grid, phone list — same rows, same order.
+            val rowContent: @Composable (Party) -> Unit = { party ->
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable { profileId = party.id },
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -240,20 +256,37 @@ fun PartiesScreen(
                             }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { profileId = party.id },
                             ) { Text(stringResource(R.string.parties_view, party.name)) }
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { form.load(party); editingId = party.id; formError = false; error = null; formOpen = true },
                             ) { Text(stringResource(R.string.parties_edit, party.name)) }
-                            Button(
+                            TextButton(
                                 enabled = !saving,
                                 onClick = { deletingId = party.id },
                             ) { Text(stringResource(R.string.parties_delete, party.name)) }
                         }
+                        }
                     }
+            }
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (windowWidthClass(maxWidth).isTablet) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 320.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleParties, key = { it.id }) { party -> rowContent(party) }
+                    }
+                } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(visibleParties, key = { it.id }) { party -> rowContent(party) }
+                }
                 }
             }
         }
@@ -298,91 +331,136 @@ private fun PartyForm(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    Column(modifier = Modifier.fillMaxSize()) {
+    // Phase 33.5: two-column sections on tablet; phone stack unchanged.
+    BoxWithConstraints(
+        modifier = Modifier.weight(1f).fillMaxWidth(),
     ) {
-        Text(
-            stringResource(if (isEditing) R.string.parties_edit_title else R.string.parties_new_title),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        PartyTextField(form.name, { form.name = it }, R.string.parties_label)
-        Text(stringResource(R.string.parties_type), style = MaterialTheme.typography.titleMedium)
-        PartyType.entries.forEach { type ->
-            Row(
-                modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.type == type,
-                    onClick = { form.type = type },
-                ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(selected = form.type == type, onClick = { form.type = type })
-                Text(stringResource(type.labelRes()))
-            }
-        }
-        Text(stringResource(R.string.parties_group), style = MaterialTheme.typography.titleMedium)
-        Row(
-            modifier = Modifier.fillMaxWidth().selectable(
-                selected = form.groupId == null,
-                onClick = { form.groupId = null },
-            ),
-            verticalAlignment = Alignment.CenterVertically,
+        val tablet = windowWidthClass(maxWidth).isTablet
+        FlowRow(
+            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            RadioButton(selected = form.groupId == null, onClick = { form.groupId = null })
-            Text(stringResource(R.string.parties_group_none))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                stringResource(if (isEditing) R.string.parties_edit_title else R.string.parties_new_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
         }
-        groups.forEach { group ->
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            PartyTextField(form.name, { form.name = it }, R.string.parties_label)
+            }
+        }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.parties_type)) {
+            PartyType.entries.forEach { type ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.type == type,
+                        onClick = { form.type = type },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.type == type, onClick = { form.type = type })
+                    Text(stringResource(type.labelRes()))
+                }
+            }
+            }
+        }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.parties_group)) {
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
-                    selected = form.groupId == group.id,
-                    onClick = { form.groupId = group.id },
+                    selected = form.groupId == null,
+                    onClick = { form.groupId = null },
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = form.groupId == group.id, onClick = { form.groupId = group.id })
-                Text(group.name)
+                RadioButton(selected = form.groupId == null, onClick = { form.groupId = null })
+                Text(stringResource(R.string.parties_group_none))
+            }
+            groups.forEach { group ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.groupId == group.id,
+                        onClick = { form.groupId = group.id },
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = form.groupId == group.id, onClick = { form.groupId = group.id })
+                    Text(group.name)
+                }
+            }
             }
         }
-        PartyTextField(form.businessName, { form.businessName = it }, R.string.parties_business_name)
-        PartyTextField(form.contactPerson, { form.contactPerson = it }, R.string.parties_contact_person)
-        PartyTextField(form.mobile, { form.mobile = it }, R.string.parties_mobile, KeyboardType.Phone)
-        PartyTextField(form.whatsapp, { form.whatsapp = it }, R.string.parties_whatsapp, KeyboardType.Phone)
-        PartyTextField(form.phone, { form.phone = it }, R.string.parties_phone, KeyboardType.Phone)
-        PartyTextField(form.email, { form.email = it }, R.string.parties_email, KeyboardType.Email)
-        Text(stringResource(R.string.parties_addresses), style = MaterialTheme.typography.titleMedium)
-        form.addresses.forEachIndexed { index, address ->
-            AddressFields(address) {
-                form.addresses = form.addresses.filterIndexed { i, _ -> i != index }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            PartyTextField(form.businessName, { form.businessName = it }, R.string.parties_business_name)
+            PartyTextField(form.contactPerson, { form.contactPerson = it }, R.string.parties_contact_person)
+            PartyTextField(form.mobile, { form.mobile = it }, R.string.parties_mobile, KeyboardType.Phone)
+            PartyTextField(form.whatsapp, { form.whatsapp = it }, R.string.parties_whatsapp, KeyboardType.Phone)
+            PartyTextField(form.phone, { form.phone = it }, R.string.parties_phone, KeyboardType.Phone)
+            PartyTextField(form.email, { form.email = it }, R.string.parties_email, KeyboardType.Email)
             }
         }
-        Button(onClick = { form.addresses = form.addresses + PartyAddressFormState() }) {
-            Text(stringResource(R.string.parties_add_address))
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.parties_addresses)) {
+            form.addresses.forEachIndexed { index, address ->
+                AddressFields(address) {
+                    form.addresses = form.addresses.filterIndexed { i, _ -> i != index }
+                }
+            }
+            Button(onClick = { form.addresses = form.addresses + PartyAddressFormState() }) {
+                Text(stringResource(R.string.parties_add_address))
+            }
+            }
         }
-        PartyTextField(form.taxNumber, { form.taxNumber = it }, R.string.parties_tax_number)
-        PartyTextField(form.nationalId, { form.nationalId = it }, R.string.parties_national_id)
-        PartyTextField(form.openingBalance, { form.openingBalance = it }, R.string.parties_opening_balance, KeyboardType.Decimal)
-        PartyTextField(form.creditLimit, { form.creditLimit = it }, R.string.parties_credit_limit, KeyboardType.Decimal)
-        PartyTextField(form.creditDays, { form.creditDays = it }, R.string.parties_credit_days, KeyboardType.Number)
-        PartyTextField(form.paymentTerms, { form.paymentTerms = it }, R.string.parties_payment_terms)
-        PartyTextField(form.priceLevel, { form.priceLevel = it }, R.string.parties_price_level)
-        PartyTextField(form.territory, { form.territory = it }, R.string.parties_territory)
-        PartyTextField(form.salesperson, { form.salesperson = it }, R.string.parties_salesperson)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = form.isBlocked, onCheckedChange = { form.isBlocked = it })
-            Text(stringResource(R.string.parties_blocked))
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            PartyTextField(form.taxNumber, { form.taxNumber = it }, R.string.parties_tax_number)
+            PartyTextField(form.nationalId, { form.nationalId = it }, R.string.parties_national_id)
+            PartyTextField(form.openingBalance, { form.openingBalance = it }, R.string.parties_opening_balance, KeyboardType.Decimal)
+            PartyTextField(form.creditLimit, { form.creditLimit = it }, R.string.parties_credit_limit, KeyboardType.Decimal)
+            PartyTextField(form.creditDays, { form.creditDays = it }, R.string.parties_credit_days, KeyboardType.Number)
+            PartyTextField(form.paymentTerms, { form.paymentTerms = it }, R.string.parties_payment_terms)
+            PartyTextField(form.priceLevel, { form.priceLevel = it }, R.string.parties_price_level)
+            PartyTextField(form.territory, { form.territory = it }, R.string.parties_territory)
+            PartyTextField(form.salesperson, { form.salesperson = it }, R.string.parties_salesperson)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = form.isBlocked, onCheckedChange = { form.isBlocked = it })
+                Text(stringResource(R.string.parties_blocked))
+            }
+            }
         }
-        PartyTextField(form.notes, { form.notes = it }, R.string.parties_notes)
-        PartyTextField(form.photoUri, { form.photoUri = it }, R.string.parties_photo)
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 6.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            PartyTextField(form.notes, { form.notes = it }, R.string.parties_notes)
+            PartyTextField(form.photoUri, { form.photoUri = it }, R.string.parties_photo)
+            }
+        }
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         if (formError) {
             Text(stringResource(R.string.parties_form_error), color = MaterialTheme.colorScheme.error)
         }
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(enabled = form.name.isNotBlank() && !saving, onClick = onSave) {
-            Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
+                Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save))
+            }
+            AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.parties_cancel))
+            }
         }
-        Button(enabled = !saving, onClick = onCancel) {
-            Text(stringResource(R.string.parties_cancel))
-        }
+    }
     }
 }
 

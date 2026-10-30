@@ -1,16 +1,22 @@
 package com.lubrcapp.lubrcapp.feature.inventory
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.inventory.StockStatus
 import java.math.BigDecimal
@@ -355,24 +366,44 @@ private fun ColumnScope.InventoryList(
     if (visibleRows.isEmpty()) {
         Text(stringResource(R.string.inventory_empty_items))
     }
-    LazyColumn(
+    // Phase 33.5: tablet grid, phone list — same rows, same order.
+    val rowContent: @Composable (InventoryRow) -> Unit = { row ->
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Button(
+                        onClick = { onSelect(row.item.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.inventory_row,
+                                row.item.name,
+                                row.balance.toPlainString(),
+                                stringResource(statusLabel(row.status)),
+                            )
+                        )
+                    }
+                }
+            }
+    }
+    BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().weight(1f),
+    ) {
+        if (windowWidthClass(maxWidth).isTablet) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 320.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(visibleRows, key = { it.item.id }) { row -> rowContent(row) }
+            }
+        } else {
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(visibleRows, key = { it.item.id }) { row ->
-            Button(
-                onClick = { onSelect(row.item.id) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    stringResource(
-                        R.string.inventory_row,
-                        row.item.name,
-                        row.balance.toPlainString(),
-                        stringResource(statusLabel(row.status)),
-                    )
-                )
-            }
+            items(visibleRows, key = { it.item.id }) { row -> rowContent(row) }
+        }
         }
     }
 }
@@ -552,89 +583,123 @@ private fun ColumnScope.StockAdjustmentMode(
     // stays composed, so the test can scroll to the fields and
     // type into them — LazyColumn drops below-fold items from the
     // semantics tree, which is what broke the adjust-flow test.
-    Column(
-        modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    // Phase 33.5: two-column sections on tablet; phone stack unchanged.
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().weight(1f),
     ) {
-        Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
-        items.forEach { item ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(itemId = item.id) },
-            ) {
-                RadioButton(
-                    selected = form.itemId == item.id,
-                    onClick = { form = form.copy(itemId = item.id) },
-                )
-                Text(item.name)
-            }
-        }
-        Text(stringResource(R.string.inventory_field_kind), style = MaterialTheme.typography.titleSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StockAdjustmentKind.entries.forEach { kind ->
-                Button(
-                    onClick = { form = form.copy(kind = kind) },
-                    enabled = form.kind != kind,
+        val tablet = windowWidthClass(maxWidth).isTablet
+        FlowRow(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.inventory_field_item)) {
+            items.forEach { item ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.itemId == item.id,
+                        onClick = { form = form.copy(itemId = item.id) },
+                        role = Role.RadioButton,
+                    ),
                 ) {
-                    Text(stringResource(kindLabel(kind)))
+                    RadioButton(
+                        selected = form.itemId == item.id,
+                        onClick = null,
+                    )
+                    Text(item.name)
                 }
             }
-        }
-        if (form.kind == StockAdjustmentKind.MANUAL_CORRECTION) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { form = form.copy(manualInbound = true) },
-                    enabled = !form.manualInbound,
-                ) { Text(stringResource(R.string.inventory_direction_in)) }
-                Button(
-                    onClick = { form = form.copy(manualInbound = false) },
-                    enabled = form.manualInbound,
-                ) { Text(stringResource(R.string.inventory_direction_out)) }
             }
         }
-        OutlinedTextField(
-            value = form.quantityText,
-            onValueChange = { form = form.copy(quantityText = it) },
-            label = { Text(stringResource(R.string.inventory_field_quantity)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        DateField(
-            value = form.date,
-            onValueChange = { form = form.copy(date = it) },
-            label = stringResource(R.string.inventory_field_date),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.reason,
-            onValueChange = { form = form.copy(reason = it) },
-            label = { Text(stringResource(R.string.inventory_field_reason)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.attachmentUri ?: "",
-            onValueChange = { form = form.copy(attachmentUri = it.takeIf { uri -> uri.isNotBlank() }) },
-            label = { Text(stringResource(R.string.inventory_field_attachment)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(stringResource(R.string.inventory_field_warehouse), style = MaterialTheme.typography.titleSmall)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
-                selected = form.warehouseId == null,
-                onClick = { form = form.copy(warehouseId = null) },
-            )
-            Text(stringResource(R.string.inventory_field_none))
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.inventory_field_kind)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StockAdjustmentKind.entries.forEach { kind ->
+                    Button(
+                        onClick = { form = form.copy(kind = kind) },
+                        enabled = form.kind != kind,
+                    ) {
+                        Text(stringResource(kindLabel(kind)))
+                    }
+                }
+            }
+            if (form.kind == StockAdjustmentKind.MANUAL_CORRECTION) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { form = form.copy(manualInbound = true) },
+                        enabled = !form.manualInbound,
+                    ) { Text(stringResource(R.string.inventory_direction_in)) }
+                    Button(
+                        onClick = { form = form.copy(manualInbound = false) },
+                        enabled = form.manualInbound,
+                    ) { Text(stringResource(R.string.inventory_direction_out)) }
+                }
+            }
+            }
         }
-        warehouses.forEach { warehouse ->
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            OutlinedTextField(
+                value = form.quantityText,
+                onValueChange = { form = form.copy(quantityText = it) },
+                label = { Text(stringResource(R.string.inventory_field_quantity)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            DateField(
+                value = form.date,
+                onValueChange = { form = form.copy(date = it) },
+                label = stringResource(R.string.inventory_field_date),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = form.reason,
+                onValueChange = { form = form.copy(reason = it) },
+                label = { Text(stringResource(R.string.inventory_field_reason)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = form.attachmentUri ?: "",
+                onValueChange = { form = form.copy(attachmentUri = it.takeIf { uri -> uri.isNotBlank() }) },
+                label = { Text(stringResource(R.string.inventory_field_attachment)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            }
+        }
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.inventory_field_warehouse)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(warehouseId = warehouse.id) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.warehouseId == null,
+                    onClick = { form = form.copy(warehouseId = null) },
+                    role = Role.RadioButton,
+                ),
             ) {
                 RadioButton(
-                    selected = form.warehouseId == warehouse.id,
-                    onClick = { form = form.copy(warehouseId = warehouse.id) },
+                    selected = form.warehouseId == null,
+                    onClick = null,
                 )
-                Text(warehouse.name)
+                Text(stringResource(R.string.inventory_field_none))
             }
+            warehouses.forEach { warehouse ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.warehouseId == warehouse.id,
+                        onClick = { form = form.copy(warehouseId = warehouse.id) },
+                        role = Role.RadioButton,
+                    ),
+                ) {
+                    RadioButton(
+                        selected = form.warehouseId == warehouse.id,
+                        onClick = null,
+                    )
+                    Text(warehouse.name)
+                }
+            }
+            }
+        }
         }
     }
 
@@ -779,24 +844,44 @@ private fun ColumnScope.StockTransfersMode(
             if (transfers.isEmpty()) {
                 Text(stringResource(R.string.inventory_transfer_empty))
             }
-            LazyColumn(
+            // Phase 33.5: tablet grid, phone list — same rows, same order.
+            val rowContent: @Composable (StockTransferRecord) -> Unit = { transfer ->
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Button(
+                                onClick = { selectedId = transfer.id },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        R.string.inventory_transfer_row,
+                                        warehouseName(warehouses, transfer.fromWarehouseId),
+                                        warehouseName(warehouses, transfer.toWarehouseId),
+                                        stringResource(transferStatusLabel(transfer.status)),
+                                    )
+                                )
+                            }
+                        }
+                    }
+            }
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (windowWidthClass(maxWidth).isTablet) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(transfers, key = { it.id }) { transfer -> rowContent(transfer) }
+                    }
+                } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(transfers, key = { it.id }) { transfer ->
-                    Button(
-                        onClick = { selectedId = transfer.id },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.inventory_transfer_row,
-                                warehouseName(warehouses, transfer.fromWarehouseId),
-                                warehouseName(warehouses, transfer.toWarehouseId),
-                                stringResource(transferStatusLabel(transfer.status)),
-                            )
-                        )
-                    }
+                    items(transfers, key = { it.id }) { transfer -> rowContent(transfer) }
+                }
                 }
             }
         }
@@ -819,48 +904,71 @@ private fun ColumnScope.TransferEditor(
     // A vertically scrolling Column for the same reason as
     // StockAdjustmentMode: the per-item quantity fields must stay
     // composed so they can be scrolled to and typed into.
-    Column(
-        modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    // Phase 33.5: two-column sections on tablet; phone stack unchanged.
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().weight(1f),
     ) {
-        Text(stringResource(R.string.inventory_transfer_from), style = MaterialTheme.typography.titleSmall)
-        warehouses.forEach { warehouse ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(fromWarehouseId = warehouse.id) },
-            ) {
-                RadioButton(
-                    selected = form.fromWarehouseId == warehouse.id,
-                    onClick = { form = form.copy(fromWarehouseId = warehouse.id) },
-                )
-                Text(warehouse.name)
+        val tablet = windowWidthClass(maxWidth).isTablet
+        FlowRow(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.inventory_transfer_from)) {
+            warehouses.forEach { warehouse ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.fromWarehouseId == warehouse.id,
+                        onClick = { form = form.copy(fromWarehouseId = warehouse.id) },
+                        role = Role.RadioButton,
+                    ),
+                ) {
+                    RadioButton(
+                        selected = form.fromWarehouseId == warehouse.id,
+                        onClick = null,
+                    )
+                    Text(warehouse.name)
+                }
+            }
             }
         }
-        Text(stringResource(R.string.inventory_transfer_to), style = MaterialTheme.typography.titleSmall)
-        warehouses.forEach { warehouse ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(toWarehouseId = warehouse.id) },
-            ) {
-                RadioButton(
-                    selected = form.toWarehouseId == warehouse.id,
-                    onClick = { form = form.copy(toWarehouseId = warehouse.id) },
-                )
-                Text(warehouse.name)
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = stringResource(R.string.inventory_transfer_to)) {
+            warehouses.forEach { warehouse ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.toWarehouseId == warehouse.id,
+                        onClick = { form = form.copy(toWarehouseId = warehouse.id) },
+                        role = Role.RadioButton,
+                    ),
+                ) {
+                    RadioButton(
+                        selected = form.toWarehouseId == warehouse.id,
+                        onClick = null,
+                    )
+                    Text(warehouse.name)
+                }
+            }
             }
         }
-        DateField(
-            value = form.date,
-            onValueChange = { form = form.copy(date = it) },
-            label = stringResource(R.string.inventory_field_date),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.note,
-            onValueChange = { form = form.copy(note = it) },
-            label = { Text(stringResource(R.string.inventory_field_note)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Box(modifier = if (tablet) Modifier.fillMaxWidth(0.5f).padding(horizontal = 4.dp) else Modifier.fillMaxWidth()) {
+            FormSection(title = null) {
+            DateField(
+                value = form.date,
+                onValueChange = { form = form.copy(date = it) },
+                label = stringResource(R.string.inventory_field_date),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = form.note,
+                onValueChange = { form = form.copy(note = it) },
+                label = { Text(stringResource(R.string.inventory_field_note)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            }
+        }
         Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
         items.forEach { item ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -872,6 +980,7 @@ private fun ColumnScope.TransferEditor(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
         }
     }
 

@@ -1,12 +1,16 @@
 package com.lubrcapp.lubrcapp.feature.purchases
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,6 +34,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.isTablet
+import com.lubrcapp.lubrcapp.core.designsystem.windowWidthClass
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
+import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -83,6 +92,7 @@ fun PurchasesScreen(
     ) {
         Button(onClick = onBack) { Text(stringResource(R.string.purchases_back)) }
         Text(stringResource(R.string.purchases_title), style = MaterialTheme.typography.headlineMedium)
+        FormSection(title = null) {
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -117,6 +127,7 @@ fun PurchasesScreen(
                 Text(stringResource(R.string.purchases_cancel_edit))
             }
         }
+        }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         // Phase 31.2 — pay a vendor payable. The section shows
         // only when the shell wires a payment handler; the list
@@ -124,6 +135,7 @@ fun PurchasesScreen(
         // applyPayment saves the updated payable.
         val paymentHandler = onPostPayment
         if (paymentHandler != null) {
+        FormSection(title = stringResource(R.string.purchases_payables_title)) {
             Text(stringResource(R.string.purchases_payables_title), style = MaterialTheme.typography.titleMedium)
             if (payables.isEmpty()) {
                 Text(stringResource(R.string.purchases_payables_empty))
@@ -263,17 +275,38 @@ fun PurchasesScreen(
             }
             notice?.let { Text(it) }
         }
+        }
         if (records.isEmpty()) {
             Text(stringResource(R.string.purchases_empty))
         }
-        LazyColumn {
-            items(records, key = { it.id }) { record ->
+        // Phase 33.5: tablet grid, phone list — same rows, same order.
+        val rowContent: @Composable (OperationalRecord) -> Unit = { record ->
                 val displayName = runCatching {
                     JSONObject(record.json).optString("description", record.id)
                 }.getOrDefault(record.id)
-                Button(onClick = { editingId = record.id; description = displayName }, enabled = !saving) {
-                    Text(stringResource(R.string.purchases_edit, displayName))
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Button(onClick = { editingId = record.id; description = displayName }, enabled = !saving) {
+                            Text(stringResource(R.string.purchases_edit, displayName))
+                        }
+                    }
                 }
+        }
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        ) {
+            if (windowWidthClass(maxWidth).isTablet) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(records, key = { it.id }) { record -> rowContent(record) }
+                }
+            } else {
+        LazyColumn {
+                items(records, key = { it.id }) { record -> rowContent(record) }
+            }
             }
         }
     }

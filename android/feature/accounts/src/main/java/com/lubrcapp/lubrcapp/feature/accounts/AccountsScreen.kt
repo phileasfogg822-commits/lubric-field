@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.accounting.AccountType
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -121,6 +123,7 @@ private fun ChartContent(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        FormSection(title = null) {
         OutlinedTextField(
             value = code,
             onValueChange = { code = it },
@@ -162,6 +165,7 @@ private fun ChartContent(
             },
         ) { Text(if (saving) stringResource(R.string.accounts_saving) else stringResource(R.string.accounts_save)) }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        }
         if (accounts.isEmpty()) {
             Text(stringResource(R.string.accounts_empty))
         }
@@ -171,14 +175,18 @@ private fun ChartContent(
             } else {
                 stringResource(R.string.accounts_account_row_inactive, account.code, account.name, account.type.name)
             }
-            Text(rowText)
-            if (account.isActive) {
-                Button(
-                    enabled = !saving,
-                    onClick = {
-                        coroutineScope.launch { viewModel.deactivateAccount(scope, account.id) }
-                    },
-                ) { Text(stringResource(R.string.accounts_deactivate)) }
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(rowText)
+                    if (account.isActive) {
+                        Button(
+                            enabled = !saving,
+                            onClick = {
+                                coroutineScope.launch { viewModel.deactivateAccount(scope, account.id) }
+                            },
+                        ) { Text(stringResource(R.string.accounts_deactivate)) }
+                    }
+                }
             }
         }
     }
@@ -239,16 +247,20 @@ private fun JournalContent(
                 Text(stringResource(R.string.accounts_entry_empty))
             }
             entries.forEach { item ->
-                Button(onClick = { onSelectEntry(item) }) {
-                    Text(
-                        stringResource(
-                            R.string.accounts_entry_row,
-                            item.date,
-                            item.description,
-                            item.totalDebits.toPlainString(),
-                            item.totalCredits.toPlainString(),
-                        ),
-                    )
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Button(onClick = { onSelectEntry(item) }) {
+                            Text(
+                                stringResource(
+                                    R.string.accounts_entry_row,
+                                    item.date,
+                                    item.description,
+                                    item.totalDebits.toPlainString(),
+                                    item.totalCredits.toPlainString(),
+                                ),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -302,7 +314,7 @@ private fun CashContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.accounts_cash_title), style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(R.string.accounts_cash_account_label), style = MaterialTheme.typography.titleMedium)
+        FormSection(title = stringResource(R.string.accounts_cash_account_label)) {
         activeAccounts.forEach { account ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -319,7 +331,8 @@ private fun CashContent(
                 Text(account.name)
             }
         }
-        Text(stringResource(R.string.accounts_cash_counterpart_label), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.accounts_cash_counterpart_label)) {
         activeAccounts.forEach { account ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -336,6 +349,8 @@ private fun CashContent(
                 Text(account.name)
             }
         }
+        }
+        FormSection(title = null) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { direction = CashDirection.IN }) { Text(cashInText) }
             Button(onClick = { direction = CashDirection.OUT }) { Text(cashOutText) }
@@ -395,6 +410,7 @@ private fun CashContent(
             },
             modifier = Modifier.testTag("cashRecordButton"),
         ) { Text(stringResource(R.string.accounts_cash_record)) }
+        }
         notice?.let { Text(it) }
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         val selectedCash = activeAccounts.firstOrNull { it.id == cashId }
