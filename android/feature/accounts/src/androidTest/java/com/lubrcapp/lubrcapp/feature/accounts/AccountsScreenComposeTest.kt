@@ -11,6 +11,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -54,7 +57,12 @@ class AccountsScreenComposeTest {
 
     @Test fun chartAddAccountFlow() {
         val fake = FakeRepository()
-        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Code").performScrollTo().performTextInput("1000")
         compose.onNodeWithText("Name").performScrollTo().performTextInput("Cash")
         compose.onNodeWithText("ASSET").performScrollTo().performClick()
@@ -66,7 +74,12 @@ class AccountsScreenComposeTest {
     @Test fun chartDeactivateMarksRowInactive() {
         val fake = FakeRepository()
         fake.seedAccount(AccountRecord("acc-1", "1000", "Cash", AccountType.ASSET, null, true, ""))
-        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("1000 · Cash · ASSET").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Deactivate").performScrollTo().performClick()
         compose.waitUntil(5000) {
@@ -92,7 +105,12 @@ class AccountsScreenComposeTest {
                 createdAt = "2026-10-24T00:00:00Z",
             ),
         )
-        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Journal").performClick()
         compose.onNodeWithText("Total debits 100000").assertIsDisplayed()
         compose.onNodeWithText("Total credits 100000").assertIsDisplayed()
@@ -107,7 +125,12 @@ class AccountsScreenComposeTest {
     @Test fun emptyStatesAndBackNavigation() {
         val fake = FakeRepository()
         var backCount = 0
-        compose.setContent { AccountsScreen(scope, onBack = { backCount++ }, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = { backCount++ }, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("No accounts yet").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Journal").performClick()
         compose.onNodeWithText("No journal entries yet").performScrollTo().assertIsDisplayed()
@@ -117,7 +140,12 @@ class AccountsScreenComposeTest {
 
     @Test fun saveButtonDisabledUntilCodeAndNameEntered() {
         val fake = FakeRepository()
-        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Save account").assertIsNotEnabled()
         compose.onNodeWithText("Code").performScrollTo().performTextInput("1000")
         compose.onNodeWithText("Save account").assertIsNotEnabled()
@@ -141,7 +169,12 @@ class AccountsScreenComposeTest {
                 createdAt = "2026-10-24T00:00:00Z",
             ),
         )
-        compose.setContent { AccountsScreen(scope, onBack = {}, viewModel = AccountsViewModel(fake)) }
+        val viewModel = AccountsViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                AccountsScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Cash book").performClick()
         // Both pickers list both accounts, so the cash picker's row is
         // the first "Cash" node and the counterpart picker's "Sales"
@@ -159,5 +192,17 @@ class AccountsScreenComposeTest {
                 JournalEntryJson.decode(it.second.id, it.second.json).description == "Petty expense" }
         }
         compose.onNodeWithText("Cash balance: 50000").performScrollTo().assertIsDisplayed()
+    }
+    private companion object {
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF0F766E.toInt(),
+                secondary = 0xFF14B8A6.toInt(),
+                accent = 0xFFD97706.toInt(),
+                success = 0xFF16A34A.toInt(),
+                warning = 0xFFF59E0B.toInt(),
+                error = 0xFFDC2626.toInt(),
+            ),
+        )
     }
 }

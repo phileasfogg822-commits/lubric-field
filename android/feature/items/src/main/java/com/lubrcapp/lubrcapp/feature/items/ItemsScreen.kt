@@ -33,6 +33,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.AppButton
+import com.lubrcapp.lubrcapp.core.designsystem.AppButtonStyle
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -344,16 +347,19 @@ private fun ItemForm(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    Column(modifier = Modifier.fillMaxSize()) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             stringResource(if (isEditing) R.string.items_edit_title else R.string.items_new_title),
             style = MaterialTheme.typography.headlineMedium,
         )
+        FormSection(title = null) {
         ItemTextField(form.name, { form.name = it }, R.string.items_name)
-        Text(stringResource(R.string.items_type), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.items_type)) {
         ItemType.entries.forEach { type ->
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
@@ -366,7 +372,8 @@ private fun ItemForm(
                 Text(stringResource(type.labelRes()))
             }
         }
-        Text(stringResource(R.string.items_category), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.items_category)) {
         Row(
             modifier = Modifier.fillMaxWidth().selectable(
                 selected = form.categoryId == null,
@@ -389,7 +396,8 @@ private fun ItemForm(
                 Text(category.name)
             }
         }
-        Text(stringResource(R.string.items_brand), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.items_brand)) {
         Row(
             modifier = Modifier.fillMaxWidth().selectable(
                 selected = form.brandId == null,
@@ -412,9 +420,12 @@ private fun ItemForm(
                 Text(brand.name)
             }
         }
+        }
+        FormSection(title = null) {
         ItemTextField(form.sku, { form.sku = it }, R.string.items_sku)
         ItemTextField(form.barcode, { form.barcode = it }, R.string.items_barcode)
-        Text(stringResource(R.string.items_unit), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.items_unit)) {
         Row(
             modifier = Modifier.fillMaxWidth().selectable(
                 selected = form.unitId == null,
@@ -438,6 +449,8 @@ private fun ItemForm(
             }
         }
         ItemTextField(form.unit, { form.unit = it }, R.string.items_unit_free_text)
+        }
+        FormSection(title = null) {
         ItemTextField(form.purchaseRate, { form.purchaseRate = it }, R.string.items_purchase_rate, KeyboardType.Decimal)
         ItemTextField(form.saleRate, { form.saleRate = it }, R.string.items_sale_rate, KeyboardType.Decimal)
         ItemTextField(form.wholesaleRate, { form.wholesaleRate = it }, R.string.items_wholesale_rate, KeyboardType.Decimal)
@@ -446,6 +459,8 @@ private fun ItemForm(
         ItemTextField(form.mrp, { form.mrp = it }, R.string.items_mrp, KeyboardType.Decimal)
         ItemTextField(form.taxPercent, { form.taxPercent = it }, R.string.items_tax_percent, KeyboardType.Decimal)
         ItemTextField(form.openingStock, { form.openingStock = it }, R.string.items_opening_stock, KeyboardType.Decimal)
+        }
+        FormSection(title = null) {
         ItemTextField(form.description, { form.description = it }, R.string.items_description)
         ItemTextField(form.mainImageUri, { form.mainImageUri = it }, R.string.items_main_image)
         ItemTextField(form.additionalImagesText, { form.additionalImagesText = it }, R.string.items_additional_images)
@@ -453,12 +468,19 @@ private fun ItemForm(
             Text(stringResource(R.string.items_form_error), color = MaterialTheme.colorScheme.error)
         }
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(enabled = form.name.isNotBlank() && !saving, onClick = onSave) {
+        }
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    ) {
+        AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
             Text(if (saving) stringResource(R.string.items_saving) else stringResource(R.string.items_save))
         }
-        Button(enabled = !saving, onClick = onCancel) {
+        AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.items_cancel))
         }
+    }
     }
 }
 

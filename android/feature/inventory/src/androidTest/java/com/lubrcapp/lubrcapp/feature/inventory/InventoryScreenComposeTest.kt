@@ -9,6 +9,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.lubrcapp.lubrcapp.core.designsystem.BrandPalette
+import com.lubrcapp.lubrcapp.core.designsystem.DesignSystemConfig
+import com.lubrcapp.lubrcapp.core.designsystem.LubrcappTheme
 import com.lubrcapp.lubrcapp.core.repository.OperationalBusinessRepository
 import com.lubrcapp.lubrcapp.core.repository.OperationalRecord
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
@@ -42,7 +45,12 @@ class InventoryScreenComposeTest {
     @Test fun cardsAndBackNavigation() {
         val fake = FakeRepository()
         var backCount = 0
-        compose.setContent { InventoryScreen(scope, onBack = { backCount++ }, viewModel = InventoryViewModel(fake)) }
+        val viewModel = InventoryViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                InventoryScreen(scope, onBack = { backCount++ }, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Inventory value: 0").assertIsDisplayed()
         compose.onNodeWithText("Items: 0").assertIsDisplayed()
         compose.onNodeWithText("No items yet").assertIsDisplayed()
@@ -61,7 +69,12 @@ class InventoryScreenComposeTest {
             quantity = BigDecimal("5"), date = "2026-10-24", reason = "Sold",
         )
         fake.seed("stock_movements", listOf(OperationalRecord("mv-1", StockMovementJson.encode(movement))))
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        val viewModel = InventoryViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                InventoryScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Engine Oil · 45 · In stock").assertIsDisplayed()
         compose.onNodeWithText("Inventory value: 4500").assertIsDisplayed()
         compose.onNodeWithText("Engine Oil · 45 · In stock").performClick()
@@ -77,7 +90,12 @@ class InventoryScreenComposeTest {
             "products",
             listOf(OperationalRecord("oil", """{"name":"Engine Oil","openingStock":"50"}""")),
         )
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        val viewModel = InventoryViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                InventoryScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Adjust stock").performClick()
         compose.onNodeWithText("Engine Oil").performClick()
         compose.onNodeWithText("Quantity").performScrollTo().performTextInput("3")
@@ -128,7 +146,12 @@ class InventoryScreenComposeTest {
             lines = listOf(StockTransferLine("oil", BigDecimal("20"))),
         )
         fake.seed("stock_transfers", listOf(OperationalRecord("tr-1", StockTransferJson.encode(transfer))))
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        val viewModel = InventoryViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                InventoryScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Transfers").performClick()
         compose.onNodeWithText("Main Warehouse → Islamabad Branch · Draft").assertIsDisplayed()
         compose.onNodeWithText("Main Warehouse → Islamabad Branch · Draft").performClick()
@@ -150,7 +173,12 @@ class InventoryScreenComposeTest {
             "products",
             listOf(OperationalRecord("tv", """{"name":"Samsung TV"}""")),
         )
-        compose.setContent { InventoryScreen(scope, onBack = {}, viewModel = InventoryViewModel(fake)) }
+        val viewModel = InventoryViewModel(fake)
+        compose.setContent {
+            LubrcappTheme(config = testDesignSystemConfig) {
+                InventoryScreen(scope, onBack = {}, viewModel = viewModel)
+            }
+        }
         compose.onNodeWithText("Samsung TV · 0 · Out of stock").performClick()
         compose.onNodeWithText("Serial number").performScrollTo().performTextInput("SN28282")
         compose.onNodeWithText("Add serial").performScrollTo().performClick()
@@ -165,5 +193,17 @@ class InventoryScreenComposeTest {
             ).status == SerialStatus.REMOVED
         }
         compose.onAllNodesWithText("SN28282").assertCountEquals(0)
+    }
+    private companion object {
+        val testDesignSystemConfig = DesignSystemConfig(
+            palette = BrandPalette(
+                primary = 0xFF0F766E.toInt(),
+                secondary = 0xFF14B8A6.toInt(),
+                accent = 0xFFD97706.toInt(),
+                success = 0xFF16A34A.toInt(),
+                warning = 0xFFF59E0B.toInt(),
+                error = 0xFFDC2626.toInt(),
+            ),
+        )
     }
 }

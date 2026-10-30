@@ -37,6 +37,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.AppButton
+import com.lubrcapp.lubrcapp.core.designsystem.AppButtonStyle
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.party.PartyType
 import java.math.BigDecimal
@@ -304,16 +307,19 @@ private fun PartyForm(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    Column(modifier = Modifier.fillMaxSize()) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             stringResource(if (isEditing) R.string.parties_edit_title else R.string.parties_new_title),
             style = MaterialTheme.typography.headlineMedium,
         )
+        FormSection(title = null) {
         PartyTextField(form.name, { form.name = it }, R.string.parties_label)
-        Text(stringResource(R.string.parties_type), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.parties_type)) {
         PartyType.entries.forEach { type ->
             Row(
                 modifier = Modifier.fillMaxWidth().selectable(
@@ -326,7 +332,8 @@ private fun PartyForm(
                 Text(stringResource(type.labelRes()))
             }
         }
-        Text(stringResource(R.string.parties_group), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.parties_group)) {
         Row(
             modifier = Modifier.fillMaxWidth().selectable(
                 selected = form.groupId == null,
@@ -349,13 +356,16 @@ private fun PartyForm(
                 Text(group.name)
             }
         }
+        }
+        FormSection(title = null) {
         PartyTextField(form.businessName, { form.businessName = it }, R.string.parties_business_name)
         PartyTextField(form.contactPerson, { form.contactPerson = it }, R.string.parties_contact_person)
         PartyTextField(form.mobile, { form.mobile = it }, R.string.parties_mobile, KeyboardType.Phone)
         PartyTextField(form.whatsapp, { form.whatsapp = it }, R.string.parties_whatsapp, KeyboardType.Phone)
         PartyTextField(form.phone, { form.phone = it }, R.string.parties_phone, KeyboardType.Phone)
         PartyTextField(form.email, { form.email = it }, R.string.parties_email, KeyboardType.Email)
-        Text(stringResource(R.string.parties_addresses), style = MaterialTheme.typography.titleMedium)
+        }
+        FormSection(title = stringResource(R.string.parties_addresses)) {
         form.addresses.forEachIndexed { index, address ->
             AddressFields(address) {
                 form.addresses = form.addresses.filterIndexed { i, _ -> i != index }
@@ -364,6 +374,8 @@ private fun PartyForm(
         Button(onClick = { form.addresses = form.addresses + PartyAddressFormState() }) {
             Text(stringResource(R.string.parties_add_address))
         }
+        }
+        FormSection(title = null) {
         PartyTextField(form.taxNumber, { form.taxNumber = it }, R.string.parties_tax_number)
         PartyTextField(form.nationalId, { form.nationalId = it }, R.string.parties_national_id)
         PartyTextField(form.openingBalance, { form.openingBalance = it }, R.string.parties_opening_balance, KeyboardType.Decimal)
@@ -377,18 +389,27 @@ private fun PartyForm(
             Checkbox(checked = form.isBlocked, onCheckedChange = { form.isBlocked = it })
             Text(stringResource(R.string.parties_blocked))
         }
+        }
+        FormSection(title = null) {
         PartyTextField(form.notes, { form.notes = it }, R.string.parties_notes)
         PartyTextField(form.photoUri, { form.photoUri = it }, R.string.parties_photo)
         if (formError) {
             Text(stringResource(R.string.parties_form_error), color = MaterialTheme.colorScheme.error)
         }
         saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(enabled = form.name.isNotBlank() && !saving, onClick = onSave) {
+        }
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    ) {
+        AppButton(enabled = form.name.isNotBlank() && !saving, onClick = onSave, modifier = Modifier.weight(1f)) {
             Text(if (saving) stringResource(R.string.parties_saving) else stringResource(R.string.parties_save))
         }
-        Button(enabled = !saving, onClick = onCancel) {
+        AppButton(enabled = !saving, onClick = onCancel, style = AppButtonStyle.OUTLINED, modifier = Modifier.weight(1f)) {
             Text(stringResource(R.string.parties_cancel))
         }
+    }
     }
 }
 

@@ -1,6 +1,6 @@
 package com.lubrcapp.lubrcapp.feature.inventory
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,9 +27,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lubrcapp.lubrcapp.core.designsystem.AppCard
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.inventory.StockStatus
 import java.math.BigDecimal
@@ -360,18 +363,22 @@ private fun ColumnScope.InventoryList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(visibleRows, key = { it.item.id }) { row ->
-            Button(
-                onClick = { onSelect(row.item.id) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    stringResource(
-                        R.string.inventory_row,
-                        row.item.name,
-                        row.balance.toPlainString(),
-                        stringResource(statusLabel(row.status)),
-                    )
-                )
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Button(
+                        onClick = { onSelect(row.item.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.inventory_row,
+                                row.item.name,
+                                row.balance.toPlainString(),
+                                stringResource(statusLabel(row.status)),
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -556,20 +563,25 @@ private fun ColumnScope.StockAdjustmentMode(
         modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
+        FormSection(title = stringResource(R.string.inventory_field_item)) {
         items.forEach { item ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(itemId = item.id) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.itemId == item.id,
+                    onClick = { form = form.copy(itemId = item.id) },
+                    role = Role.RadioButton,
+                ),
             ) {
                 RadioButton(
                     selected = form.itemId == item.id,
-                    onClick = { form = form.copy(itemId = item.id) },
+                    onClick = null,
                 )
                 Text(item.name)
             }
         }
-        Text(stringResource(R.string.inventory_field_kind), style = MaterialTheme.typography.titleSmall)
+        }
+        FormSection(title = stringResource(R.string.inventory_field_kind)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StockAdjustmentKind.entries.forEach { kind ->
                 Button(
@@ -592,6 +604,8 @@ private fun ColumnScope.StockAdjustmentMode(
                 ) { Text(stringResource(R.string.inventory_direction_out)) }
             }
         }
+        }
+        FormSection(title = null) {
         OutlinedTextField(
             value = form.quantityText,
             onValueChange = { form = form.copy(quantityText = it) },
@@ -616,25 +630,38 @@ private fun ColumnScope.StockAdjustmentMode(
             label = { Text(stringResource(R.string.inventory_field_attachment)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(stringResource(R.string.inventory_field_warehouse), style = MaterialTheme.typography.titleSmall)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(
+        }
+        FormSection(title = stringResource(R.string.inventory_field_warehouse)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().selectable(
                 selected = form.warehouseId == null,
                 onClick = { form = form.copy(warehouseId = null) },
+                role = Role.RadioButton,
+            ),
+        ) {
+            RadioButton(
+                selected = form.warehouseId == null,
+                onClick = null,
             )
             Text(stringResource(R.string.inventory_field_none))
         }
         warehouses.forEach { warehouse ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(warehouseId = warehouse.id) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.warehouseId == warehouse.id,
+                    onClick = { form = form.copy(warehouseId = warehouse.id) },
+                    role = Role.RadioButton,
+                ),
             ) {
                 RadioButton(
                     selected = form.warehouseId == warehouse.id,
-                    onClick = { form = form.copy(warehouseId = warehouse.id) },
+                    onClick = null,
                 )
                 Text(warehouse.name)
             }
+        }
         }
     }
 
@@ -784,18 +811,22 @@ private fun ColumnScope.StockTransfersMode(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(transfers, key = { it.id }) { transfer ->
-                    Button(
-                        onClick = { selectedId = transfer.id },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.inventory_transfer_row,
-                                warehouseName(warehouses, transfer.fromWarehouseId),
-                                warehouseName(warehouses, transfer.toWarehouseId),
-                                stringResource(transferStatusLabel(transfer.status)),
-                            )
-                        )
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Button(
+                                onClick = { selectedId = transfer.id },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        R.string.inventory_transfer_row,
+                                        warehouseName(warehouses, transfer.fromWarehouseId),
+                                        warehouseName(warehouses, transfer.toWarehouseId),
+                                        stringResource(transferStatusLabel(transfer.status)),
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -823,32 +854,43 @@ private fun ColumnScope.TransferEditor(
         modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(stringResource(R.string.inventory_transfer_from), style = MaterialTheme.typography.titleSmall)
+        FormSection(title = stringResource(R.string.inventory_transfer_from)) {
         warehouses.forEach { warehouse ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(fromWarehouseId = warehouse.id) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.fromWarehouseId == warehouse.id,
+                    onClick = { form = form.copy(fromWarehouseId = warehouse.id) },
+                    role = Role.RadioButton,
+                ),
             ) {
                 RadioButton(
                     selected = form.fromWarehouseId == warehouse.id,
-                    onClick = { form = form.copy(fromWarehouseId = warehouse.id) },
+                    onClick = null,
                 )
                 Text(warehouse.name)
             }
         }
-        Text(stringResource(R.string.inventory_transfer_to), style = MaterialTheme.typography.titleSmall)
+        }
+        FormSection(title = stringResource(R.string.inventory_transfer_to)) {
         warehouses.forEach { warehouse ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { form = form.copy(toWarehouseId = warehouse.id) },
+                modifier = Modifier.fillMaxWidth().selectable(
+                    selected = form.toWarehouseId == warehouse.id,
+                    onClick = { form = form.copy(toWarehouseId = warehouse.id) },
+                    role = Role.RadioButton,
+                ),
             ) {
                 RadioButton(
                     selected = form.toWarehouseId == warehouse.id,
-                    onClick = { form = form.copy(toWarehouseId = warehouse.id) },
+                    onClick = null,
                 )
                 Text(warehouse.name)
             }
         }
+        }
+        FormSection(title = null) {
         DateField(
             value = form.date,
             onValueChange = { form = form.copy(date = it) },
@@ -861,6 +903,7 @@ private fun ColumnScope.TransferEditor(
             label = { Text(stringResource(R.string.inventory_field_note)) },
             modifier = Modifier.fillMaxWidth(),
         )
+        }
         Text(stringResource(R.string.inventory_field_item), style = MaterialTheme.typography.titleSmall)
         items.forEach { item ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

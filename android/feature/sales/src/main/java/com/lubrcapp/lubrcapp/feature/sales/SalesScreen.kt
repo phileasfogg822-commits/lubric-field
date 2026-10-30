@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lubrcapp.lubrcapp.core.designsystem.DateField
 import com.lubrcapp.lubrcapp.core.designsystem.AppCard
+import com.lubrcapp.lubrcapp.core.designsystem.FormSection
 import com.lubrcapp.lubrcapp.core.repository.OperationalScope
 import com.lubrcapp.lubrcapp.domain.common.BusinessId
 import com.lubrcapp.lubrcapp.domain.common.CurrencyCode
@@ -470,7 +471,7 @@ private fun DocumentEditor(
         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        run {
+        FormSection(title = null) {
             Text(
                 stringResource(
                     when (form.type) {
@@ -487,8 +488,6 @@ private fun DocumentEditor(
                 Text(form.number, style = MaterialTheme.typography.titleMedium)
             }
             Text(stringResource(R.string.sales_status, form.status))
-        }
-        run {
             DateField(
                 value = form.date,
                 onValueChange = { onFormChange(form.copy(date = it)) },
@@ -508,28 +507,39 @@ private fun DocumentEditor(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        run {
-            Text(stringResource(R.string.sales_party), style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
+        FormSection(title = stringResource(R.string.sales_party)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().selectable(
                     selected = form.partyId == null,
                     onClick = { onFormChange(form.copy(partyId = null)) },
+                    role = Role.RadioButton,
+                ),
+            ) {
+                RadioButton(
+                    selected = form.partyId == null,
+                    onClick = null,
                 )
                 Text(stringResource(R.string.sales_no_party))
             }
-        }
-        parties.forEach { party ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = form.partyId == party.id,
-                    onClick = { onFormChange(form.copy(partyId = party.id)) },
-                )
-                Text(party.name)
+            parties.forEach { party ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().selectable(
+                        selected = form.partyId == party.id,
+                        onClick = { onFormChange(form.copy(partyId = party.id)) },
+                        role = Role.RadioButton,
+                    ),
+                ) {
+                    RadioButton(
+                        selected = form.partyId == party.id,
+                        onClick = null,
+                    )
+                    Text(party.name)
+                }
             }
         }
-        run {
-            Text(stringResource(R.string.sales_lines), style = MaterialTheme.typography.titleMedium)
-        }
+        FormSection(title = stringResource(R.string.sales_lines)) {
         form.lines.forEach { draft ->
             LineEditor(
                 draft = draft,
@@ -560,8 +570,10 @@ private fun DocumentEditor(
                 )
             }
         }
+        }
         // Status actions + conversion, only for a saved document.
         if (form.existingId != null) {
+                        FormSection(title = stringResource(R.string.sales_actions)) {
             run {
                 Text(stringResource(R.string.sales_actions), style = MaterialTheme.typography.titleMedium)
             }
@@ -629,10 +641,12 @@ private fun DocumentEditor(
             // the engine re-derives the order status from fulfilled
             // quantities. A line added in this editor but never saved
             // fails in the handler with the generic error, not a crash.
+            }
             val deliverHandler = onDeliverLine
             if (form.type == SalesDocumentType.SALES_ORDER &&
                 form.existingId != null && deliverHandler != null
             ) {
+            FormSection(title = stringResource(R.string.sales_delivery_title)) {
                 val orderStatus = SalesDocumentStatus.orderStatus(form.toDocument(form.existingId))
                 if (orderStatus == SalesOrderStatus.CONFIRMED ||
                     orderStatus == SalesOrderStatus.PARTIALLY_FULFILLED ||
@@ -673,12 +687,14 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             val postDocument = onPostDocument
             if (postDocument != null &&
                 (form.type == SalesDocumentType.INVOICE ||
                     form.type == SalesDocumentType.SALES_RETURN ||
                     form.type == SalesDocumentType.CREDIT_NOTE)
             ) {
+            FormSection(title = null) {
                 run {
                     Button(
                         onClick = { showPostingPicker = true },
@@ -809,6 +825,7 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             // Phase 31.2 — receive money on an open invoice. The
             // section shows only for payable invoice statuses; the
             // screen builds the Payment and posts it, then applies
@@ -819,6 +836,7 @@ private fun DocumentEditor(
                 form.existingId != null &&
                 (form.status == "SENT" || form.status == "PARTIALLY_PAID" || form.status == "OVERDUE")
             ) {
+            FormSection(title = null) {
                 run {
                     Text(stringResource(R.string.sales_payment_title), style = MaterialTheme.typography.titleMedium)
                 }
@@ -892,7 +910,9 @@ private fun DocumentEditor(
                     }
                 }
             }
+            }
             if (timeline.isNotEmpty()) {
+            FormSection(title = stringResource(R.string.sales_timeline)) {
                 run {
                     Text(stringResource(R.string.sales_timeline), style = MaterialTheme.typography.titleMedium)
                 }
@@ -906,6 +926,7 @@ private fun DocumentEditor(
                         )
                     )
                 }
+            }
             }
         }
     }
