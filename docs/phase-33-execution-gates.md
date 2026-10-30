@@ -77,6 +77,28 @@ structure land in 33.2.
 
 ## Package 33.2 — Home redesign
 
+Home was a bare business-name headline. It now opens with a
+primary-colour hero card (business name, type, currency, DEMO
+badge), a money-overview card fed by the ledger (receivables
+vs payables as cash-flow bars from 33.1), and the quick
+actions as a two-column tappable card grid instead of a plain
+button list. HomeSummary is pure dashboard data;
+HomeSummaryMapping sums signed ledger rows per direction in
+the first non-blank currency and stays null (card hidden)
+when there are no parties. DashboardScreen gains a defaulted
+homeSummary param, so existing callers render exactly as
+before; MainNavigation loads the summary when the scope
+resolves and the shell ViewModels are present (null
+ViewModels in the navigation tests skip loading).
+Tests: 5 JVM (signed sums, currency filtering, unknown
+directions, empty, blank currency).
+First head `9ec4d56` failed both workflows on one compile
+error — smart cast on delegated `operationalScope` at
+MainNavigation.kt:418 — fixed in `a45d4e2` by capturing it
+with `?.let { scope -> }`.
+ACCEPTED at `a45d4e2`: Native 40978302750 success, Compose
+40978302714 success, Segmented 40978302728 success.
+
 ## Package 33.3 — Modern lists
 
 ## Package 33.4 — Modern forms
