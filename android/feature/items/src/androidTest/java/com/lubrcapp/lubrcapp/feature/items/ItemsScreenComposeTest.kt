@@ -58,9 +58,10 @@ class ItemsScreenComposeTest {
     @Test fun listShowsAddItemAndBackNavigation() {
         val fake = FakeRepository()
         var backs = 0
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = { backs++ }, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = { backs++ }, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Add item").assertIsDisplayed()
@@ -70,9 +71,10 @@ class ItemsScreenComposeTest {
 
     @Test fun createProductWithSaleRateAndStockThenEdit() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -95,9 +97,10 @@ class ItemsScreenComposeTest {
 
     @Test fun createServiceItemShowsTypeInList() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -114,9 +117,10 @@ class ItemsScreenComposeTest {
 
     @Test fun fullFieldSetSavesThroughCodec() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -138,9 +142,10 @@ class ItemsScreenComposeTest {
 
     @Test fun invalidRateShowsFormErrorAndDoesNotSave() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -153,9 +158,10 @@ class ItemsScreenComposeTest {
 
     @Test fun createAndConfirmDelete() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -172,9 +178,10 @@ class ItemsScreenComposeTest {
 
     @Test fun categoryLifecycleAssignCountAndOrphanAfterDelete() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // Create the category.
@@ -208,9 +215,10 @@ class ItemsScreenComposeTest {
 
     @Test fun subcategoryShowsParentLine() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Categories").performClick()
@@ -228,9 +236,10 @@ class ItemsScreenComposeTest {
 
     @Test fun brandLifecycleAssignCountAndOrphanAfterDelete() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // Create the brand.
@@ -264,9 +273,10 @@ class ItemsScreenComposeTest {
 
     @Test fun imageReferencesSaveThroughCodecAndShowInList() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -286,9 +296,10 @@ class ItemsScreenComposeTest {
 
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("No items yet").assertIsDisplayed()
@@ -297,9 +308,10 @@ class ItemsScreenComposeTest {
     @Test fun saveFailureShowsError() {
         val fake = FakeRepository()
         fake.failSave = true
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -313,9 +325,10 @@ class ItemsScreenComposeTest {
 
     @Test fun unitLifecycleAssignAndOrphanAfterDelete() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // Create a unit from the suggested §25 names.
@@ -347,9 +360,10 @@ class ItemsScreenComposeTest {
 
     @Test fun conversionLifecycleShowsInUnitsMode() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Units").performClick()
@@ -378,9 +392,10 @@ class ItemsScreenComposeTest {
 
     @Test fun branchAndWarehouseLifecycleWithOrphanAfterBranchDelete() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Locations").performClick()
@@ -409,9 +424,10 @@ class ItemsScreenComposeTest {
 
     @Test fun priceListEntryLifecycleAndResolutionInputs() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // An item to price.
@@ -452,9 +468,10 @@ class ItemsScreenComposeTest {
 
     @Test fun batchLifecycleStoresQuantityAsData() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // An item to batch.
@@ -487,9 +504,10 @@ class ItemsScreenComposeTest {
 
     @Test fun searchFindsByExactBarcodeThenByName() {
         val fake = FakeRepository()
+        val viewModel = ItemsViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                ItemsScreen(scope, onBack = {}, viewModel = ItemsViewModel(fake))
+                ItemsScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()

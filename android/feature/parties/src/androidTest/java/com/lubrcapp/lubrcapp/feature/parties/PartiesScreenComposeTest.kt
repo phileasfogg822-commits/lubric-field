@@ -56,9 +56,10 @@ class PartiesScreenComposeTest {
     @Test fun listShowsAddPartyAndBackNavigation() {
         val fake = FakeRepository()
         var backCount = 0
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = { backCount++ }, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = { backCount++ }, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Add party").assertIsDisplayed()
@@ -68,9 +69,10 @@ class PartiesScreenComposeTest {
 
     @Test fun createSupplierWithOpeningBalanceThenEdit() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -90,9 +92,10 @@ class PartiesScreenComposeTest {
 
     @Test fun createPartyWithAddressSavesThroughCodec() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -111,9 +114,10 @@ class PartiesScreenComposeTest {
 
     @Test fun invalidAmountShowsFormErrorAndDoesNotSave() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -126,9 +130,10 @@ class PartiesScreenComposeTest {
 
     @Test fun createAndConfirmDelete() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -145,9 +150,10 @@ class PartiesScreenComposeTest {
 
     @Test fun groupLifecycleAssignMemberAndOrphanAfterDelete() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         // Create the group.
@@ -181,9 +187,10 @@ class PartiesScreenComposeTest {
 
     @Test fun profileShowsCreditWarningAndFacts() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()
@@ -206,9 +213,10 @@ class PartiesScreenComposeTest {
             OperationalRecord("1", PartyJson.encode(Party(id = "1", name = "Sample"))),
             OperationalRecord("2", PartyJson.encode(Party(id = "2", name = "Other"))),
         )
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("Sample").assertIsDisplayed()
@@ -223,9 +231,10 @@ class PartiesScreenComposeTest {
         fake.records.value = listOf(
             OperationalRecord("1", PartyJson.encode(Party(id = "1", name = "Sample"))),
         )
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("S").assertIsDisplayed()
@@ -233,9 +242,10 @@ class PartiesScreenComposeTest {
 
     @Test fun emptyStateIsShownWhenNoRecords() {
         val fake = FakeRepository()
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("No parties yet").assertIsDisplayed()
@@ -244,9 +254,10 @@ class PartiesScreenComposeTest {
     @Test fun saveFailureShowsError() {
         val fake = FakeRepository()
         fake.failSave = true
+        val viewModel = PartiesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                PartiesScreen(scope, onBack = {}, viewModel = PartiesViewModel(fake))
+                PartiesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         openForm()

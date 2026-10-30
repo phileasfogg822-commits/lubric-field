@@ -55,9 +55,10 @@ class SalesScreenComposeTest {
     @Test fun listShowsCreateActionsAndBackNavigation() {
         val fake = FakeRepository()
         var backs = 0
+        val viewModel = SalesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                SalesScreen(scope, onBack = { backs++ }, viewModel = SalesViewModel(fake))
+                SalesScreen(scope, onBack = { backs++ }, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("New quotation").assertIsDisplayed()
@@ -68,9 +69,10 @@ class SalesScreenComposeTest {
 
     @Test fun createQuotationShowsLiveTotalsAndSavesNumbered() {
         val fake = FakeRepository()
+        val viewModel = SalesViewModel(fake)
         compose.setContent {
             LubrcappTheme(config = testDesignSystemConfig) {
-                SalesScreen(scope, onBack = {}, viewModel = SalesViewModel(fake))
+                SalesScreen(scope, onBack = {}, viewModel = viewModel)
             }
         }
         compose.onNodeWithText("New quotation").performClick()
